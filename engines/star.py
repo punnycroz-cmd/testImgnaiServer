@@ -1,7 +1,6 @@
 import asyncio
 import json
 import os
-import httpx
 from typing import Optional
 
 import httpx
@@ -52,6 +51,16 @@ class StarManager:
     def get_user_agent(self):
         return "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
 
+    async def _get_json(self, client: httpx.AsyncClient, url: str, headers: dict):
+        try:
+            resp = await client.get(url, headers=headers)
+            resp.raise_for_status()
+            return resp.json()
+        except httpx.TimeoutException:
+            return None
+        except Exception:
+            return None
+
     async def start(self):
         if self.page:
             return
@@ -82,12 +91,14 @@ class StarManager:
             headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json", "Origin": "https://imagine.red"}
             payload = star_api.build_payload(req.model, req.quality, req.aspect, req.prompt, req.count, req.seed, True, negative_prompt=req.negative_prompt)
 
-            async with httpx.AsyncClient(timeout=60) as client:
+            async with httpx.AsyncClient(timeout=httpx.Timeout(90.0, connect=30.0)) as client:
                 session_resp = await client.post(star_api.URL_GENERATE_SESSION, headers=headers)
+                session_resp.raise_for_status()
                 session_uuid = star_api.parse_session_uuid(session_resp.text)
                 payload["session_uuid"] = session_uuid
 
                 batch_resp = await client.post(star_api.URL_GENERATE_BATCH, headers=headers, json=payload)
+                batch_resp.raise_for_status()
                 batch_data = batch_resp.json()
 
                 task_uuids = batch_data if isinstance(batch_data, list) else batch_data.get("response", [])
@@ -96,12 +107,11 @@ class StarManager:
                 vaulted_urls = []
 
                 for idx, tuid in enumerate(task_uuids):
-                    for _ in range(60):
-                        poll = await client.get(star_api.URL_GENERATE_TASK.format(task_uuid=tuid), headers=headers)
-                        try:
-                            poll_data = poll.json()
-                        except Exception:
-                            poll_data = {}
+                    for _ in range(90):
+                        poll_data = await self._get_json(client, star_api.URL_GENERATE_TASK.format(task_uuid=tuid), headers)
+                        if not poll_data:
+                            await asyncio.sleep(2)
+                            continue
                         resp_obj = poll_data.get("response") or poll_data
                         img_path = resp_obj.get("no_watermark_image_url") or resp_obj.get("image_url")
                         if img_path:
