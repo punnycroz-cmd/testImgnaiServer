@@ -5,7 +5,6 @@ import re
 import sys
 import time
 import urllib.parse
-from datetime import datetime
 
 from dotenv import load_dotenv
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
@@ -13,6 +12,7 @@ from playwright.sync_api import sync_playwright
 from playwright_stealth import Stealth
 
 from config.models import ASPECT_CHOICES, ASPECT_TO_RESOLUTION, MODEL_CONFIGS, MODEL_ORDER, QUALITY_CHOICES
+from core.vault import R2Vault
 
 load_dotenv()
 
@@ -29,6 +29,12 @@ PASSWORD = os.environ.get("IMGNAI_PASSWORD")
 COOKIE_DIR = "cookie"
 COOKIES_FILE = os.path.join(COOKIE_DIR, "imgnai_cookie.json")
 os.makedirs(COOKIE_DIR, exist_ok=True)
+
+R2_VAULT = R2Vault(
+    account_id="c733aa6dbf847adf0949e4387eb6f15f",
+    bucket_name="imagenai",
+    public_url="https://pub-b770478fe936495c8d44e69fb02d2943.r2.dev",
+)
 
 
 def ask_yes_no(question, default=True):
@@ -92,10 +98,6 @@ def load_cookies(context):
         return True
     except Exception:
         return False
-
-
-def display_name_to_safe_name(name):
-    return re.sub(r"[^A-Za-z0-9_.-]+", "_", name).replace(".", "_")
 
 
 def model_choice_from_args_or_prompt(args):
@@ -437,7 +439,11 @@ def run():
         save_cookies(context)
         context.close()
         browser.close()
-        print(json.dumps({"image_urls": final_image_urls}))
+        vaulted_urls = []
+        for idx, url in enumerate(final_image_urls):
+            vaulted_urls.append(R2_VAULT.upload_image(url, f"vault/day_{model_name}_{idx}.jpg"))
+
+        print(json.dumps({"image_urls": vaulted_urls}))
 
 
 if __name__ == "__main__":

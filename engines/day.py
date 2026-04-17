@@ -49,9 +49,4 @@ class DayManager:
                 raise RuntimeError("Engine output missing")
             data = json.loads(last_json_line)
 
-            vaulted_urls = []
-            for idx, url in enumerate(data.get("image_urls", [])):
-                cloud_url = self.vault.upload_image(url, f"vault/day_{req.client_id}_{idx}.jpg")
-                vaulted_urls.append(cloud_url)
-
-            return {"image_urls": vaulted_urls, "client_id": req.client_id, "model": req.model, "prompt": req.prompt}
+            return {"image_urls": data.get("image_urls", []), "client_id": req.client_id, "model": req.model, "prompt": req.prompt}
