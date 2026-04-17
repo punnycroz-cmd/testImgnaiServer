@@ -87,16 +87,34 @@ class StarManager:
                 await star_api.ensure_logged_in_async(self.page, self.context, force_login=True)
                 token = await star_api.acquire_auth_token_async(self.page, self.context)
 
-            headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json", "Origin": "https://imagine.red"}
             payload = star_api.build_payload(req.model, req.quality, req.aspect, req.prompt, req.count, req.seed, True, negative_prompt=req.negative_prompt)
 
             async with httpx.AsyncClient(timeout=httpx.Timeout(90.0, connect=30.0)) as client:
+                headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json", "Origin": "https://imagine.red"}
                 session_resp = await client.post(star_api.URL_GENERATE_SESSION, headers=headers)
+                if session_resp.status_code == 401:
+                    await star_api.ensure_logged_in_async(self.page, self.context, force_login=True)
+                    token = await star_api.acquire_auth_token_async(self.page, self.context)
+                    if not token:
+                        raise RuntimeError("Star auth token missing after re-login")
+                    headers["Authorization"] = f"Bearer {token}"
+                    session_resp = await client.post(star_api.URL_GENERATE_SESSION, headers=headers)
                 session_resp.raise_for_status()
                 session_uuid = star_api.parse_session_uuid(session_resp.text)
                 payload["session_uuid"] = session_uuid
 
                 batch_resp = await client.post(star_api.URL_GENERATE_BATCH, headers=headers, json=payload)
+                if batch_resp.status_code == 401:
+                    await star_api.ensure_logged_in_async(self.page, self.context, force_login=True)
+                    token = await star_api.acquire_auth_token_async(self.page, self.context)
+                    if not token:
+                        raise RuntimeError("Star auth token missing after re-login")
+                    headers["Authorization"] = f"Bearer {token}"
+                    session_resp = await client.post(star_api.URL_GENERATE_SESSION, headers=headers)
+                    session_resp.raise_for_status()
+                    session_uuid = star_api.parse_session_uuid(session_resp.text)
+                    payload["session_uuid"] = session_uuid
+                    batch_resp = await client.post(star_api.URL_GENERATE_BATCH, headers=headers, json=payload)
                 batch_resp.raise_for_status()
                 batch_data = batch_resp.json()
 
