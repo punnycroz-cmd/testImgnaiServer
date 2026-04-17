@@ -4,6 +4,7 @@ import logging
 import subprocess
 import sys
 import threading
+from datetime import datetime
 
 from core.vault import R2Vault
 
@@ -56,8 +57,11 @@ class DayManager:
             vaulted_urls = []
             image_urls = data.get("image_urls", [])
             self.logger.info("day generated %s urls, vaulting", len(image_urls))
+            run_stamp = datetime.now()
+            batch_prefix = self.vault.build_batch_prefix("day", ts=run_stamp)
+            self.logger.info("day batch prefix=%s", batch_prefix)
             for idx, url in enumerate(image_urls):
-                cloud_url = self.vault.upload_image(url, f"vault/day_{req.client_id}_{idx}.jpg")
+                cloud_url = self.vault.upload_image(url, self.vault.build_object_key(batch_prefix, idx, "jpg"))
                 vaulted_urls.append(cloud_url)
                 self.logger.info("day image vaulted idx=%s url=%s", idx, cloud_url)
             self.logger.info("day generate done images=%s", len(vaulted_urls))

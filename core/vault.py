@@ -1,6 +1,8 @@
 import os
 import logging
 from io import BytesIO
+from datetime import datetime
+from uuid import uuid4
 from typing import Optional
 
 import boto3
@@ -22,6 +24,15 @@ class R2Vault:
         self.access_key = access_key or os.environ.get("R2_ACCESS_KEY")
         self.secret_key = secret_key or os.environ.get("R2_SECRET_KEY")
         self.logger = logging.getLogger("aether.vault")
+
+    def build_batch_prefix(self, source: str, ts: Optional[datetime] = None, batch_id: Optional[str] = None) -> str:
+        stamp = (ts or datetime.now()).strftime("%Y_%m_%d_%H%M%S")
+        safe_source = source.strip().lower().replace(" ", "_")
+        safe_batch_id = (batch_id or uuid4().hex[:8]).strip().lower()
+        return f"vault/{stamp}_{safe_source}_{safe_batch_id}"
+
+    def build_object_key(self, batch_prefix: str, index: int, ext: str = "jpg") -> str:
+        return f"{batch_prefix}/{index + 1:03d}.{ext.lstrip('.')}"
 
     def upload_image(self, image_url: str, file_name: str) -> str:
         if not self.access_key or "PASTE_YOUR" in self.access_key:

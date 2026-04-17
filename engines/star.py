@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import os
+from datetime import datetime
 from typing import Optional
 
 import httpx
@@ -135,6 +136,9 @@ class StarManager:
                 if not task_uuids and isinstance(batch_data, dict):
                     task_uuids = batch_data.get("task_uuids", [])
                 vaulted_urls = []
+                run_stamp = datetime.now()
+                batch_prefix = self.vault.build_batch_prefix("star", ts=run_stamp)
+                self.logger.info("star batch prefix=%s", batch_prefix)
 
                 for idx, tuid in enumerate(task_uuids):
                     self.logger.info("polling star task %s (%s/%s)", tuid[:8], idx + 1, len(task_uuids))
@@ -147,7 +151,7 @@ class StarManager:
                         img_path = resp_obj.get("no_watermark_image_url") or resp_obj.get("image_url")
                         if img_path:
                             source_url = f"https://r.imagine.red/{img_path.lstrip('/')}"
-                            cloud_url = self.vault.upload_image(source_url, f"vault/star_{req.client_id or tuid}_{idx}.jpg")
+                            cloud_url = self.vault.upload_image(source_url, self.vault.build_object_key(batch_prefix, idx, "jpg"))
                             vaulted_urls.append(cloud_url)
                             self.logger.info("star image vaulted task=%s url=%s", tuid[:8], cloud_url)
                             break
