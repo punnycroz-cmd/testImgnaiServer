@@ -4,6 +4,7 @@ import os
 import httpx
 from typing import Optional
 
+import httpx
 from playwright.async_api import async_playwright
 from playwright_stealth import Stealth
 
@@ -79,39 +80,38 @@ class StarManager:
                 token = await star_api.acquire_auth_token_async(self.page, self.context)
 
             headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json", "Origin": "https://imagine.red"}
-            session_resp = await self.page.evaluate("""async (h) => {
-                const r = await fetch('https://api.imagine.red/services/webappms/api/generate-session', {method:'POST', headers:h});
-                return await r.text();
-            }""", headers)
-            session_uuid = star_api.parse_session_uuid(session_resp)
-
             payload = star_api.build_payload(req.model, req.quality, req.aspect, req.prompt, req.count, req.seed, True, negative_prompt=req.negative_prompt)
-            payload["session_uuid"] = session_uuid
-            batch_resp = await self.page.evaluate("""async ({p, h}) => {
-                const r = await fetch('https://api.imagine.red/services/webappms/api/generate-image-batch', {method:'POST', headers:h, body:JSON.stringify(p)});
-                return await r.json();
-            }""", {"p": payload, "h": headers})
 
-            task_uuids = batch_resp if isinstance(batch_resp, list) else batch_resp.get("response", [])
-            vaulted_urls = []
+            async with httpx.AsyncClient(timeout=60) as client:
+                session_resp = await client.post(star_api.URL_GENERATE_SESSION, headers=headers)
+                session_uuid = star_api.parse_session_uuid(session_resp.text)
+                payload["session_uuid"] = session_uuid
 
-            for idx, tuid in enumerate(task_uuids):
-                for _ in range(60):
-                    poll = await self.page.evaluate("""async ({u, h}) => {
-                        const r = await fetch(u, {method:'GET', headers:h});
-                        return await r.json();
-                    }""", {"u": f"https://api.imagine.red/services/webappms/api/generate-image/uuid/{tuid}", "h": headers})
-                    resp_obj = poll.get("response") or poll
-                    img_path = resp_obj.get("no_watermark_image_url") or resp_obj.get("image_url")
-                    if img_path:
-                        source_url = f"https://r.imagine.red/{img_path.lstrip('/')}"
-                        cloud_url = self.vault.upload_image(source_url, f"vault/star_{req.client_id or tuid}_{idx}.jpg")
-                        vaulted_urls.append(cloud_url)
-                        break
-                    await asyncio.sleep(2)
+                batch_resp = await client.post(star_api.URL_GENERATE_BATCH, headers=headers, json=payload)
+                batch_data = batch_resp.json()
+
+                task_uuids = batch_data if isinstance(batch_data, list) else batch_data.get("response", [])
+                if not task_uuids and isinstance(batch_data, dict):
+                    task_uuids = batch_data.get("task_uuids", [])
+                vaulted_urls = []
+
+                for idx, tuid in enumerate(task_uuids):
+                    for _ in range(60):
+                        poll = await client.get(star_api.URL_GENERATE_TASK.format(task_uuid=tuid), headers=headers)
+                        try:
+                            poll_data = poll.json()
+                        except Exception:
+                            poll_data = {}
+                        resp_obj = poll_data.get("response") or poll_data
+                        img_path = resp_obj.get("no_watermark_image_url") or resp_obj.get("image_url")
+                        if img_path:
+                            source_url = f"https://r.imagine.red/{img_path.lstrip('/')}"
+                            cloud_url = self.vault.upload_image(source_url, f"vault/star_{req.client_id or tuid}_{idx}.jpg")
+                            vaulted_urls.append(cloud_url)
+                            break
+                        await asyncio.sleep(2)
 
             result = {"image_urls": vaulted_urls, "client_id": req.client_id, "model": req.model, "prompt": req.prompt}
             with open(os.path.join(self.output_dir, f"star_{req.client_id}.json"), "w") as f:
                 json.dump(result, f)
             return result
-
