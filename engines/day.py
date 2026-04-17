@@ -33,27 +33,21 @@ class DayManager:
                 req.negative_prompt,
                 "--skip-login-prompt",
                 "--confirm-payload",
-                "--no-download",
             ]
 
             process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+            last_json_line = None
             for line in process.stdout:
                 clean = line.strip()
-                if "404" in clean:
-                    try:
-                        os.remove(os.path.join(self.cookie_dir, "imgnai_cookies.json"))
-                    except OSError:
-                        pass
+                if clean.startswith("{") and clean.endswith("}"):
+                    last_json_line = clean
 
-            process.wait()
-
-            json_files = [f for f in os.listdir(self.output_dir) if f.endswith(".json") and not f.startswith("star_")]
-            json_files.sort(key=lambda x: os.path.getmtime(os.path.join(self.output_dir, x)), reverse=True)
-            if not json_files:
+            rc = process.wait()
+            if rc != 0:
+                raise RuntimeError("Day engine failed")
+            if not last_json_line:
                 raise RuntimeError("Engine output missing")
-
-            with open(os.path.join(self.output_dir, json_files[0]), "r") as f:
-                data = json.load(f)
+            data = json.loads(last_json_line)
 
             vaulted_urls = []
             for idx, url in enumerate(data.get("image_urls", [])):
@@ -61,4 +55,3 @@ class DayManager:
                 vaulted_urls.append(cloud_url)
 
             return {"image_urls": vaulted_urls, "client_id": req.client_id, "model": req.model, "prompt": req.prompt}
-

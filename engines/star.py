@@ -44,9 +44,8 @@ class StarManager:
         self.page = None
         self._lock = asyncio.Lock()
         self.cookie_dir = cookie_dir
-        self.output_dir = output_dir
         self.vault = vault
-        self.cookies_file = os.path.join(cookie_dir, "imgnai_star_cookies.json")
+        self.cookies_file = os.path.join(cookie_dir, "imaginered_cookie.json")
 
     def get_user_agent(self):
         return "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
@@ -120,8 +119,4 @@ class StarManager:
                             vaulted_urls.append(cloud_url)
                             break
                         await asyncio.sleep(2)
-
-            result = {"image_urls": vaulted_urls, "client_id": req.client_id, "model": req.model, "prompt": req.prompt}
-            with open(os.path.join(self.output_dir, f"star_{req.client_id}.json"), "w") as f:
-                json.dump(result, f)
-            return result
+            return {"image_urls": vaulted_urls, "client_id": req.client_id, "model": req.model, "prompt": req.prompt}

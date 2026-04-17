@@ -18,9 +18,7 @@ from engines.star import StarManager
 load_dotenv()
 
 COOKIE_DIR = "cookie"
-OUTPUT_DIR = "outputs"
 os.makedirs(COOKIE_DIR, exist_ok=True)
-os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 R2_VAULT = R2Vault(
     account_id="c733aa6dbf847adf0949e4387eb6f15f",
@@ -45,24 +43,13 @@ class GenerateRequest(BaseModel):
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
-day_mgr = DayManager(COOKIE_DIR, OUTPUT_DIR, R2_VAULT)
-star_mgr = StarManager(COOKIE_DIR, OUTPUT_DIR, R2_VAULT)
+day_mgr = DayManager(COOKIE_DIR, "", R2_VAULT)
+star_mgr = StarManager(COOKIE_DIR, "", R2_VAULT)
 
 
 @app.get("/")
 async def index():
     return {"status": "Aether Server Online", "vault": R2_VAULT.bucket_name}
-
-
-@app.get("/fetch-by-client-id/{client_id}")
-async def fetch_by_id(client_id: str):
-    for fn in os.listdir(OUTPUT_DIR):
-        if fn.endswith(".json"):
-            with open(os.path.join(OUTPUT_DIR, fn), "r") as f:
-                d = json.load(f)
-                if d.get("client_id") == client_id:
-                    return d
-    raise HTTPException(status_code=404)
 
 
 @app.post("/generate")

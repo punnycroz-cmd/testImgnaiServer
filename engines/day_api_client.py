@@ -27,12 +27,8 @@ USERNAME = os.environ.get("IMGNAI_USERNAME")
 PASSWORD = os.environ.get("IMGNAI_PASSWORD")
 
 COOKIE_DIR = "cookie"
-COOKIES_FILE = os.path.join(COOKIE_DIR, "imgnai_cookies.json")
-OUTPUT_DIR = "outputs"
-
-os.makedirs(OUTPUT_DIR, exist_ok=True)
+COOKIES_FILE = os.path.join(COOKIE_DIR, "imgnai_cookie.json")
 os.makedirs(COOKIE_DIR, exist_ok=True)
-os.makedirs("screenshots", exist_ok=True)
 
 
 def ask_yes_no(question, default=True):
@@ -77,16 +73,6 @@ def choose_from_list(title, options, default_index=0):
         except ValueError:
             pass
         print("Please choose one of the listed numbers.")
-
-
-def take_debug_screenshot(page, step_name):
-    ts = datetime.now().strftime("%b%d_%Ih%M%p")
-    filename = f"screenshots/{ts}_{step_name}.png"
-    try:
-        page.screenshot(path=filename, full_page=True)
-        print(f"  Screenshot saved: {filename}")
-    except Exception as e:
-        print(f"  Failed to take screenshot {step_name}: {e}")
 
 
 def save_cookies(context):
@@ -286,7 +272,6 @@ def ensure_logged_in(page, context, load_saved_cookies=True):
     page.wait_for_selector('input[name="username"]')
     page.locator('input[name="username"]').type(USERNAME, delay=100)
     page.locator('input[type="password"]').type(PASSWORD, delay=100)
-    take_debug_screenshot(page, "login_filled")
     page.wait_for_timeout(500)
     page.keyboard.press("Enter")
     try:
@@ -323,7 +308,6 @@ def run():
     parser.add_argument("--negative-prompt", help="Override negative prompt")
     parser.add_argument("--auto-resolution", action="store_true", help="Set auto_resolution true")
     parser.add_argument("--no-download", action="store_true", help="Skip image downloading")
-    parser.add_argument("--no-save", action="store_true", help="Do not save payload JSON")
     parser.add_argument("--list-models", action="store_true", help="Print available models and exit")
     parser.add_argument("--interactive-resolution-override", action="store_true", help="Ask before using the default resolution")
     parser.add_argument("--skip-login-prompt", action="store_true", help="Do not ask before loading saved cookies")
@@ -450,15 +434,10 @@ def run():
             if not completed:
                 print(f"  Timed out: {task_uuid}")
 
-        run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_payload_path = os.path.join(OUTPUT_DIR, f"{run_id}_{display_name_to_safe_name(model_name)}.json")
-        if not args.no_save:
-            with open(output_payload_path, "w", encoding="utf-8") as f:
-                json.dump({"image_urls": final_image_urls}, f, indent=2)
-
         save_cookies(context)
         context.close()
         browser.close()
+        print(json.dumps({"image_urls": final_image_urls}))
 
 
 if __name__ == "__main__":

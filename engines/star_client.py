@@ -22,7 +22,7 @@ URL_WASMALL = IMAGE_BASE_URL if IMAGE_BASE_URL.endswith("/") else f"{IMAGE_BASE_
 
 USERNAME = os.environ.get("IMGNAI_USERNAME")
 PASSWORD = os.environ.get("IMGNAI_PASSWORD")
-COOKIES_FILE = "cookie/imgnai_star_cookies.json"
+COOKIES_FILE = "cookie/imaginered_cookie.json"
 
 
 async def save_cookies_async(context):
@@ -112,4 +112,3 @@ async def acquire_auth_token_async(page, context):
     except Exception:
         pass
     return None
-
