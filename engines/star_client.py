@@ -99,7 +99,7 @@ def parse_session_uuid(text):
         return text
 
 
-async def acquire_auth_token_async(page, context):
+async def acquire_auth_token_async(page, context, logger=None):
     auth_tokens = []
 
     def sniff_token(request):
@@ -111,11 +111,17 @@ async def acquire_auth_token_async(page, context):
     await asyncio.sleep(2)
     page.remove_listener("request", sniff_token)
     if auth_tokens:
+        if logger:
+            logger.info("star auth token found in network request")
         return auth_tokens[0]
     try:
         ls_auth = await page.evaluate("window.localStorage.getItem('authentication')")
         if ls_auth:
+            if logger:
+                logger.info("star auth token found in localStorage")
             return json.loads(ls_auth).get("state", {}).get("token")
     except Exception:
         pass
+    if logger:
+        logger.warning("star auth token not found")
     return None
