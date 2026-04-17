@@ -1,0 +1,48 @@
+import os
+from io import BytesIO
+from typing import Optional
+
+import boto3
+import requests
+
+
+class R2Vault:
+    def __init__(
+        self,
+        account_id: str,
+        bucket_name: str,
+        public_url: str,
+        access_key: Optional[str] = None,
+        secret_key: Optional[str] = None,
+    ):
+        self.account_id = account_id
+        self.bucket_name = bucket_name
+        self.public_url = public_url.rstrip("/")
+        self.access_key = access_key or os.environ.get("R2_ACCESS_KEY")
+        self.secret_key = secret_key or os.environ.get("R2_SECRET_KEY")
+
+    def upload_image(self, image_url: str, file_name: str) -> str:
+        if not self.access_key or "PASTE_YOUR" in self.access_key:
+            return image_url
+
+        s3 = boto3.client(
+            service_name="s3",
+            endpoint_url=f"https://{self.account_id}.r2.cloudflarestorage.com",
+            aws_access_key_id=self.access_key,
+            aws_secret_access_key=self.secret_key,
+            region_name="auto",
+        )
+
+        try:
+            response = requests.get(image_url, timeout=20)
+            response.raise_for_status()
+            s3.put_object(
+                Bucket=self.bucket_name,
+                Key=file_name,
+                Body=BytesIO(response.content),
+                ContentType="image/jpeg",
+            )
+            return f"{self.public_url}/{file_name.lstrip('/')}"
+        except Exception:
+            return image_url
+

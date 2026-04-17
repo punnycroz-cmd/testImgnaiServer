@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+cookie/
+outputs/
+screenshots/
+.env
