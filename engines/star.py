@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import os
 from typing import Optional
 
@@ -46,6 +47,7 @@ class StarManager:
         self.cookie_dir = cookie_dir
         self.vault = vault
         self.cookies_file = os.path.join(cookie_dir, "imaginered_cookie.json")
+        self.logger = logging.getLogger("aether.star")
 
     def get_user_agent(self):
         return "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
@@ -60,9 +62,13 @@ class StarManager:
         except Exception:
             return None
 
+    async def _sleep_backoff(self, attempt: int, base: float = 1.5, cap: float = 10.0):
+        await asyncio.sleep(min(cap, base * (1.4 ** attempt)))
+
     async def start(self):
         if self.page:
             return
+        self.logger.info("starting star browser session")
         pw = await async_playwright().start()
         self.browser = await pw.chromium.launch(
             headless=False,
@@ -75,17 +81,22 @@ class StarManager:
         self.page = await self.context.new_page()
         await Stealth().apply_stealth_async(self.page)
         if os.path.exists(self.cookies_file):
+            self.logger.info("loading star cookies from %s", self.cookies_file)
             with open(self.cookies_file, "r") as f:
                 await self.context.add_cookies(json.load(f))
-        await star_api.ensure_logged_in_async(self.page, self.context)
+        await star_api.ensure_logged_in_async(self.page, self.context, logger=self.logger)
 
     async def generate(self, req: GenerateRequest):
         async with self._lock:
             await self.start()
-            token = await star_api.acquire_auth_token_async(self.page, self.context)
+            self.logger.info("star generate start prompt=%s quality=%s model=%s", req.prompt[:60], req.quality, req.model)
+            token = await star_api.acquire_auth_token_async(self.page, self.context, logger=self.logger)
             if not token:
-                await star_api.ensure_logged_in_async(self.page, self.context, force_login=True)
-                token = await star_api.acquire_auth_token_async(self.page, self.context)
+                self.logger.warning("star token missing, forcing re-login")
+                await star_api.ensure_logged_in_async(self.page, self.context, force_login=True, logger=self.logger)
+                token = await star_api.acquire_auth_token_async(self.page, self.context, logger=self.logger)
+            if not token:
+                raise RuntimeError("Star auth token missing")
 
             payload = star_api.build_payload(req.model, req.quality, req.aspect, req.prompt, req.count, req.seed, True, negative_prompt=req.negative_prompt)
 
@@ -93,8 +104,9 @@ class StarManager:
                 headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json", "Origin": "https://imagine.red"}
                 session_resp = await client.post(star_api.URL_GENERATE_SESSION, headers=headers)
                 if session_resp.status_code == 401:
-                    await star_api.ensure_logged_in_async(self.page, self.context, force_login=True)
-                    token = await star_api.acquire_auth_token_async(self.page, self.context)
+                    self.logger.warning("star session 401, retrying after forced login")
+                    await star_api.ensure_logged_in_async(self.page, self.context, force_login=True, logger=self.logger)
+                    token = await star_api.acquire_auth_token_async(self.page, self.context, logger=self.logger)
                     if not token:
                         raise RuntimeError("Star auth token missing after re-login")
                     headers["Authorization"] = f"Bearer {token}"
@@ -105,8 +117,9 @@ class StarManager:
 
                 batch_resp = await client.post(star_api.URL_GENERATE_BATCH, headers=headers, json=payload)
                 if batch_resp.status_code == 401:
-                    await star_api.ensure_logged_in_async(self.page, self.context, force_login=True)
-                    token = await star_api.acquire_auth_token_async(self.page, self.context)
+                    self.logger.warning("star batch 401, retrying after forced login")
+                    await star_api.ensure_logged_in_async(self.page, self.context, force_login=True, logger=self.logger)
+                    token = await star_api.acquire_auth_token_async(self.page, self.context, logger=self.logger)
                     if not token:
                         raise RuntimeError("Star auth token missing after re-login")
                     headers["Authorization"] = f"Bearer {token}"
@@ -124,10 +137,11 @@ class StarManager:
                 vaulted_urls = []
 
                 for idx, tuid in enumerate(task_uuids):
-                    for _ in range(90):
+                    self.logger.info("polling star task %s (%s/%s)", tuid[:8], idx + 1, len(task_uuids))
+                    for attempt in range(90):
                         poll_data = await self._get_json(client, star_api.URL_GENERATE_TASK.format(task_uuid=tuid), headers)
                         if not poll_data:
-                            await asyncio.sleep(2)
+                            await self._sleep_backoff(attempt)
                             continue
                         resp_obj = poll_data.get("response") or poll_data
                         img_path = resp_obj.get("no_watermark_image_url") or resp_obj.get("image_url")
@@ -135,6 +149,8 @@ class StarManager:
                             source_url = f"https://r.imagine.red/{img_path.lstrip('/')}"
                             cloud_url = self.vault.upload_image(source_url, f"vault/star_{req.client_id or tuid}_{idx}.jpg")
                             vaulted_urls.append(cloud_url)
+                            self.logger.info("star image vaulted task=%s url=%s", tuid[:8], cloud_url)
                             break
-                        await asyncio.sleep(2)
+                        await self._sleep_backoff(attempt)
+                self.logger.info("star generate done images=%s", len(vaulted_urls))
             return {"image_urls": vaulted_urls, "client_id": req.client_id, "model": req.model, "prompt": req.prompt}

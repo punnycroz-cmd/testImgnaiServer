@@ -1,5 +1,6 @@
 import json
 import os
+import logging
 import subprocess
 import sys
 import threading
@@ -13,9 +14,11 @@ class DayManager:
         self.cookie_dir = cookie_dir
         self.output_dir = output_dir
         self.vault = vault
+        self.logger = logging.getLogger("aether.day")
 
     def generate(self, req):
         with self._lock:
+            self.logger.info("day generate start prompt=%s quality=%s model=%s", req.prompt[:60], req.quality, req.model)
             cmd = [
                 sys.executable,
                 "day_api.py",
@@ -39,6 +42,8 @@ class DayManager:
             last_json_line = None
             for line in process.stdout:
                 clean = line.strip()
+                if clean:
+                    self.logger.info("day engine: %s", clean)
                 if clean.startswith("{") and clean.endswith("}"):
                     last_json_line = clean
 
@@ -48,5 +53,12 @@ class DayManager:
             if not last_json_line:
                 raise RuntimeError("Engine output missing")
             data = json.loads(last_json_line)
-
-            return {"image_urls": data.get("image_urls", []), "client_id": req.client_id, "model": req.model, "prompt": req.prompt}
+            vaulted_urls = []
+            image_urls = data.get("image_urls", [])
+            self.logger.info("day generated %s urls, vaulting", len(image_urls))
+            for idx, url in enumerate(image_urls):
+                cloud_url = self.vault.upload_image(url, f"vault/day_{req.client_id}_{idx}.jpg")
+                vaulted_urls.append(cloud_url)
+                self.logger.info("day image vaulted idx=%s url=%s", idx, cloud_url)
+            self.logger.info("day generate done images=%s", len(vaulted_urls))
+            return {"image_urls": vaulted_urls, "client_id": req.client_id, "model": req.model, "prompt": req.prompt}

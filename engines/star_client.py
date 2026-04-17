@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import logging
 from datetime import datetime
 
 from dotenv import load_dotenv
@@ -25,16 +26,20 @@ PASSWORD = os.environ.get("IMGNAI_PASSWORD")
 COOKIES_FILE = "cookie/imaginered_cookie.json"
 
 
-async def save_cookies_async(context):
+async def save_cookies_async(context, logger=None):
     cookies = await context.cookies()
     os.makedirs(os.path.dirname(COOKIES_FILE), exist_ok=True)
     with open(COOKIES_FILE, "w", encoding="utf-8") as f:
         json.dump(cookies, f, indent=2)
+    if logger:
+        logger.info("saved star cookies to %s", COOKIES_FILE)
 
 
-async def ensure_logged_in_async(page, context, force_login=False):
+async def ensure_logged_in_async(page, context, force_login=False, logger=None):
     if force_login:
         await context.clear_cookies()
+        if logger:
+            logger.warning("forcing star login")
         await page.goto(URL_LOGIN, wait_until="domcontentloaded")
     else:
         await page.goto(URL_GENERATE, wait_until="domcontentloaded")
@@ -47,7 +52,9 @@ async def ensure_logged_in_async(page, context, force_login=False):
         await page.locator('input[type="password"]').type(PASSWORD, delay=100)
         await page.keyboard.press("Enter")
         await asyncio.sleep(5)
-        await save_cookies_async(context)
+        await save_cookies_async(context, logger=logger)
+        if logger:
+            logger.info("star login complete")
 
 
 def build_payload(model_name, quality, aspect, prompt, count, base_seed=None, nsfw=False, use_assistant=False, prompt_assist=False, use_credits=False, negative_prompt=None, image_resolution=None, auto_resolution=False):

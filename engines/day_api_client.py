@@ -1,5 +1,6 @@
 import argparse
 import json
+import logging
 import os
 import re
 import sys
@@ -35,6 +36,20 @@ R2_VAULT = R2Vault(
     bucket_name="imagenai",
     public_url="https://pub-b770478fe936495c8d44e69fb02d2943.r2.dev",
 )
+LOGGER = logging.getLogger("aether.day.cli")
+
+
+def sleep_seconds_for_quality(quality: str, attempt: int) -> float:
+    if quality == "4k+":
+        base = 2.75
+        cap = 18.0
+    elif quality == "High Quality":
+        base = 2.25
+        cap = 14.0
+    else:
+        base = 1.5
+        cap = 10.0
+    return min(cap, base * (1.25 ** attempt))
 
 
 def ask_yes_no(question, default=True):
@@ -86,7 +101,7 @@ def save_cookies(context):
         with open(COOKIES_FILE, "w", encoding="utf-8") as f:
             json.dump(context.cookies(), f, indent=2)
     except Exception as e:
-        print(f"Failed to save cookies: {e}")
+        LOGGER.exception("Failed to save cookies: %s", e)
 
 
 def load_cookies(context):
@@ -261,15 +276,16 @@ def acquire_auth_token(page, context):
 
 def ensure_logged_in(page, context, load_saved_cookies=True):
     if load_saved_cookies and load_cookies(context):
+        LOGGER.info("Loaded saved day cookies")
         page.goto(URL_GENERATE, wait_until="domcontentloaded", timeout=60000)
         if "login" not in page.url.lower():
-            print("Reused saved session!")
+            LOGGER.info("Reused saved session")
             return True
 
     if not USERNAME or not PASSWORD:
         raise SystemExit("Set IMGNAI_USERNAME and IMGNAI_PASSWORD before running.")
 
-    print("Performing fresh login...")
+    LOGGER.info("Performing fresh day login")
     page.goto(URL_LOGIN, wait_until="domcontentloaded", timeout=60000)
     page.wait_for_selector('input[name="username"]')
     page.locator('input[name="username"]').type(USERNAME, delay=100)
@@ -335,15 +351,17 @@ def run():
     load_saved = True
 
     with sync_playwright() as p:
+        LOGGER.info("Starting day browser session")
         browser = p.chromium.launch(headless=False, args=["--headless=new", "--no-sandbox", "--disable-dev-shm-usage", "--disable-blink-features=AutomationControlled"])
         context = browser.new_context(viewport={"width": 1440, "height": 1000}, user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
         page = context.new_page()
         Stealth().apply_stealth_sync(page)
 
+        LOGGER.info("Day generation request start model=%s quality=%s aspect=%s prompt=%s", model_name, quality, aspect, prompt[:60])
         ensure_logged_in(page, context, load_saved_cookies=load_saved)
         auth_token = acquire_auth_token(page, context)
         if not auth_token:
-            print("Could not locate an authorization token.")
+            LOGGER.error("Could not locate an authorization token")
             sys.exit(1)
 
         api_headers = {
@@ -418,7 +436,9 @@ def run():
         final_image_urls = []
         for task_uuid in task_uuids:
             completed = False
-            for _ in range(90):
+            max_attempts = 140 if quality == "4k+" else 110 if quality == "High Quality" else 90
+            LOGGER.info("Polling day task %s with up to %s attempts", task_uuid[:8], max_attempts)
+            for attempt in range(max_attempts):
                 poll_result = browser_fetch(page, "GET", URL_GENERATE_TASK.format(task_uuid=task_uuid), headers=api_headers)
                 if poll_result["ok"]:
                     try:
@@ -432,7 +452,7 @@ def run():
                             final_image_urls.append(f"{URL_WASMALL}{image_path}")
                             completed = True
                             break
-                page.wait_for_timeout(1500)
+                page.wait_for_timeout(int(sleep_seconds_for_quality(quality, attempt) * 1000))
             if not completed:
                 print(f"  Timed out: {task_uuid}")
 
@@ -441,6 +461,7 @@ def run():
         browser.close()
         vaulted_urls = []
         for idx, url in enumerate(final_image_urls):
+            LOGGER.info("Vaulting day image %s/%s", idx + 1, len(final_image_urls))
             vaulted_urls.append(R2_VAULT.upload_image(url, f"vault/day_{model_name}_{idx}.jpg"))
 
         print(json.dumps({"image_urls": vaulted_urls}))

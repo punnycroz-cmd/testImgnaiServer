@@ -1,4 +1,5 @@
 import os
+import logging
 from io import BytesIO
 from typing import Optional
 
@@ -20,9 +21,11 @@ class R2Vault:
         self.public_url = public_url.rstrip("/")
         self.access_key = access_key or os.environ.get("R2_ACCESS_KEY")
         self.secret_key = secret_key or os.environ.get("R2_SECRET_KEY")
+        self.logger = logging.getLogger("aether.vault")
 
     def upload_image(self, image_url: str, file_name: str) -> str:
         if not self.access_key or "PASTE_YOUR" in self.access_key:
+            self.logger.warning("R2 not configured, returning source url for %s", file_name)
             return image_url
 
         s3 = boto3.client(
@@ -42,7 +45,9 @@ class R2Vault:
                 Body=BytesIO(response.content),
                 ContentType="image/jpeg",
             )
-            return f"{self.public_url}/{file_name.lstrip('/')}"
-        except Exception:
+            final_url = f"{self.public_url}/{file_name.lstrip('/')}"
+            self.logger.info("uploaded image %s -> %s", image_url[:80], final_url)
+            return final_url
+        except Exception as exc:
+            self.logger.exception("failed to upload image %s: %s", file_name, exc)
             return image_url
-
