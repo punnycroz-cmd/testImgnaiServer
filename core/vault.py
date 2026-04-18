@@ -33,8 +33,16 @@ class R2Vault:
         safe_batch_id = (batch_id or uuid4().hex[:8]).strip().lower()
         return f"vault/{stamp}_{safe_source}_{safe_batch_id}"
 
-    def build_object_key(self, batch_prefix: str, index: int, ext: str = "jpg") -> str:
-        return f"{batch_prefix}/{index + 1:03d}.{ext.lstrip('.')}"
+    def build_batch_prefix_with_name(self, source: str, name: str, ts: Optional[datetime] = None) -> str:
+        stamp_ts = ts or datetime.now(ZoneInfo("America/Los_Angeles"))
+        stamp = stamp_ts.astimezone(ZoneInfo("America/Los_Angeles")).strftime("%Y_%m_%d_%H%M%S")
+        safe_source = source.strip().lower().replace(" ", "_")
+        safe_name = name.strip().replace("/", "_").replace(" ", "_")
+        return f"vault/{stamp}_{safe_source}_{safe_name}"
+
+    def build_object_key(self, batch_prefix: str, file_name: str, ext: str = "jpg") -> str:
+        safe_file_name = file_name.strip().replace("/", "_").replace(" ", "_")
+        return f"{batch_prefix}/{safe_file_name}.{ext.lstrip('.')}"
 
     def upload_image(self, image_url: str, file_name: str) -> str:
         if not self.access_key or "PASTE_YOUR" in self.access_key:
