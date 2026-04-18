@@ -54,15 +54,18 @@ class DayManager:
             if not last_json_line:
                 raise RuntimeError("Engine output missing")
             data = json.loads(last_json_line)
-            vaulted_urls = []
+            session_uuid = data.get("session_uuid") or "session"
+            task_uuids = data.get("task_uuids", [])
             image_urls = data.get("image_urls", [])
+            vaulted_urls = []
             self.logger.info("day generated %s urls, vaulting", len(image_urls))
             run_stamp = datetime.now()
-            batch_prefix = self.vault.build_batch_prefix("day", ts=run_stamp)
+            batch_prefix = self.vault.build_batch_prefix_with_name("day", session_uuid, ts=run_stamp)
             self.logger.info("day batch prefix=%s", batch_prefix)
             for idx, url in enumerate(image_urls):
-                cloud_url = self.vault.upload_image(url, self.vault.build_object_key(batch_prefix, idx, "jpg"))
+                task_uuid = task_uuids[idx] if idx < len(task_uuids) else f"{idx + 1:03d}"
+                cloud_url = self.vault.upload_image(url, self.vault.build_object_key(batch_prefix, task_uuid, "jpg"))
                 vaulted_urls.append(cloud_url)
-                self.logger.info("day image vaulted idx=%s url=%s", idx, cloud_url)
+                self.logger.info("day image vaulted task=%s url=%s", task_uuid[:8] if isinstance(task_uuid, str) else task_uuid, cloud_url)
             self.logger.info("day generate done images=%s", len(vaulted_urls))
             return {"image_urls": vaulted_urls, "client_id": req.client_id, "model": req.model, "prompt": req.prompt}

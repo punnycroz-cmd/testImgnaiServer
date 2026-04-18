@@ -459,12 +459,11 @@ def run():
         save_cookies(context)
         context.close()
         browser.close()
-        vaulted_urls = []
-        for idx, url in enumerate(final_image_urls):
-            LOGGER.info("Vaulting day image %s/%s", idx + 1, len(final_image_urls))
-            vaulted_urls.append(R2_VAULT.upload_image(url, f"vault/day_{model_name}_{idx}.jpg"))
-
-        print(json.dumps({"image_urls": vaulted_urls}))
+        print(json.dumps({
+            "session_uuid": session_uuid,
+            "task_uuids": task_uuids,
+            "image_urls": final_image_urls,
+        }))
 
 
 if __name__ == "__main__":
