@@ -130,7 +130,7 @@ async def acquire_auth_token_async(page, context, logger=None):
         for cookie in cookies:
             name = (cookie.get("name") or "").lower()
             if any(part in name for part in ("auth", "token", "session")):
-                token = extract_token_from_value(cookie.get("value", ""))
+                token = extract_token_from_value(urllib.parse.unquote(cookie.get("value", "")))
                 if token:
                     if logger:
                         logger.info("star auth token found in cookie %s", cookie.get("name"))
@@ -163,7 +163,7 @@ async def acquire_auth_token_async(page, context, logger=None):
             keys = await page.evaluate(f"Object.keys(window.{storage_name})")
             for key in keys or []:
                 value = await page.evaluate(f"window.{storage_name}.getItem({json.dumps(key)})")
-                token = extract_token_from_value(value)
+                token = extract_token_from_value(urllib.parse.unquote(value or ""))
                 if token:
                     if logger:
                         logger.info("star auth token found in %s key=%s", storage_name, key)
