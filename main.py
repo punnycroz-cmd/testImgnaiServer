@@ -80,8 +80,47 @@ async def job_status(request_id: str):
     async with job_lock:
         job = job_store.get(request_id)
     if not job:
-        raise HTTPException(status_code=404, detail="job not found")
+        row = DB.get_generation(request_id)
+        if not row:
+            raise HTTPException(status_code=404, detail="job not found")
+        async with job_lock:
+            job_store[request_id] = {
+                "status": row["status"],
+                "client_id": row["client_id"],
+                "request_id": row["request_id"],
+            }
+        job = job_store[request_id]
     return {"request_id": request_id, **job}
+
+
+@app.get("/resume/{request_id}")
+async def resume(request_id: str):
+    row = DB.get_generation(request_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="job not found")
+    image_rows = []
+    with DB.connect() as conn, conn.cursor() as cur:
+        cur.execute("SELECT * FROM generation_images WHERE generation_id = %s ORDER BY image_index ASC", (row["id"],))
+        image_rows = cur.fetchall()
+    return {
+        "request_id": row["request_id"],
+        "client_id": row["client_id"],
+        "realm": row["realm"],
+        "status": row["status"],
+        "prompt": row["prompt"],
+        "model": row["model"],
+        "quality": row["quality"],
+        "aspect": row["aspect"],
+        "seed": row["seed"],
+        "negative_prompt": row["negative_prompt"],
+        "count": row["count"],
+        "session_uuid": row["session_uuid"],
+        "task_uuids": row["task_uuids"],
+        "result": row["result"],
+        "images": image_rows,
+        "created_at": row["created_at"].isoformat() if row["created_at"] else None,
+        "updated_at": row["updated_at"].isoformat() if row["updated_at"] else None,
+    }
 
 
 @app.get("/history")
