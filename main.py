@@ -10,6 +10,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from config.schemas import GenerateRequest
+from core.db import Database
 from core.vault import R2Vault
 from engines.day import DayManager
 from engines.star import GenerateRequest as StarGenerateRequest
@@ -27,12 +28,14 @@ R2_VAULT = R2Vault(
     bucket_name="imagenai",
     public_url="https://pub-b770478fe936495c8d44e69fb02d2943.r2.dev",
 )
+DB = Database()
+DB.init()
 
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
-day_mgr = DayManager(COOKIE_DIR, "", R2_VAULT)
-star_mgr = StarManager(COOKIE_DIR, "", R2_VAULT)
+day_mgr = DayManager(COOKIE_DIR, "", R2_VAULT, db=DB)
+star_mgr = StarManager(COOKIE_DIR, "", R2_VAULT, db=DB)
 job_store = {}
 job_lock = asyncio.Lock()
 
@@ -58,16 +61,18 @@ async def _run_generation(job_id: str, req: GenerateRequest):
         logger.info("job start request_id=%s client_id=%s realm=%s model=%s quality=%s", job_id, req.client_id, req.realm, req.model, req.quality)
         if req.nsfw:
             star_req = StarGenerateRequest(**req.model_dump())
-            result = await star_mgr.generate(star_req)
+            result = await star_mgr.generate(star_req, request_id=job_id)
         else:
-            result = await anyio.to_thread.run_sync(day_mgr.generate, req)
+            result = await anyio.to_thread.run_sync(day_mgr.generate, req, job_id)
         async with job_lock:
             job_store[job_id] = {"status": "done", "result": result, "client_id": req.client_id, "request_id": job_id}
+        DB.update_generation(job_id, status="done", result=result)
         logger.info("job done request_id=%s images=%s", job_id, len(result.get("image_urls", [])))
     except Exception as exc:
         logger.exception("job failed request_id=%s", job_id)
         async with job_lock:
             job_store[job_id] = {"status": "error", "error": str(exc), "client_id": req.client_id, "request_id": job_id}
+        DB.update_generation(job_id, status="error", error=str(exc))
 
 
 @app.get("/job-status/{request_id}")
@@ -81,17 +86,39 @@ async def job_status(request_id: str):
 
 @app.get("/history")
 async def history(page: int = 1, limit: int = 20):
-    items = R2_VAULT.list_images(prefix="vault/")
-    total = len(items)
-    start = max(0, (page - 1) * limit)
-    end = start + limit
-    page_items = items[start:end]
+    offset = max(0, (page - 1) * limit)
+    rows = DB.list_generations(limit=limit, offset=offset)
+    total = len(rows) if len(rows) < limit else offset + len(rows) + 1
+    page_items = []
+    for row in rows:
+        image_rows = []
+        gen_id = row["id"]
+        if DB.enabled:
+            with DB.connect() as conn, conn.cursor() as cur:
+                cur.execute("SELECT * FROM generation_images WHERE generation_id = %s ORDER BY image_index ASC", (gen_id,))
+                image_rows = cur.fetchall()
+        page_items.append(
+            {
+                "request_id": row["request_id"],
+                "client_id": row["client_id"],
+                "realm": row["realm"],
+                "status": row["status"],
+                "prompt": row["prompt"],
+                "model": row["model"],
+                "quality": row["quality"],
+                "aspect": row["aspect"],
+                "session_uuid": row["session_uuid"],
+                "task_uuids": row["task_uuids"],
+                "images": image_rows,
+                "created_at": row["created_at"].isoformat() if row["created_at"] else None,
+            }
+        )
     return {
         "items": page_items,
         "page": page,
         "limit": limit,
         "total": total,
-        "has_more": end < total,
+        "has_more": len(rows) == limit,
     }
 
 
@@ -99,7 +126,20 @@ async def history(page: int = 1, limit: int = 20):
 async def generate(req: GenerateRequest):
     try:
         req.count = 4
-        request_id = uuid.uuid4().hex[:12]
+        request_id = str(uuid.uuid4())
+        DB.create_generation(
+            generation_id=request_id,
+            request_id=request_id,
+            client_id=req.client_id,
+            realm=req.realm or "day",
+            prompt=req.prompt,
+            model=req.model,
+            quality=req.quality,
+            aspect=req.aspect,
+            seed=req.seed,
+            negative_prompt=req.negative_prompt,
+            count=req.count,
+        )
         async with job_lock:
             existing = job_store.get(request_id)
             if existing:

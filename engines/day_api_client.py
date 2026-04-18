@@ -389,6 +389,7 @@ def run():
             sys.exit(1)
 
         session_uuid = session_result["text"].strip()
+        print(json.dumps({"event": "session", "session_uuid": session_uuid}))
         nsfw = False
         if args.negative_prompt is None:
             if args.confirm_payload or ask_yes_no("Use model default negative prompt?", default=True):
@@ -432,6 +433,7 @@ def run():
         except Exception as e:
             print(f"Could not parse batch response: {e}")
             sys.exit(1)
+        print(json.dumps({"event": "tasks", "task_uuids": task_uuids}))
 
         final_image_urls = []
         for task_uuid in task_uuids:

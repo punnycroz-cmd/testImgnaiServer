@@ -40,13 +40,14 @@ class GenerateRequest:
 
 
 class StarManager:
-    def __init__(self, cookie_dir: str, output_dir: str, vault: R2Vault):
+    def __init__(self, cookie_dir: str, output_dir: str, vault: R2Vault, db=None):
         self.browser = None
         self.context = None
         self.page = None
         self._lock = asyncio.Lock()
         self.cookie_dir = cookie_dir
         self.vault = vault
+        self.db = db
         self.cookies_file = os.path.join(cookie_dir, "imaginered_cookie.json")
         self.logger = logging.getLogger("aether.star")
 
@@ -87,7 +88,7 @@ class StarManager:
                 await self.context.add_cookies(json.load(f))
         await star_api.ensure_logged_in_async(self.page, self.context, logger=self.logger)
 
-    async def generate(self, req: GenerateRequest):
+    async def generate(self, req: GenerateRequest, request_id=None):
         async with self._lock:
             await self.start()
             self.logger.info("star generate start prompt=%s quality=%s model=%s", req.prompt[:60], req.quality, req.model)
@@ -115,6 +116,9 @@ class StarManager:
                 session_resp.raise_for_status()
                 session_uuid = star_api.parse_session_uuid(session_resp.text)
                 payload["session_uuid"] = session_uuid
+                self.logger.info("star session_uuid=%s", session_uuid)
+                if self.db and request_id:
+                    self.db.update_generation(request_id, session_uuid=session_uuid)
 
                 batch_resp = await client.post(star_api.URL_GENERATE_BATCH, headers=headers, json=payload)
                 if batch_resp.status_code == 401:
@@ -135,6 +139,9 @@ class StarManager:
                 task_uuids = batch_data if isinstance(batch_data, list) else batch_data.get("response", [])
                 if not task_uuids and isinstance(batch_data, dict):
                     task_uuids = batch_data.get("task_uuids", [])
+                self.logger.info("star task_uuids=%s", task_uuids)
+                if self.db and request_id:
+                    self.db.update_generation(request_id, task_uuids=task_uuids)
                 vaulted_urls = []
                 run_stamp = datetime.now()
                 batch_prefix = self.vault.build_batch_prefix_with_name("star", session_uuid or "session", ts=run_stamp)
@@ -153,6 +160,14 @@ class StarManager:
                             source_url = f"https://r.imagine.red/{img_path.lstrip('/')}"
                             cloud_url = self.vault.upload_image(source_url, self.vault.build_object_key(batch_prefix, tuid, "jpg"))
                             vaulted_urls.append(cloud_url)
+                            if self.db and request_id:
+                                self.db.add_image(
+                                    generation_id=request_id,
+                                    task_uuid=tuid,
+                                    r2_url=cloud_url,
+                                    r2_key=self.vault.build_object_key(batch_prefix, tuid, "jpg"),
+                                    image_index=idx,
+                                )
                             self.logger.info("star image vaulted task=%s url=%s", tuid[:8], cloud_url)
                             break
                         await self._sleep_backoff(attempt)
