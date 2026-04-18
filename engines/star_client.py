@@ -102,19 +102,41 @@ def parse_session_uuid(text):
 
 
 async def acquire_auth_token_async(page, context, logger=None):
-    try:
-        for cookie in await context.cookies():
-            if cookie.get("name") in {"authentication", "auth"}:
-                try:
-                    raw = cookie.get("value", "")
-                    decoded = json.loads(raw)
-                    token = decoded.get("state", {}).get("token") if isinstance(decoded, dict) else None
-                    if token:
-                        if logger:
-                            logger.info("star auth token found in cookie %s", cookie.get("name"))
+    def extract_token_from_value(raw_value):
+        if not raw_value:
+            return None
+        try:
+            decoded = json.loads(raw_value)
+        except Exception:
+            return None
+        if isinstance(decoded, dict):
+            direct = decoded.get("token")
+            if isinstance(direct, str) and direct:
+                return direct
+            state = decoded.get("state")
+            if isinstance(state, dict):
+                token = state.get("token")
+                if isinstance(token, str) and token:
+                    return token
+                auth = state.get("authentication")
+                if isinstance(auth, dict):
+                    token = auth.get("token")
+                    if isinstance(token, str) and token:
                         return token
-                except Exception:
-                    continue
+        return None
+
+    try:
+        cookies = await context.cookies()
+        for cookie in cookies:
+            name = (cookie.get("name") or "").lower()
+            if any(part in name for part in ("auth", "token", "session")):
+                token = extract_token_from_value(cookie.get("value", ""))
+                if token:
+                    if logger:
+                        logger.info("star auth token found in cookie %s", cookie.get("name"))
+                    return token
+        if logger:
+            logger.info("star cookie names=%s", [c.get("name") for c in cookies])
     except Exception:
         pass
 
@@ -136,20 +158,19 @@ async def acquire_auth_token_async(page, context, logger=None):
         if logger:
             logger.info("star auth token found in network request")
         return auth_tokens[0]
-    try:
-        ls_auth = await page.evaluate("window.localStorage.getItem('authentication')")
-        if ls_auth:
-            try:
-                parsed = json.loads(ls_auth)
-                token = parsed.get("state", {}).get("token") if isinstance(parsed, dict) else None
+    for storage_name in ("localStorage", "sessionStorage"):
+        try:
+            keys = await page.evaluate(f"Object.keys(window.{storage_name})")
+            for key in keys or []:
+                value = await page.evaluate(f"window.{storage_name}.getItem({json.dumps(key)})")
+                token = extract_token_from_value(value)
                 if token:
                     if logger:
-                        logger.info("star auth token found in localStorage")
+                        logger.info("star auth token found in %s key=%s", storage_name, key)
                     return token
-            except Exception:
-                pass
-    except Exception:
-        pass
+        except Exception:
+            continue
+
     if logger:
         logger.warning("star auth token not found")
     return None
