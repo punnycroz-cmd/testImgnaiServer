@@ -55,28 +55,28 @@ async def health():
 
 async def _run_generation(job_id: str, req: GenerateRequest):
     try:
-        logger.info("job start job_id=%s realm=%s model=%s quality=%s", job_id, req.realm, req.model, req.quality)
+        logger.info("job start request_id=%s client_id=%s realm=%s model=%s quality=%s", job_id, req.client_id, req.realm, req.model, req.quality)
         if req.nsfw:
             star_req = StarGenerateRequest(**req.model_dump())
             result = await star_mgr.generate(star_req)
         else:
             result = await anyio.to_thread.run_sync(day_mgr.generate, req)
         async with job_lock:
-            job_store[job_id] = {"status": "done", "result": result}
-        logger.info("job done job_id=%s images=%s", job_id, len(result.get("image_urls", [])))
+            job_store[job_id] = {"status": "done", "result": result, "client_id": req.client_id, "request_id": job_id}
+        logger.info("job done request_id=%s images=%s", job_id, len(result.get("image_urls", [])))
     except Exception as exc:
-        logger.exception("job failed job_id=%s", job_id)
+        logger.exception("job failed request_id=%s", job_id)
         async with job_lock:
-            job_store[job_id] = {"status": "error", "error": str(exc)}
+            job_store[job_id] = {"status": "error", "error": str(exc), "client_id": req.client_id, "request_id": job_id}
 
 
-@app.get("/job-status/{job_id}")
-async def job_status(job_id: str):
+@app.get("/job-status/{request_id}")
+async def job_status(request_id: str):
     async with job_lock:
-        job = job_store.get(job_id)
+        job = job_store.get(request_id)
     if not job:
         raise HTTPException(status_code=404, detail="job not found")
-    return {"job_id": job_id, **job}
+    return {"request_id": request_id, **job}
 
 
 @app.get("/history")
@@ -99,15 +99,15 @@ async def history(page: int = 1, limit: int = 20):
 async def generate(req: GenerateRequest):
     try:
         req.count = 4
-        job_id = req.client_id or uuid.uuid4().hex[:12]
+        request_id = uuid.uuid4().hex[:12]
         async with job_lock:
-            existing = job_store.get(job_id)
+            existing = job_store.get(request_id)
             if existing:
-                return {"job_id": job_id, **existing}
-            job_store[job_id] = {"status": "running"}
-        logger.info("generate request accepted job_id=%s realm=%s model=%s quality=%s prompt=%s", job_id, req.realm, req.model, req.quality, req.prompt[:60])
-        asyncio.create_task(_run_generation(job_id, req))
-        return {"job_id": job_id, "status": "running"}
+                return {"request_id": request_id, **existing}
+            job_store[request_id] = {"status": "running", "client_id": req.client_id, "request_id": request_id}
+        logger.info("generate request accepted request_id=%s client_id=%s realm=%s model=%s quality=%s prompt=%s", request_id, req.client_id, req.realm, req.model, req.quality, req.prompt[:60])
+        asyncio.create_task(_run_generation(request_id, req))
+        return {"request_id": request_id, "status": "running", "client_id": req.client_id}
     except Exception as e:
         traceback.print_exc()
         logger.exception("generate request failed")
