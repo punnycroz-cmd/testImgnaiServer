@@ -64,3 +64,34 @@ class R2Vault:
         except Exception as exc:
             self.logger.exception("failed to upload image %s: %s", file_name, exc)
             return image_url
+
+    def list_images(self, prefix: str = "vault/"):
+        if not self.access_key or "PASTE_YOUR" in self.access_key:
+            return []
+
+        s3 = boto3.client(
+            service_name="s3",
+            endpoint_url=f"https://{self.account_id}.r2.cloudflarestorage.com",
+            aws_access_key_id=self.access_key,
+            aws_secret_access_key=self.secret_key,
+            region_name="auto",
+        )
+        try:
+            paginator = s3.get_paginator("list_objects_v2")
+            items = []
+            for page in paginator.paginate(Bucket=self.bucket_name, Prefix=prefix):
+                for obj in page.get("Contents", []):
+                    key = obj.get("Key")
+                    if key and key.lower().endswith((".jpg", ".jpeg", ".png", ".webp")):
+                        items.append(
+                            {
+                                "key": key,
+                                "url": f"{self.public_url}/{key.lstrip('/')}",
+                                "last_modified": obj.get("LastModified").isoformat() if obj.get("LastModified") else None,
+                            }
+                        )
+            items.sort(key=lambda x: x["key"], reverse=True)
+            return items
+        except Exception as exc:
+            self.logger.exception("failed to list images: %s", exc)
+            return []

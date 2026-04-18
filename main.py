@@ -1,5 +1,7 @@
+import asyncio
 import logging
 import os
+import uuid
 import traceback
 
 import anyio
@@ -31,6 +33,8 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 
 day_mgr = DayManager(COOKIE_DIR, "", R2_VAULT)
 star_mgr = StarManager(COOKIE_DIR, "", R2_VAULT)
+job_store = {}
+job_lock = asyncio.Lock()
 
 
 @app.get("/")
@@ -49,17 +53,61 @@ async def health():
     }
 
 
+async def _run_generation(job_id: str, req: GenerateRequest):
+    try:
+        logger.info("job start job_id=%s realm=%s model=%s quality=%s", job_id, req.realm, req.model, req.quality)
+        if req.nsfw:
+            star_req = StarGenerateRequest(**req.model_dump())
+            result = await star_mgr.generate(star_req)
+        else:
+            result = await anyio.to_thread.run_sync(day_mgr.generate, req)
+        async with job_lock:
+            job_store[job_id] = {"status": "done", "result": result}
+        logger.info("job done job_id=%s images=%s", job_id, len(result.get("image_urls", [])))
+    except Exception as exc:
+        logger.exception("job failed job_id=%s", job_id)
+        async with job_lock:
+            job_store[job_id] = {"status": "error", "error": str(exc)}
+
+
+@app.get("/job-status/{job_id}")
+async def job_status(job_id: str):
+    async with job_lock:
+        job = job_store.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="job not found")
+    return {"job_id": job_id, **job}
+
+
+@app.get("/history")
+async def history(page: int = 1, limit: int = 20):
+    items = R2_VAULT.list_images(prefix="vault/")
+    total = len(items)
+    start = max(0, (page - 1) * limit)
+    end = start + limit
+    page_items = items[start:end]
+    return {
+        "items": page_items,
+        "page": page,
+        "limit": limit,
+        "total": total,
+        "has_more": end < total,
+    }
+
+
 @app.post("/generate")
 async def generate(req: GenerateRequest):
     try:
         req.count = 4
-        logger.info("generate request start realm=%s model=%s quality=%s prompt=%s", req.realm, req.model, req.quality, req.prompt[:60])
-        if req.nsfw:
-            star_req = StarGenerateRequest(**req.model_dump())
-            return await star_mgr.generate(star_req)
-        result = await anyio.to_thread.run_sync(day_mgr.generate, req)
-        logger.info("generate request done realm=day client_id=%s images=%s", req.client_id, len(result.get("image_urls", [])))
-        return result
+        job_id = req.client_id or uuid.uuid4().hex[:12]
+        async with job_lock:
+            existing = job_store.get(job_id)
+            if existing:
+                return {"job_id": job_id, **existing}
+            job_store[job_id] = {"status": "running"}
+        logger.info("generate request accepted job_id=%s realm=%s model=%s quality=%s prompt=%s", job_id, req.realm, req.model, req.quality, req.prompt[:60])
+        asyncio.create_task(_run_generation(job_id, req))
+        return {"job_id": job_id, "status": "running"}
     except Exception as e:
         traceback.print_exc()
         logger.exception("generate request failed")
