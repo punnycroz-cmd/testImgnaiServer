@@ -52,6 +52,8 @@ async def ensure_logged_in_async(page, context, force_login=False, logger=None):
         await page.locator('input[type="password"]').type(PASSWORD, delay=100)
         await page.keyboard.press("Enter")
         await asyncio.sleep(5)
+        await page.goto(URL_GENERATE, wait_until="domcontentloaded")
+        await asyncio.sleep(2)
         await save_cookies_async(context, logger=logger)
         if logger:
             logger.info("star login complete")
@@ -100,6 +102,22 @@ def parse_session_uuid(text):
 
 
 async def acquire_auth_token_async(page, context, logger=None):
+    try:
+        for cookie in await context.cookies():
+            if cookie.get("name") in {"authentication", "auth"}:
+                try:
+                    raw = cookie.get("value", "")
+                    decoded = json.loads(raw)
+                    token = decoded.get("state", {}).get("token") if isinstance(decoded, dict) else None
+                    if token:
+                        if logger:
+                            logger.info("star auth token found in cookie %s", cookie.get("name"))
+                        return token
+                except Exception:
+                    continue
+    except Exception:
+        pass
+
     auth_tokens = []
 
     def sniff_token(request):
@@ -108,8 +126,12 @@ async def acquire_auth_token_async(page, context, logger=None):
             auth_tokens.append(auth_header.split("Bearer ")[1].strip())
 
     page.on("request", sniff_token)
-    await asyncio.sleep(2)
-    page.remove_listener("request", sniff_token)
+    try:
+        if "generate" not in page.url.lower():
+            await page.goto(URL_GENERATE, wait_until="domcontentloaded")
+        await asyncio.sleep(4)
+    finally:
+        page.remove_listener("request", sniff_token)
     if auth_tokens:
         if logger:
             logger.info("star auth token found in network request")
@@ -117,9 +139,15 @@ async def acquire_auth_token_async(page, context, logger=None):
     try:
         ls_auth = await page.evaluate("window.localStorage.getItem('authentication')")
         if ls_auth:
-            if logger:
-                logger.info("star auth token found in localStorage")
-            return json.loads(ls_auth).get("state", {}).get("token")
+            try:
+                parsed = json.loads(ls_auth)
+                token = parsed.get("state", {}).get("token") if isinstance(parsed, dict) else None
+                if token:
+                    if logger:
+                        logger.info("star auth token found in localStorage")
+                    return token
+            except Exception:
+                pass
     except Exception:
         pass
     if logger:
