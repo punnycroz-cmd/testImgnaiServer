@@ -2,6 +2,7 @@ import asyncio
 import json
 import os
 import logging
+import urllib.parse
 from datetime import datetime
 
 from dotenv import load_dotenv
@@ -24,6 +25,7 @@ URL_WASMALL = IMAGE_BASE_URL if IMAGE_BASE_URL.endswith("/") else f"{IMAGE_BASE_
 USERNAME = os.environ.get("IMGNAI_USERNAME")
 PASSWORD = os.environ.get("IMGNAI_PASSWORD")
 COOKIES_FILE = "cookie/imaginered_cookie.json"
+DEBUG_DIR = "screenshots"
 
 
 async def save_cookies_async(context, logger=None):
@@ -33,6 +35,66 @@ async def save_cookies_async(context, logger=None):
         json.dump(cookies, f, indent=2)
     if logger:
         logger.info("saved star cookies to %s", COOKIES_FILE)
+
+
+def _safe_preview(value: str, keep: int = 12) -> str:
+    if not value:
+        return ""
+    value = str(value)
+    if len(value) <= keep * 2:
+        return value
+    return f"{value[:keep]}...{value[-keep:]}"
+
+
+async def debug_star_auth_state(page, context, logger=None, label="login"):
+    try:
+        os.makedirs(DEBUG_DIR, exist_ok=True)
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        shot_path = os.path.join(DEBUG_DIR, f"star_{label}_{ts}.png")
+        await page.screenshot(path=shot_path, full_page=True)
+        if logger:
+            logger.info("star debug screenshot saved to %s", shot_path)
+    except Exception as exc:
+        if logger:
+            logger.warning("star debug screenshot failed: %s", exc)
+
+    try:
+        cookies = await context.cookies()
+        if logger:
+            for cookie in cookies:
+                name = cookie.get("name")
+                value = urllib.parse.unquote(cookie.get("value", ""))
+                logger.info(
+                    "star debug cookie name=%s domain=%s value=%s",
+                    name,
+                    cookie.get("domain"),
+                    _safe_preview(value),
+                )
+    except Exception as exc:
+        if logger:
+            logger.warning("star debug cookie dump failed: %s", exc)
+
+    for storage_name in ("localStorage", "sessionStorage"):
+        try:
+            keys = await page.evaluate(f"Object.keys(window.{storage_name})")
+            if logger:
+                logger.info("star debug %s keys=%s", storage_name, keys)
+            for key in keys or []:
+                try:
+                    value = await page.evaluate(f"window.{storage_name}.getItem({json.dumps(key)})")
+                    if logger:
+                        logger.info(
+                            "star debug %s key=%s value=%s",
+                            storage_name,
+                            key,
+                            _safe_preview(urllib.parse.unquote(value or "")),
+                        )
+                except Exception as exc:
+                    if logger:
+                        logger.warning("star debug %s key=%s read failed: %s", storage_name, key, exc)
+        except Exception as exc:
+            if logger:
+                logger.warning("star debug %s dump failed: %s", storage_name, exc)
 
 
 async def ensure_logged_in_async(page, context, force_login=False, logger=None):
@@ -54,6 +116,7 @@ async def ensure_logged_in_async(page, context, force_login=False, logger=None):
         await asyncio.sleep(5)
         await page.goto(URL_GENERATE, wait_until="domcontentloaded")
         await asyncio.sleep(2)
+        await debug_star_auth_state(page, context, logger=logger, label="post_login")
         await save_cookies_async(context, logger=logger)
         if logger:
             logger.info("star login complete")
