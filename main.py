@@ -59,7 +59,8 @@ async def health():
 async def _run_generation(job_id: str, req: GenerateRequest):
     try:
         logger.info("job start request_id=%s client_id=%s realm=%s model=%s quality=%s", job_id, req.client_id, req.realm, req.model, req.quality)
-        if req.nsfw:
+        is_star = (req.realm or "").lower() == "star" or req.nsfw
+        if is_star:
             star_req = StarGenerateRequest(**req.model_dump())
             result = await star_mgr.generate(star_req, request_id=job_id)
         else:
@@ -165,12 +166,13 @@ async def history(page: int = 1, limit: int = 20):
 async def generate(req: GenerateRequest):
     try:
         req.count = 4
+        realm = (req.realm or "day").lower()
         request_id = str(uuid.uuid4())
         DB.create_generation(
             generation_id=request_id,
             request_id=request_id,
             client_id=req.client_id,
-            realm=req.realm or "day",
+            realm=realm,
             prompt=req.prompt,
             model=req.model,
             quality=req.quality,
@@ -184,7 +186,7 @@ async def generate(req: GenerateRequest):
             if existing:
                 return {"request_id": request_id, **existing}
             job_store[request_id] = {"status": "running", "client_id": req.client_id, "request_id": request_id}
-        logger.info("generate request accepted request_id=%s client_id=%s realm=%s model=%s quality=%s prompt=%s", request_id, req.client_id, req.realm, req.model, req.quality, req.prompt[:60])
+        logger.info("generate request accepted request_id=%s client_id=%s realm=%s model=%s quality=%s prompt=%s", request_id, req.client_id, realm, req.model, req.quality, req.prompt[:60])
         asyncio.create_task(_run_generation(request_id, req))
         return {"request_id": request_id, "status": "running", "client_id": req.client_id}
     except Exception as e:
