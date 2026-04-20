@@ -46,6 +46,29 @@ def _safe_preview(value: str, keep: int = 12) -> str:
     return f"{value[:keep]}...{value[-keep:]}"
 
 
+def _find_token_path(value, path="root", max_depth=6):
+    if max_depth < 0:
+        return None
+    if isinstance(value, str):
+      if value.startswith("eyJ") and len(value) > 40:
+          return path
+      return None
+    if isinstance(value, dict):
+        for key, item in value.items():
+            next_path = f"{path}.{key}"
+            if key.lower() in {"token", "access_token", "authtoken", "jwt"} and isinstance(item, str) and item:
+                return next_path
+            found = _find_token_path(item, next_path, max_depth - 1)
+            if found:
+                return found
+    if isinstance(value, list):
+        for idx, item in enumerate(value):
+            found = _find_token_path(item, f"{path}[{idx}]", max_depth - 1)
+            if found:
+                return found
+    return None
+
+
 async def debug_star_auth_state(page, context, logger=None, label="login"):
     try:
         os.makedirs(DEBUG_DIR, exist_ok=True)
@@ -64,11 +87,18 @@ async def debug_star_auth_state(page, context, logger=None, label="login"):
             for cookie in cookies:
                 name = cookie.get("name")
                 value = urllib.parse.unquote(cookie.get("value", ""))
+                token_path = None
+                try:
+                    parsed = json.loads(value)
+                    token_path = _find_token_path(parsed)
+                except Exception:
+                    pass
                 logger.info(
-                    "star debug cookie name=%s domain=%s value=%s",
+                    "star debug cookie name=%s domain=%s value=%s token_path=%s",
                     name,
                     cookie.get("domain"),
                     _safe_preview(value),
+                    token_path,
                 )
     except Exception as exc:
         if logger:
@@ -82,12 +112,19 @@ async def debug_star_auth_state(page, context, logger=None, label="login"):
             for key in keys or []:
                 try:
                     value = await page.evaluate(f"window.{storage_name}.getItem({json.dumps(key)})")
+                    token_path = None
+                    try:
+                        parsed = json.loads(urllib.parse.unquote(value or ""))
+                        token_path = _find_token_path(parsed)
+                    except Exception:
+                        pass
                     if logger:
                         logger.info(
-                            "star debug %s key=%s value=%s",
+                            "star debug %s key=%s value=%s token_path=%s",
                             storage_name,
                             key,
                             _safe_preview(urllib.parse.unquote(value or "")),
+                            token_path,
                         )
                 except Exception as exc:
                     if logger:
@@ -97,24 +134,44 @@ async def debug_star_auth_state(page, context, logger=None, label="login"):
                 logger.warning("star debug %s dump failed: %s", storage_name, exc)
 
 
+async def capture_star_step(page, logger=None, label="step"):
+    try:
+        os.makedirs(DEBUG_DIR, exist_ok=True)
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        shot_path = os.path.join(DEBUG_DIR, f"star_{label}_{ts}.png")
+        await page.screenshot(path=shot_path, full_page=True)
+        if logger:
+            logger.info("star step screenshot saved to %s", shot_path)
+    except Exception as exc:
+        if logger:
+            logger.warning("star step screenshot failed at %s: %s", label, exc)
+
+
 async def ensure_logged_in_async(page, context, force_login=False, logger=None):
     if force_login:
         await context.clear_cookies()
         if logger:
             logger.warning("forcing star login")
         await page.goto(URL_LOGIN, wait_until="domcontentloaded")
+        await capture_star_step(page, logger=logger, label="force_login_page")
     else:
         await page.goto(URL_GENERATE, wait_until="domcontentloaded")
+        await capture_star_step(page, logger=logger, label="generate_page")
 
     if force_login or "login" in page.url.lower():
         if "login" not in page.url.lower():
             await page.goto(URL_LOGIN)
+            await capture_star_step(page, logger=logger, label="redirect_login")
         await page.wait_for_selector('input[name="username"]')
+        await capture_star_step(page, logger=logger, label="login_form_ready")
         await page.locator('input[name="username"]').type(USERNAME, delay=100)
         await page.locator('input[type="password"]').type(PASSWORD, delay=100)
+        await capture_star_step(page, logger=logger, label="login_form_filled")
         await page.keyboard.press("Enter")
+        await capture_star_step(page, logger=logger, label="after_enter")
         await asyncio.sleep(5)
         await page.goto(URL_GENERATE, wait_until="domcontentloaded")
+        await capture_star_step(page, logger=logger, label="after_generate_redirect")
         await asyncio.sleep(2)
         await debug_star_auth_state(page, context, logger=logger, label="post_login")
         await save_cookies_async(context, logger=logger)
@@ -186,6 +243,9 @@ async def acquire_auth_token_async(page, context, logger=None):
                     token = auth.get("token")
                     if isinstance(token, str) and token:
                         return token
+        token_path = _find_token_path(decoded)
+        if token_path and logger:
+            logger.info("star auth token candidate path=%s", token_path)
         return None
 
     try:
