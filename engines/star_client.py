@@ -147,6 +147,29 @@ async def capture_star_step(page, logger=None, label="step"):
             logger.warning("star step screenshot failed at %s: %s", label, exc)
 
 
+async def handle_age_verification_async(page, logger=None, label="age_gate"):
+    selectors = [
+        'button:has-text("I am 18+")',
+        'button:has-text("18+")',
+        'button:has-text("Accept")',
+        'button:has-text("Enter")',
+    ]
+    for selector in selectors:
+        try:
+            btn = page.locator(selector).first
+            if await btn.is_visible(timeout=1500):
+                if logger:
+                    logger.info("star age gate detected via %s", selector)
+                await capture_star_step(page, logger=logger, label=f"{label}_before")
+                await btn.click()
+                await asyncio.sleep(1.5)
+                await capture_star_step(page, logger=logger, label=f"{label}_after")
+                return True
+        except Exception:
+            continue
+    return False
+
+
 async def ensure_logged_in_async(page, context, force_login=False, logger=None):
     if force_login:
         await context.clear_cookies()
@@ -154,14 +177,17 @@ async def ensure_logged_in_async(page, context, force_login=False, logger=None):
             logger.warning("forcing star login")
         await page.goto(URL_LOGIN, wait_until="domcontentloaded")
         await capture_star_step(page, logger=logger, label="force_login_page")
+        await handle_age_verification_async(page, logger=logger, label="force_login_age")
     else:
         await page.goto(URL_GENERATE, wait_until="domcontentloaded")
         await capture_star_step(page, logger=logger, label="generate_page")
+        await handle_age_verification_async(page, logger=logger, label="generate_age")
 
     if force_login or "login" in page.url.lower():
         if "login" not in page.url.lower():
             await page.goto(URL_LOGIN)
             await capture_star_step(page, logger=logger, label="redirect_login")
+        await handle_age_verification_async(page, logger=logger, label="login_age")
         await page.wait_for_selector('input[name="username"]')
         await capture_star_step(page, logger=logger, label="login_form_ready")
         await page.locator('input[name="username"]').type(USERNAME, delay=100)
@@ -172,6 +198,7 @@ async def ensure_logged_in_async(page, context, force_login=False, logger=None):
         await asyncio.sleep(5)
         await page.goto(URL_GENERATE, wait_until="domcontentloaded")
         await capture_star_step(page, logger=logger, label="after_generate_redirect")
+        await handle_age_verification_async(page, logger=logger, label="post_login_age")
         await asyncio.sleep(2)
         await debug_star_auth_state(page, context, logger=logger, label="post_login")
         await save_cookies_async(context, logger=logger)
