@@ -33,3 +33,21 @@ This repository contains the backend and project docs for Aether / ImgnAI genera
 - Cloudflare R2 stores vaulted images.
 - Frontend requests are routed through `request_id` and `realm`.
 
+## Required Environment Variables
+
+Set these before running the backend:
+
+- `IMGNAI_USERNAME`
+- `IMGNAI_PASSWORD`
+- `DATABASE_URL`
+- `R2_ACCESS_KEY`
+- `R2_SECRET_KEY`
+- `PORT` (optional, defaults to `8080`)
+- `LOG_LEVEL` (optional, defaults to `INFO`)
+
+## Notes For New Agents
+
+- Pull the latest `main` branch before making changes.
+- Read `AGENT_GUIDE.md` first if you need the file map.
+- Read `DEPLOYMENT.md` if you need to understand Render vs Replit.
+- Use `request_id` for retries, not `client_id`.
