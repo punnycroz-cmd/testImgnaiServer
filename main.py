@@ -80,18 +80,30 @@ async def _run_generation(job_id: str, req: GenerateRequest):
 async def job_status(request_id: str):
     async with job_lock:
         job = job_store.get(request_id)
-    if not job:
-        row = DB.get_generation(request_id)
-        if not row:
+    
+    # Always check DB for current state and images
+    row = DB.get_generation(request_id)
+    if not row:
+        if not job:
             raise HTTPException(status_code=404, detail="job not found")
-        async with job_lock:
-            job_store[request_id] = {
-                "status": row["status"],
-                "client_id": row["client_id"],
-                "request_id": row["request_id"],
-            }
-        job = job_store[request_id]
-    return {"request_id": request_id, **job}
+        return {"request_id": request_id, **job}
+    
+    # Get any images generated so far
+    image_rows = []
+    with DB.connect() as conn, conn.cursor() as cur:
+        cur.execute("SELECT * FROM generation_images WHERE generation_id = %s ORDER BY image_index ASC", (row["id"],))
+        image_rows = cur.fetchall()
+        
+    return {
+        "request_id": request_id,
+        "status": row["status"],
+        "client_id": row["client_id"],
+        "prompt": row["prompt"],
+        "realm": row["realm"],
+        "images": image_rows,
+        "result": row.get("result"),
+        "error": row.get("error")
+    }
 
 
 @app.get("/resume/{request_id}")

@@ -2,12 +2,14 @@
 
 This repository contains the backend and project docs for Aether / ImgnAI generation.
 
-## Start Here
+## 🏠 The Memory House (Start Here)
 
-- [`AGENT_GUIDE.md`](/Users/sema/Documents/code/work/testImgnai/AGENT_GUIDE.md)
-- [`DEPLOYMENT.md`](/Users/sema/Documents/code/work/testImgnai/DEPLOYMENT.md)
-- [`PROJECT_CHANGES.md`](/Users/sema/Documents/code/work/testImgnai/PROJECT_CHANGES.md)
-- [`MISTAKES_AND_FIXES.md`](/Users/sema/Documents/code/work/testImgnai/MISTAKES_AND_FIXES.md)
+This project uses the **Memory House** system (Spatial Context) for agentic efficiency. If you are an AI agent, start by reading these rooms:
+
+- [**ATLAS**](.memory/ATLAS.md): The project map and high-level structure.
+- [**ENGINES**](.memory/ENGINES.md): Deep dive into Day and Star generation logic.
+- [**LOGBOOK**](.memory/LOGBOOK.md): History of changes, fixes, and lessons learned.
+- [**DEPLOYMENT**](.memory/DEPLOYMENT.md): Deployment and infrastructure guide.
 
 ## Main Runtime Files
 

@@ -1,0 +1,1012 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aether Studio</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
+    :root {
+      --bg-base: #f1f7f4;
+      --panel-bg: rgba(255, 255, 255, 0.5);
+      --panel-border: rgba(255, 255, 255, 0.7);
+      --panel-shadow: rgba(0, 50, 20, 0.1);
+      --text-main: #10243a;
+      --text-muted: #64748b;
+      --accent: #10b981;
+      --accent-hover: #059669;
+      --accent-glow: rgba(16, 185, 129, 0.4);
+      --accent-text: #fff;
+    }
+
+    body[data-mode="nsfw"] {
+      --bg-base: #0f172a;
+      --panel-bg: rgba(15, 23, 42, 0.62);
+      --panel-border: rgba(255, 255, 255, 0.12);
+      --panel-shadow: rgba(0, 0, 0, 0.5);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #8b5cf6;
+      --accent-hover: #7c3aed;
+      --accent-glow: rgba(139, 92, 246, 0.5);
+      --accent-text: #fff;
+    }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background:
+        radial-gradient(circle at top, rgba(16, 185, 129, 0.12), transparent 30%),
+        linear-gradient(180deg, var(--bg-base), var(--bg-base));
+      color: var(--text-main);
+      margin: 0;
+      min-height: 100vh;
+      overflow: hidden;
+      transition: background-color 0.6s ease, color 0.3s ease;
+    }
+
+    h1, h2, h3, .cinematic-text { font-family: 'Cinzel', serif; }
+
+    .glass-panel {
+      background: var(--panel-bg);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid var(--panel-border);
+      box-shadow: 0 20px 40px var(--panel-shadow);
+      border-radius: 2rem;
+    }
+
+    .nav-pill { transition: all 0.25s ease; color: var(--text-muted); cursor: pointer; }
+    .nav-pill.active { color: var(--accent-text); background: var(--accent); box-shadow: 0 10px 25px var(--accent-glow); }
+
+    textarea, select, input {
+      background: var(--panel-bg) !important;
+      border: 1px solid var(--panel-border) !important;
+      color: var(--text-main) !important;
+      border-radius: 1rem !important;
+      transition: all 0.2s ease !important;
+    }
+
+    textarea:focus, select:focus, input:focus {
+      outline: none !important;
+      box-shadow: 0 0 0 3px var(--accent-glow) !important;
+      border-color: var(--accent) !important;
+    }
+
+    .btn-magic {
+      background: var(--accent);
+      color: var(--accent-text);
+      transition: all 0.25s ease;
+      border-radius: 1.25rem;
+      cursor: pointer;
+    }
+
+    .btn-magic:hover:not(:disabled) {
+      background: var(--accent-hover);
+      box-shadow: 0 14px 32px var(--accent-glow);
+      transform: translateY(-2px);
+    }
+
+    .btn-magic:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .loader {
+      width: 18px;
+      height: 18px;
+      border: 2px solid white;
+      border-top-color: transparent;
+      border-radius: 999px;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @keyframes float {
+      from { transform: translateY(0px); }
+      to { transform: translateY(-14px); }
+    }
+
+    main {
+      height: 100vh;
+      overflow-y: auto;
+      scroll-behavior: smooth;
+      padding-top: 7.5rem;
+      padding-bottom: 20rem;
+    }
+
+    main::-webkit-scrollbar { width: 0; }
+
+    .bubble-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.5rem;
+      padding: 1.5rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .bubble {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      border-radius: 50%;
+      position: relative;
+      cursor: pointer;
+      animation: float 4s infinite alternate ease-in-out;
+      overflow: hidden;
+      isolation: isolate;
+    }
+
+    .bubble-img-overlay { position: absolute; inset: 0; border-radius: 50%; overflow: hidden; z-index: 1; }
+    .bubble-img-overlay img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+    .bubble-sphere {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      background: radial-gradient(circle at 30% 25%, rgba(255,255,255,0.42) 0%, transparent 60%);
+      border: 1px solid rgba(255,255,255,0.18);
+    }
+
+    .bubble-canvas {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      border-radius: 50%;
+      z-index: 50;
+      width: 260px;
+      height: 260px;
+    }
+
+    .vault-badge {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: var(--accent);
+      color: white;
+      font-size: 8px;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 999px;
+      z-index: 10;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      box-shadow: 0 4px 10px var(--accent-glow);
+    }
+
+    .art-frame {
+      border-radius: 1.25rem;
+      overflow: hidden;
+      position: relative;
+      transition: all 0.3s ease;
+      background: var(--panel-bg);
+      cursor: pointer;
+      border: 2px solid transparent;
+    }
+    .art-frame:hover { transform: translateY(-4px); border-color: var(--accent); }
+
+    .bubble-image-reveal {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.86);
+      backdrop-filter: blur(18px);
+      opacity: 0;
+      transition: opacity 0.35s ease;
+    }
+
+    .bubble-image-reveal.active { display: flex; opacity: 1; }
+    .bubble-image-reveal img {
+      max-width: 90vw;
+      max-height: 85vh;
+      object-fit: contain;
+      border-radius: 1.25rem;
+      transform: scale(0.94);
+      transition: transform 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+    }
+    .bubble-image-reveal.active img { transform: scale(1); }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.35rem 0.7rem;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.08);
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+    }
+
+    .bottom-console {
+      position: fixed;
+      bottom: 1.25rem;
+      left: 50%;
+      transform: translateX(-50%);
+      width: calc(100% - 1.5rem);
+      max-width: 1100px;
+      z-index: 100;
+      transition: transform 0.45s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.25s ease;
+      will-change: transform, opacity;
+    }
+
+    .bottom-console.minimized {
+      transform: translate(-50%, calc(100% - 3.5rem));
+      opacity: 0.94;
+    }
+  </style>
+</head>
+
+<body data-mode="standard">
+  <header class="fixed top-5 left-0 right-0 z-[110] px-4 sm:px-8">
+    <div class="max-w-7xl mx-auto glass-panel p-4 border-t-4 border-t-[var(--accent)] flex items-center justify-between gap-4 shadow-2xl">
+      <div class="flex items-center gap-4 min-w-0">
+        <div class="w-10 h-10 rounded-xl bg-[var(--accent)] text-white flex items-center justify-center shadow-lg transform -rotate-3 shrink-0">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+          </svg>
+        </div>
+        <div class="min-w-0">
+          <h1 class="text-xl sm:text-2xl font-black cinematic-text tracking-[0.25em] truncate">AETHER</h1>
+          <p class="text-[10px] uppercase tracking-[0.3em] text-[var(--text-muted)]">PromptStore frontend</p>
+        </div>
+      </div>
+
+      <nav class="flex items-center gap-2 bg-black/5 p-1 rounded-2xl shrink-0">
+        <button data-view="generate" class="nav-pill active px-4 sm:px-5 py-2 rounded-xl font-bold uppercase text-[10px] tracking-widest">Forge</button>
+        <button data-view="tasks" class="nav-pill px-4 sm:px-5 py-2 rounded-xl font-bold uppercase text-[10px] tracking-widest">Queue</button>
+        <button data-view="history" class="nav-pill px-4 sm:px-5 py-2 rounded-xl font-bold uppercase text-[10px] tracking-widest">Vault</button>
+      </nav>
+
+      <div class="status-pill hidden sm:inline-flex" id="backendStatus">Checking backend...</div>
+    </div>
+  </header>
+
+  <div id="bubbleReveal" class="bubble-image-reveal" onclick="closeBubbleReveal(event)">
+    <div class="relative px-4">
+      <img id="bubbleRevealImg" src="" alt="Generated image">
+      <button onclick="closeBubbleReveal()" class="absolute -top-3 -right-1 sm:-right-3 w-10 h-10 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white font-bold text-lg">&times;</button>
+      <div class="flex justify-center mt-6 gap-3">
+        <a id="bubbleRevealDownload" href="#" download class="px-6 py-2 btn-magic text-[10px] font-bold uppercase tracking-widest">Save Image</a>
+        <button id="resumeFromModal" onclick="resumeSelectedJob()" class="px-6 py-2 btn-magic text-[10px] font-bold uppercase tracking-widest">Resume Job</button>
+      </div>
+      <div id="bubbleRevealThumbs" class="mt-6 grid grid-cols-4 gap-2 max-w-[90vw]"></div>
+    </div>
+  </div>
+
+  <main id="mainContent">
+    <section id="view-generate" class="view">
+      <div class="max-w-7xl mx-auto px-4 sm:px-8">
+        <div class="glass-panel p-4 sm:p-6 mb-6">
+          <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div>
+              <h2 class="text-3xl sm:text-4xl font-bold cinematic-text">Manifestations</h2>
+              <p class="text-sm text-[var(--text-muted)] mt-2">Submit once, then resume polling with the saved request ID if the network is slow.</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <span id="activeRequestBadge" class="status-pill">No active request</span>
+              <button id="retryBtn" onclick="resumeLastRequest()" class="btn-magic px-4 py-2 text-[10px] font-bold uppercase tracking-widest" disabled>Retry Last</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="gallery" class="bubble-container">
+          <div id="galleryEmpty" class="col-span-full py-20 text-center opacity-15 text-3xl font-light cinematic-text tracking-[0.3em] uppercase">Void Awaiting Light</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-tasks" class="view hidden px-4 sm:px-8">
+      <div class="max-w-7xl mx-auto glass-panel p-6 sm:p-10 min-h-[400px]">
+        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-8">
+          <div>
+            <h2 class="text-3xl sm:text-4xl font-bold cinematic-text">Active Journeys</h2>
+            <p class="text-sm text-[var(--text-muted)] mt-2">Current requests and resume tokens live here while a job is running.</p>
+          </div>
+          <button onclick="refreshCurrentJob()" class="text-[10px] font-bold uppercase tracking-widest text-[var(--accent)]">Refresh</button>
+        </div>
+        <div id="taskList" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+      </div>
+    </section>
+
+    <section id="view-history" class="view hidden px-4 sm:px-8">
+      <div class="max-w-7xl mx-auto glass-panel p-6 sm:p-10 min-h-[400px]">
+        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-8">
+          <div>
+            <h2 class="text-3xl sm:text-4xl font-bold cinematic-text">The Vault</h2>
+            <p class="text-sm text-[var(--text-muted)] mt-2">Loads from Neon and R2, 20 records at a time.</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <button onclick="reloadHistory()" class="text-[10px] font-bold uppercase tracking-widest text-[var(--accent)]">Reload</button>
+            <button onclick="clearVault()" class="text-[10px] font-bold uppercase text-red-500 hover:opacity-70">Clear Local Cache</button>
+          </div>
+        </div>
+        <div id="historyList" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"></div>
+        <div class="mt-8 flex justify-center">
+          <button id="loadMoreBtn" onclick="loadMoreHistory()" class="btn-magic px-5 py-3 text-[10px] font-bold uppercase tracking-widest">Load More</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="desktopConsole" class="bottom-console glass-panel p-4 border-2 border-[var(--accent)]">
+    <button onclick="toggleConsole()" class="absolute -top-10 left-1/2 -translate-x-1/2 bg-[var(--accent)] text-white px-6 py-2 rounded-t-xl font-bold text-[10px] uppercase tracking-widest shadow-lg">
+      <span id="consoleToggleText">Minimize</span>
+    </button>
+
+    <div class="grid grid-cols-12 gap-4 items-stretch">
+      <div class="col-span-12 lg:col-span-4 flex flex-col gap-3">
+        <div class="flex items-center gap-1 bg-black/5 p-1 rounded-xl h-9">
+          <button data-mode="standard" class="nav-pill active w-1/2 h-full rounded-lg text-[9px] font-bold uppercase">Day</button>
+          <button data-mode="nsfw" class="nav-pill w-1/2 h-full rounded-lg text-[9px] font-bold uppercase">Star</button>
+        </div>
+        <div class="space-y-1">
+          <label class="text-[9px] font-bold uppercase opacity-50 ml-1">Engine</label>
+          <select id="model" class="w-full h-9 px-3 font-bold text-xs"></select>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div class="space-y-1">
+            <label class="text-[9px] font-bold uppercase opacity-50 ml-1">Quality</label>
+            <select id="quality" class="w-full h-9 px-3 font-bold text-xs"></select>
+          </div>
+          <div class="space-y-1">
+            <label class="text-[9px] font-bold uppercase opacity-50 ml-1">Size</label>
+            <select id="aspect" class="w-full h-9 px-3 font-bold text-xs"></select>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div class="space-y-1">
+            <label class="text-[9px] font-bold uppercase opacity-50 ml-1">Images</label>
+            <select id="count" class="w-full h-9 px-3 font-bold text-xs">
+              <option value="1">1 Spirit</option>
+              <option value="4" selected>4 Spirits</option>
+            </select>
+          </div>
+          <div class="space-y-1">
+            <label class="text-[9px] font-bold uppercase opacity-50 ml-1">Seed</label>
+            <input id="seed" type="number" placeholder="Divine Seed" class="w-full h-9 px-3 font-bold text-xs">
+          </div>
+        </div>
+      </div>
+
+      <div class="col-span-12 lg:col-span-8 flex flex-col gap-3">
+        <div class="flex-1 flex flex-col space-y-1">
+          <div class="flex justify-between px-1">
+            <label class="text-[9px] font-bold uppercase opacity-50">The Vision</label>
+            <div class="flex gap-4">
+              <button onclick="clearPrompt()" class="text-[9px] font-bold text-red-400 uppercase">Clear</button>
+              <button onclick="pastePrompt()" class="text-[9px] font-bold text-[var(--accent)] uppercase">Paste</button>
+            </div>
+          </div>
+          <textarea id="prompt" placeholder="What do you seek to manifest?" class="w-full flex-1 p-3 resize-none text-sm leading-relaxed"></textarea>
+        </div>
+        <div class="grid grid-cols-5 gap-3">
+          <div class="col-span-4">
+            <textarea id="negativePrompt" placeholder="Wards (Banish artifacts...)" class="w-full h-11 px-3 py-2 text-xs resize-none"></textarea>
+          </div>
+          <button id="generateBtn" class="col-span-1 btn-magic flex items-center justify-center gap-2 font-bold uppercase text-[10px] tracking-widest shadow-lg">
+            <span id="btnText">Manifest</span>
+            <div id="btnLoader" class="hidden"><div class="loader"></div></div>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="footerStatus" class="fixed bottom-8 left-1/2 -translate-x-1/2 glass-panel py-3 px-8 text-xs font-bold transition-all translate-y-32 opacity-0 pointer-events-none z-[150]"></div>
+
+  <script>
+    window.__SERVER_URL__ = "__SERVER_URL__";
+    window.__SERVER_URL_NSFW__ = "__SERVER_URL_NSFW__";
+
+    const DAY_MODELS = [
+      "Gen", "Ani", "Synth", "Fur", "Noob", "Aura", "Pixel", "Hyper CGI",
+      "Volt", "Muse", "Gothic", "Rend", "Retro", "Pony", "Neo", "Nai",
+      "Glitch", "Flux1 D", "Supra", "Evo", "Toon", "Wassie", "HyperX", "FurXL Classic"
+    ];
+    const STAR_MODELS = [
+      "Gen", "Ani", "Synth", "Fur", "Noob", "Aura", "Pixel", "Hyper CGI",
+      "Volt", "Muse", "Rend", "Pony", "Neo", "Nai", "Retro", "Supra",
+      "Evo", "Toon", "HyperX", "FurXL Classic", "Illustrious", "Real Amateurs",
+      "RealX", "Real Classic"
+    ];
+    const ASPECT_CHOICES = ["1:1", "16:9", "5:2", "4:5", "4:7"];
+    const QUALITY_CHOICES = ["Fast", "High Quality"];
+
+    const state = {
+      serverUrl: "",
+      activeMode: localStorage.getItem("a_mode") || "standard",
+      activeRequestId: localStorage.getItem("a_active_request_id") || "",
+      activeRequest: null,
+      historyPage: 1,
+      historyLimit: 20,
+      historyHasMore: true,
+      historyLoaded: false,
+      loadingHistory: false,
+      currentPoll: null
+    };
+
+    const dom = {
+      model: document.getElementById("model"),
+      prompt: document.getElementById("prompt"),
+      negativePrompt: document.getElementById("negativePrompt"),
+      generateBtn: document.getElementById("generateBtn"),
+      btnText: document.getElementById("btnText"),
+      btnLoader: document.getElementById("btnLoader"),
+      gallery: document.getElementById("gallery"),
+      historyList: document.getElementById("historyList"),
+      taskList: document.getElementById("taskList"),
+      count: document.getElementById("count"),
+      aspect: document.getElementById("aspect"),
+      quality: document.getElementById("quality"),
+      seed: document.getElementById("seed"),
+      footerStatus: document.getElementById("footerStatus"),
+      loadMoreBtn: document.getElementById("loadMoreBtn"),
+      activeRequestBadge: document.getElementById("activeRequestBadge"),
+      backendStatus: document.getElementById("backendStatus")
+    };
+
+    function isUnresolved(v) {
+      return !v || v.startsWith("__") || v.includes("REPLACE");
+    }
+
+    function resolveServerUrl(mode) {
+      const std = isUnresolved(window.__SERVER_URL__) ? window.location.origin : window.__SERVER_URL__;
+      const nsfw = isUnresolved(window.__SERVER_URL_NSFW__) ? std : window.__SERVER_URL_NSFW__;
+      return (mode === "nsfw" ? nsfw : std).replace(/\/$/, "");
+    }
+
+    function setFooterMsg(msg, kind = "info") {
+      dom.footerStatus.textContent = msg;
+      dom.footerStatus.style.borderColor = kind === "error" ? "rgba(239,68,68,0.35)" : "var(--panel-border)";
+      dom.footerStatus.classList.remove("translate-y-32", "opacity-0");
+      setTimeout(() => dom.footerStatus.classList.add("translate-y-32", "opacity-0"), 3200);
+    }
+
+    function setLoading(loading) {
+      dom.generateBtn.disabled = loading;
+      dom.btnText.textContent = loading ? "Weaving..." : "Manifest";
+      dom.btnLoader.classList.toggle("hidden", !loading);
+    }
+
+    function saveActiveRequest(requestId) {
+      state.activeRequestId = requestId || "";
+      if (requestId) localStorage.setItem("a_active_request_id", requestId);
+      else localStorage.removeItem("a_active_request_id");
+      renderActiveRequest();
+    }
+
+    function renderActiveRequest() {
+      if (!state.activeRequestId) {
+        dom.activeRequestBadge.textContent = "No active request";
+        document.getElementById("retryBtn").disabled = true;
+      } else {
+        dom.activeRequestBadge.textContent = `Active request: ${state.activeRequestId.slice(0, 8)}...`;
+        document.getElementById("retryBtn").disabled = false;
+      }
+    }
+
+    function applyMode(mode) {
+      state.activeMode = mode;
+      document.body.dataset.mode = mode;
+      state.serverUrl = resolveServerUrl(mode);
+      const previousModel = dom.model.value || localStorage.getItem("a_model") || "";
+      const previousQuality = dom.quality.value || localStorage.getItem("a_quality") || "";
+      const previousAspect = dom.aspect.value || localStorage.getItem("a_aspect") || "";
+      const models = mode === "nsfw" ? STAR_MODELS : DAY_MODELS;
+      dom.model.innerHTML = models.map(name => `<option value="${name}">${name}</option>`).join("");
+      dom.quality.innerHTML = QUALITY_CHOICES
+        .map(q => `<option value="${q}">${q}</option>`).join("");
+      dom.aspect.innerHTML = ASPECT_CHOICES
+        .map(a => `<option value="${a}">${a}</option>`).join("");
+      document.querySelectorAll("[data-mode]").forEach(btn => btn.classList.toggle("active", btn.dataset.mode === mode));
+      localStorage.setItem("a_mode", mode);
+      dom.model.value = models.includes(previousModel) ? previousModel : (models[0] || "Gen");
+      dom.quality.value = QUALITY_CHOICES.includes(previousQuality) ? previousQuality : QUALITY_CHOICES[0];
+      dom.aspect.value = ASPECT_CHOICES.includes(previousAspect) ? previousAspect : ASPECT_CHOICES[0];
+      localStorage.setItem("a_model", dom.model.value);
+      localStorage.setItem("a_quality", dom.quality.value);
+      localStorage.setItem("a_aspect", dom.aspect.value);
+      
+      refreshCurrentJob();
+    }
+
+    function getPayload() {
+      const realm = state.activeMode === "nsfw" ? "star" : "day";
+      return {
+        prompt: dom.prompt.value.trim(),
+        model: dom.model.value,
+        nsfw: state.activeMode === "nsfw",
+        count: parseInt(dom.count.value, 10),
+        aspect: dom.aspect.value,
+        quality: dom.quality.value,
+        negative_prompt: dom.negativePrompt.value.trim(),
+        seed: dom.seed.value ? parseInt(dom.seed.value, 10) : null,
+        client_id: `client-${Date.now()}`,
+        realm
+      };
+    }
+
+    async function apiFetch(path, opts = {}) {
+      const resp = await fetch(`${state.serverUrl}${path}`, {
+        headers: { "Content-Type": "application/json", ...(opts.headers || {}) },
+        ...opts
+      });
+      const text = await resp.text();
+      let data = null;
+      try { data = text ? JSON.parse(text) : null; } catch { data = { raw: text }; }
+      if (!resp.ok) {
+        const err = new Error(data?.detail || data?.error || `HTTP ${resp.status}`);
+        err.status = resp.status;
+        err.data = data;
+        throw err;
+      }
+      return data;
+    }
+
+    function currentJobCard(job) {
+      const created = job?.created_at ? new Date(job.created_at).toLocaleString() : "Pending";
+      const promptEscaped = escapeHtml(job?.prompt || "No prompt yet");
+      return `
+        <div class="glass-panel p-4" data-request-id="${job?.request_id}">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <div class="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">${job?.realm || "day"} · ${job?.status || "running"}</div>
+              <div class="font-bold mt-1 truncate" title="${promptEscaped}">${promptEscaped}</div>
+            </div>
+            <span class="status-pill">${job?.request_id ? job.request_id.slice(0, 8) : "new"}</span>
+          </div>
+          <div class="mt-3 grid grid-cols-2 gap-2 text-[11px] text-[var(--text-muted)]">
+            <div>Model</div><div class="text-right text-[var(--text-main)] font-semibold">${job?.model || "-"}</div>
+            <div>Quality</div><div class="text-right text-[var(--text-main)] font-semibold">${job?.quality || "-"}</div>
+            <div>Aspect</div><div class="text-right text-[var(--text-main)] font-semibold">${job?.aspect || "-"}</div>
+            <div>Created</div><div class="text-right text-[var(--text-main)] font-semibold">${created}</div>
+          </div>
+          <div class="mt-4 flex gap-2">
+            <button class="btn-magic px-3 py-2 text-[10px] font-bold uppercase tracking-widest" onclick="resumeRequest('${job?.request_id || ""}')" ${job?.status === 'done' ? 'disabled' : ''}>Resume</button>
+            <button class="px-3 py-2 rounded-xl border border-[var(--panel-border)] text-[10px] font-bold uppercase tracking-widest" onclick="copyRequestId('${job?.request_id || ""}')">Copy ID</button>
+          </div>
+        </div>
+      `;
+    }
+
+    async function runGeneration() {
+      const payload = getPayload();
+      if (!payload.prompt) return setFooterMsg("Inspiration required.", "error");
+
+      setLoading(true);
+      dom.gallery.innerHTML = '<div class="col-span-full py-24 animate-pulse opacity-50 cinematic-text text-2xl uppercase tracking-widest text-center">Weaving Vision...</div>';
+
+      try {
+        const res = await apiFetch("/generate", {
+          method: "POST",
+          body: JSON.stringify(payload)
+        });
+        saveActiveRequest(res.request_id);
+        state.activeRequest = res;
+        updateTasksView(res);
+        if (res.status === "done" && res.result?.image_urls?.length) {
+          handleSuccess(res.result.image_urls, res.request_id, payload, res);
+          return;
+        }
+        setFooterMsg(`Request accepted: ${res.request_id.slice(0, 8)}...`, "info");
+        await pollUntilDone(res.request_id, payload);
+      } catch (err) {
+        console.error(err);
+        setFooterMsg(`Generation failed to start: ${err.message}`, "error");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    async function pollUntilDone(requestId, payload, maxAttempts = 90) {
+      state.currentPoll = requestId;
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        // If a new poll has started, abort this one to prevent clobbering UI state.
+        if (state.currentPoll !== requestId) return false;
+
+        try {
+          const res = await apiFetch(`/job-status/${requestId}`);
+          
+          // Re-verify current poll after async call
+          if (state.currentPoll !== requestId) return false;
+
+          state.activeRequest = res;
+          updateTasksView(res);
+          
+          // Streaming images as they appear in the DB
+          if (res.images && res.images.length > 0) {
+            const urls = res.images.map(img => img.r2_url);
+            // Only re-render if count changed or it was empty
+            if (urls.length > (dom.gallery.querySelectorAll(".bubble").length)) {
+              renderGallery(urls, requestId, payload, res);
+            }
+          }
+
+          if (res.status === "done" && (res.result?.image_urls?.length || res.images?.length)) {
+            const finalUrls = res.images?.length ? res.images.map(img => img.r2_url) : res.result.image_urls;
+            handleSuccess(finalUrls, requestId, payload, res);
+            setFooterMsg("Vision completed.", "info");
+            return true;
+          }
+          if (res.status === "error") {
+            setFooterMsg(res.error || "Generation failed.", "error");
+            return false;
+          }
+        } catch (err) {
+          if (err.status === 404) {
+            setFooterMsg("Searching for job pulse...", "info");
+          } else {
+            console.warn("poll error", err);
+          }
+        }
+        await sleep(backoffDelay(attempt));
+      }
+      setFooterMsg("Visions still forming. Poll expired.", "info");
+      return false;
+    }
+
+    function backoffDelay(attempt) {
+      const base = 1500;
+      const factor = Math.min(2.5, 1 + attempt / 18);
+      return Math.min(10000, Math.floor(base * factor));
+    }
+
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    async function resumeLastRequest() {
+      if (!state.activeRequestId) return setFooterMsg("No saved request to resume.", "error");
+      setFooterMsg(`Resuming ${state.activeRequestId.slice(0, 8)}...`, "info");
+      try {
+        const res = await apiFetch(`/resume/${state.activeRequestId}`);
+        state.activeRequest = res;
+        updateTasksView(res);
+        if (res.status === "done" && res.result?.image_urls?.length) {
+          handleSuccess(res.result.image_urls, state.activeRequestId, {
+            prompt: res.prompt,
+            model: res.model,
+            quality: res.quality,
+            aspect: res.aspect,
+          }, res);
+          return;
+        }
+        await pollUntilDone(state.activeRequestId, {
+          prompt: res.prompt,
+          model: res.model,
+          quality: res.quality,
+          aspect: res.aspect,
+        });
+      } catch (err) {
+        setFooterMsg(`Resume failed: ${err.message}`, "error");
+      }
+    }
+
+    async function resumeRequest(requestId) {
+      if (!requestId) return;
+      saveActiveRequest(requestId);
+      await resumeLastRequest();
+    }
+
+    async function refreshCurrentJob() {
+      // Previously only refreshed the ONE active job. 
+      // Now we fetch the latest history and show all non-completed jobs in the Queue.
+      try {
+        const res = await apiFetch(`/history?page=1&limit=10`);
+        const items = res.items || [];
+        const running = items.filter(it => it.status !== "done" && it.status !== "error");
+        
+        if (running.length > 0) {
+          dom.taskList.innerHTML = running.map(job => currentJobCard(job)).join("");
+          setFooterMsg(`Watching ${running.length} active souls...`, "info");
+        } else if (state.activeRequestId) {
+          // Fallback to specific status check for the most recent request
+          const job = await apiFetch(`/job-status/${state.activeRequestId}`);
+          dom.taskList.innerHTML = currentJobCard(job);
+        } else {
+          dom.taskList.innerHTML = '<div class="col-span-full py-20 text-center opacity-20 cinematic-text text-xl uppercase tracking-widest">The queue is silent</div>';
+        }
+      } catch (err) {
+        setFooterMsg(`Pulse check failed: ${err.message}`, "error");
+      }
+    }
+
+    function updateTasksView(job) {
+      if (!dom.taskList) return;
+      // If we are looking at the queue and have a newly active job, ensure it's displayed.
+      // In the future, we could append to a list, but for now we update the active slot.
+      dom.taskList.innerHTML = job ? currentJobCard(job) : '<div class="col-span-full py-20 text-center opacity-20 cinematic-text text-xl uppercase tracking-widest">No active spirits in the queue</div>';
+    }
+
+    function handleSuccess(urls, requestId, payload, meta = {}) {
+      saveActiveRequest(requestId);
+      state.activeRequest = meta || state.activeRequest;
+      renderGallery(urls, requestId, payload, meta);
+
+      updateTasksView({
+        request_id: requestId,
+        realm: payload?.realm || (payload?.nsfw ? "star" : "day"),
+        status: "done",
+        prompt: payload?.prompt,
+        model: payload?.model,
+        quality: payload?.quality,
+        aspect: payload?.aspect,
+        created_at: meta?.created_at || new Date().toISOString(),
+      });
+      setFooterMsg("Vault updated.", "info");
+      state.historyLoaded = false;
+      renderHistory(); 
+    }
+
+    function renderGallery(urls, requestId, payload, meta = {}) {
+      const cards = urls.map((url, idx) => {
+        const vaulted = (url.includes(".r2.dev") || url.includes("cloudflare")) ? '<span class="vault-badge">Vaulted</span>' : '';
+        return `
+          <div class="bubble" id="bubble-${requestId}-${idx}">
+            ${vaulted}
+            <div class="bubble-img-overlay"><img src="${url}" alt="Generated image ${idx + 1}" loading="lazy"></div>
+            <div class="bubble-sphere"></div>
+            <canvas class="bubble-canvas" width="260" height="260"></canvas>
+          </div>
+        `;
+      }).join("");
+
+      dom.gallery.innerHTML = cards || '<div class="col-span-full py-24 text-center opacity-20 cinematic-text text-2xl uppercase tracking-widest">No images returned.</div>';
+
+      urls.forEach((url, idx) => {
+        const bubble = document.getElementById(`bubble-${requestId}-${idx}`);
+        if (bubble) bubble.onclick = () => popBubble(bubble, url);
+      });
+    }
+
+    function popBubble(el, url) {
+      const canvas = el.querySelector("canvas");
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      const particles = [];
+      for (let i = 0; i < 36; i++) {
+        particles.push({
+          x: 130, y: 130,
+          vx: (Math.random() - 0.5) * 8,
+          vy: (Math.random() - 0.5) * 8,
+          size: Math.random() * 4 + 1,
+          alpha: 1
+        });
+      }
+      const animate = () => {
+        ctx.clearRect(0, 0, 260, 260);
+        particles.forEach(p => {
+          p.x += p.vx;
+          p.y += p.vy;
+          p.alpha -= 0.02;
+          ctx.fillStyle = `rgba(139, 92, 246, ${Math.max(0, p.alpha)})`;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        if (particles[0].alpha > 0) requestAnimationFrame(animate);
+      };
+      animate();
+      setTimeout(() => {
+        const reveal = document.getElementById("bubbleReveal");
+        document.getElementById("bubbleRevealImg").src = url;
+        document.getElementById("bubbleRevealDownload").href = url;
+        document.getElementById("resumeFromModal").style.display = state.activeRequestId ? "inline-flex" : "none";
+        reveal.style.display = "flex";
+        setTimeout(() => reveal.classList.add("active"), 10);
+      }, 180);
+    }
+
+    function closeBubbleReveal(e) {
+      if (e && e.target.tagName === "IMG") return;
+      const reveal = document.getElementById("bubbleReveal");
+      reveal.classList.remove("active");
+      setTimeout(() => reveal.style.display = "none", 350);
+    }
+
+    function openHistoryGroup(entry) {
+      const urls = (entry.images || []).map(img => img.r2_url).filter(Boolean);
+      if (!urls.length) return;
+      const reveal = document.getElementById("bubbleReveal");
+      const img = document.getElementById("bubbleRevealImg");
+      const dl = document.getElementById("bubbleRevealDownload");
+      const thumbs = document.getElementById("bubbleRevealThumbs");
+      const resumeBtn = document.getElementById("resumeFromModal");
+      img.src = urls[0];
+      dl.href = urls[0];
+      thumbs.innerHTML = urls.map((url, idx) => `
+        <button class="art-frame overflow-hidden border border-white/10" data-thumb="${idx}">
+          <img src="${url}" class="w-full aspect-square object-cover" loading="lazy" alt="Vault image ${idx + 1}">
+        </button>
+      `).join("");
+      thumbs.querySelectorAll("[data-thumb]").forEach(btn => {
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const url = urls[Number(btn.dataset.thumb)];
+          img.src = url;
+          dl.href = url;
+        });
+      });
+      resumeBtn.style.display = entry.request_id ? "inline-flex" : "none";
+      resumeBtn.onclick = () => entry.request_id ? resumeRequest(entry.request_id) : undefined;
+      reveal.style.display = "flex";
+      setTimeout(() => reveal.classList.add("active"), 10);
+    }
+
+    function appendHistoryItems(items, clear = false) {
+      if (clear) dom.historyList.innerHTML = "";
+      items.forEach(entry => {
+        const wrap = document.createElement("div");
+        wrap.className = "glass-panel p-3 cursor-pointer";
+        wrap.addEventListener("click", (e) => {
+          if (e.target.closest("button")) return;
+          openHistoryGroup(entry);
+        });
+        wrap.innerHTML = `
+          <div class="flex items-center justify-between gap-2 mb-3">
+            <div class="min-w-0">
+              <div class="text-[9px] uppercase tracking-widest text-[var(--text-muted)]">${entry.realm || "day"} · ${entry.status || "done"}</div>
+              <div class="text-xs font-bold truncate">${escapeHtml(entry.prompt || "")}</div>
+            </div>
+            <button class="text-[9px] font-bold uppercase text-[var(--accent)]" data-request="${entry.request_id}">Resume</button>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            ${(entry.images || []).map(img => `
+              <div class="art-frame pointer-events-none">
+                <img src="${img.r2_url}" class="w-full aspect-square object-cover" loading="lazy" alt="Vault image">
+              </div>
+            `).join("")}
+          </div>
+        `;
+        wrap.querySelector("[data-request]")?.addEventListener("click", () => resumeRequest(entry.request_id));
+        dom.historyList.appendChild(wrap);
+      });
+    }
+
+    async function loadHistoryPage() {
+      if (state.loadingHistory || !state.historyHasMore) return;
+      state.loadingHistory = true;
+      dom.loadMoreBtn.disabled = true;
+      dom.loadMoreBtn.textContent = "Loading...";
+      try {
+        const res = await apiFetch(`/history?page=${state.historyPage}&limit=${state.historyLimit}`, { method: "GET", headers: {} });
+        const items = res.items || [];
+        if (state.historyPage === 1) {
+          state.historyLoaded = true;
+          appendHistoryItems(items, true);
+          localStorage.setItem("a_vault_cache", JSON.stringify(items));
+        } else {
+          appendHistoryItems(items, false);
+        }
+
+        state.historyHasMore = !!res.has_more;
+        state.historyPage += 1;
+        dom.loadMoreBtn.classList.toggle("hidden", !state.historyHasMore);
+      } catch (err) {
+        setFooterMsg(`History failed: ${err.message}`, "error");
+      } finally {
+        state.loadingHistory = false;
+        dom.loadMoreBtn.disabled = false;
+        dom.loadMoreBtn.textContent = "Load More";
+      }
+    }
+
+    async function renderHistory(reset = false) {
+      if (!dom.historyList) return;
+      if (document.getElementById("view-history").classList.contains("hidden")) return;
+      
+      // Load from cache first if empty
+      if (dom.historyList.innerHTML === "" && localStorage.getItem("a_vault_cache")) {
+        try {
+          const cached = JSON.parse(localStorage.getItem("a_vault_cache"));
+          appendHistoryItems(cached, true);
+        } catch(e) { console.warn("Cache load failed", e); }
+      }
+
+      if (state.historyLoaded && !reset) return;
+
+      state.historyPage = 1;
+      state.historyHasMore = true;
+      await loadHistoryPage();
+    }
+
+    async function loadMoreHistory() {
+      await loadHistoryPage();
+    }
+
+    async function reloadHistory() {
+      state.historyLoaded = false;
+      await renderHistory(true);
+    }
+
+    function clearVault() {
+      if (!confirm("Clear local browser cache only?")) return;
+      localStorage.removeItem("a_history");
+      setFooterMsg("Local cache cleared. Backend history is untouched.", "info");
+    }
+
+    function pastePrompt() {
+      navigator.clipboard.readText()
+        .then(text => { dom.prompt.value = text; })
+        .catch(() => setFooterMsg("Clipboard permission denied.", "error"));
+    }
+
+    function clearPrompt() {
+      dom.prompt.value = "";
+    }
+
+    function toggleConsole() {
+      const consoleEl = document.getElementById("desktopConsole");
+      const isMin = consoleEl.classList.toggle("minimized");
+      document.getElementById("consoleToggleText").textContent = isMin ? "Expand" : "Minimize";
+    }
+
+    async function copyRequestId(requestId) {
+      if (!requestId) return;
+      try {
+        await navigator.clipboard.writeText(requestId);
+        setFooterMsg("Request ID copied.", "info");
+      } catch {
+        setFooterMsg("Could not copy request ID.", "error");
+      }
+    }
+
+    async function resumeSelectedJob() {
+      await resumeLastRequest();
+      closeBubbleReveal();
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    async function checkBackend() {
+      try {
+        const res = await apiFetch("/health", { method: "GET", headers: {} });
+        dom.backendStatus.textContent = res.status === "ok" ? "Backend ready" : "Backend unknown";
+      } catch {
+        dom.backendStatus.textContent = "Backend offline";
+      }
+    }
+
+    document.querySelectorAll("[data-view]").forEach(btn => btn.addEventListener("click", (e) => {
+      const view = e.currentTarget.dataset.view;
+      document.querySelectorAll(".view").forEach(v => v.classList.add("hidden"));
+      document.getElementById(`view-${view}`).classList.remove("hidden");
+      document.querySelectorAll("[data-view]").forEach(b => b.classList.remove("active"));
+      e.currentTarget.classList.add("active");
+      if (view === "history") renderHistory(false);
+    }));
+
+    document.querySelectorAll("[data-mode]").forEach(btn => btn.addEventListener("click", () => applyMode(btn.dataset.mode)));
+    dom.model.addEventListener("change", () => localStorage.setItem("a_model", dom.model.value));
+    dom.quality.addEventListener("change", () => localStorage.setItem("a_quality", dom.quality.value));
+    dom.aspect.addEventListener("change", () => localStorage.setItem("a_aspect", dom.aspect.value));
+    dom.generateBtn.addEventListener("click", runGeneration);
+
+    applyMode(state.activeMode);
+    renderActiveRequest();
+    if (state.activeRequestId) resumeLastRequest();
+    checkBackend();
+  </script>
+</body>
+
+</html>
