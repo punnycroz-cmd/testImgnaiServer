@@ -43,8 +43,6 @@ class DayManager:
             if req.negative_prompt:
                 cmd.extend(["--negative-prompt", str(req.negative_prompt)])
                 
-            self.logger.info("day execute: %s", " ".join(cmd))
-            
             process = await asyncio.create_subprocess_exec(
                 *cmd, 
                 stdout=asyncio.subprocess.PIPE, 
@@ -52,13 +50,11 @@ class DayManager:
             )
 
             last_json_line = None
-            full_output = []
             while True:
                 line_bytes = await process.stdout.readline()
                 if not line_bytes: break
                 line = line_bytes.decode('utf-8', errors='ignore').strip()
                 if line:
-                    full_output.append(line)
                     self.logger.info("day engine: %s", line)
                     try:
                         event = json.loads(line)
@@ -69,18 +65,14 @@ class DayManager:
                     except: pass
 
             rc = await process.wait()
-            if rc != 0:
-                self.logger.error("Day engine failed with exit code %s. Output: %s", rc, "\n".join(full_output))
-                raise RuntimeError(f"Day failed (code {rc})")
-                
-            if not last_json_line: 
-                raise RuntimeError("No JSON output from Day engine")
+            if rc != 0: raise RuntimeError(f"Day failed (code {rc})")
+            if not last_json_line: raise RuntimeError("No output")
             
             data = json.loads(last_json_line)
             session_uuid, task_uuids, image_urls = data.get("session_uuid", "session"), data.get("task_uuids", []), data.get("image_urls", [])
             batch_prefix = self.vault.build_batch_prefix_with_name("day", session_uuid, ts=datetime.now())
 
-            # Parallel Vaulting
+            # Parallel Vaulting (This part is still good to keep)
             results = await asyncio.gather(*[
                 self._vault_image(url, batch_prefix, task_uuids[i] if i < len(task_uuids) else f"{i+1:03d}", i, request_id)
                 for i, url in enumerate(image_urls)
