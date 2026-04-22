@@ -140,6 +140,7 @@ async def run_async():
     parser.add_argument("--count", type=int, default=4)
     parser.add_argument("--negative-prompt", help="Negative prompt")
     parser.add_argument("--confirm-payload", action="store_true")
+    parser.add_argument("--skip-login-prompt", action="store_true")
     args = parser.parse_args()
 
     model_name = args.model or MODEL_ORDER[0]
@@ -149,7 +150,10 @@ async def run_async():
     neg_prompt = args.negative_prompt or MODEL_CONFIGS[model_name]["negative_prompt"]
 
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True, args=["--headless=new", "--no-sandbox"])
+        browser = await p.chromium.launch(
+            headless=True, 
+            args=["--headless=new", "--no-sandbox", "--disable-dev-shm-usage"]
+        )
         context = await browser.new_context(viewport={"width": 1440, "height": 1000}, user_agent="Mozilla/5.0")
         page = await context.new_page()
         await Stealth().apply_stealth_async(page)
