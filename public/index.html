@@ -720,7 +720,7 @@
       
       // Build placeholders
       mGallery.innerHTML = models.map(m => `
-        <div id="matrix-cell-${m.replace(/\\s+/g, '-')}" class="art-frame aspect-square flex flex-col items-center justify-center bg-black/40 border border-white/10 relative group">
+        <div id="matrix-cell-${m.replace(/\s+/g, '-')}" class="art-frame aspect-square flex flex-col items-center justify-center bg-black/40 border border-white/10 relative group">
           <span class="text-[10px] font-bold uppercase text-[var(--text-muted)] tracking-widest absolute bottom-3 z-20 group-hover:opacity-0 transition-opacity">${m}</span>
           <div class="loader opacity-20 hidden"></div>
           <img src="" class="absolute inset-0 w-full h-full object-cover hidden transition-opacity duration-1000 opacity-0 z-10">
@@ -735,11 +735,11 @@
 
       let activeIds = [];
       try {
-        setFooterMsg(\`Submitting \${models.length} Matrix Jobs...\`, "info");
+        setFooterMsg(`Submitting ${models.length} Matrix Jobs...`, "info");
         // We fire them all quickly. The backend Semaphore(1) handles the queueing.
         for (const model of models) {
           const mPayload = { ...payload, model };
-          const cell = document.getElementById(\`matrix-cell-\${model.replace(/\\s+/g, '-')}\`);
+          const cell = document.getElementById(`matrix-cell-${model.replace(/\s+/g, '-')}`);
           if(cell) cell.querySelector(".loader").classList.remove("hidden");
 
           const res = await apiFetch("/generate", {
@@ -779,7 +779,7 @@
             
             if (data.status === "done") {
               const url = data.images && data.images.length ? data.images[0].r2_url : null;
-              const cell = document.getElementById(\`matrix-cell-\${job.model.replace(/\\s+/g, '-')}\`);
+              const cell = document.getElementById(`matrix-cell-${job.model.replace(/\s+/g, '-')}`);
               if (cell) {
                 cell.querySelector(".loader").classList.add("hidden");
                 if (url) {
@@ -792,7 +792,7 @@
                 }
               }
             } else if (data.status === "error") {
-              const cell = document.getElementById(\`matrix-cell-\${job.model.replace(/\\s+/g, '-')}\`);
+              const cell = document.getElementById(`matrix-cell-${job.model.replace(/\s+/g, '-')}`);
               if (cell) {
                 cell.querySelector(".loader").classList.add("hidden");
                 cell.querySelector("span").textContent = "Failed";
