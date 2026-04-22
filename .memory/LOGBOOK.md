@@ -4,10 +4,18 @@ This room tracks the chronological evolution of the Aether / ImgnAI project.
 
 ## 📈 Timeline
 
-### [2026-04-22 13:45] 🛡️ Database & UI Stability Overhaul
-- **DB Resilience**: Patched `core/db.py` to fix `SSL connection closed unexpectedly` errors (OperationalError). Added `check=AsyncConnectionPool.check_connection` and `max_idle=300.0` to the Neon connection pool, ensuring stale connections are automatically pruned and verified before use.
+### [2026-04-22 16:10] 📱 Mobile UX & State Synchronization Overhaul
+- **Mobile Bottom Navigation**: Implemented a floating, glass-morphism bottom tab bar (Forge, Queue, Vault) for seamless one-handed control on mobile devices.
+- **UX Automation & Magic Transitions**: 
+    - Auto-minimizes the console when switching to Queue/Vault on mobile to maximize content visibility.
+    - Clicking "Manifest" or "Matrix" now automatically switches the tab back to "Forge" and expands the console.
+    - Console auto-minimizes after generation starts (on mobile) to reveal the images.
+- **Model List Synchronization**: Exhaustively synchronized the Frontend (`index.html`) and Backend (`models.py`) model orders to match the literal configuration sequences (Alphabetical for Day, Curated for Star).
+- **Initialization Fix**: Stopped the "Forge" tab from auto-loading the last generated images on page refresh, providing a clean "New Session" feel while preserving work in the Queue.
+- **Queue/Temple Center**: Upgraded the "Queue" tab with live 4-second polling and dynamic task cards (Spinners, Checkmarks, and "View Result" buttons).
+- **Responsive Touch Targets**: Enlarged "Clear", "Paste", and "Oracle" buttons and implemented `min-h-[44px]` for all primary action buttons for better mobile accessibility.
+- **DB Resilience**: Patched `core/db.py` to fix `SSL connection closed unexpectedly` errors (OperationalError). Added `check=AsyncConnectionPool.check_connection` and `max_idle=300.0` to the Neon connection pool.
 - **Frontend Hotfix**: Resolved a UI "Freeze" where dropdowns and buttons were unresponsive when opened via the `file://` protocol. Added error guards to `apiFetch` and an initialization `try/catch` safety net.
-- **Infinite Matrix Fix**: Corrected a Regex/Template literal syntax error in `runMatrixCast` that was preventing model names with spaces (like "Hyper CGI") from rendering properly.
 
 ### [2026-04-21 23:30] 🎲 The Infinite Matrix
 - **Matrix Cast UI**: Added a dedicated Matrix comparison grid that automatically fires a prompt across all 24 models (in Day or Star realm).

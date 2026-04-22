@@ -142,9 +142,26 @@
       height: 100vh;
       overflow-y: auto;
       scroll-behavior: smooth;
-      padding-top: 7.5rem;
-      padding-bottom: 20rem;
+      padding-top: 5rem;
+      padding-bottom: 25rem;
     }
+
+    @media (max-width: 768px) {
+      html { font-size: 14px; }
+      h2.cinematic-text { font-size: 1.75rem !important; }
+      main { padding-top: 4rem; padding-bottom: 35rem; }
+    }
+
+    .mobile-nav-item svg {
+      width: 20px;
+      height: 20px;
+      margin-bottom: 4px;
+    }
+
+    .mobile-nav-item.active {
+      color: var(--accent);
+    }
+
 
     main::-webkit-scrollbar {
       width: 0;
@@ -415,7 +432,7 @@
         </div>
       </div>
 
-      <nav class="flex items-center gap-2 bg-black/5 p-1 rounded-2xl shrink-0">
+      <nav class="hidden sm:flex items-center gap-2 bg-black/5 p-1 rounded-2xl shrink-0">
         <button data-view="generate"
           class="nav-pill active px-4 sm:px-5 py-2 rounded-xl font-bold uppercase text-[10px] tracking-widest">Forge</button>
         <button data-view="tasks"
@@ -611,14 +628,14 @@
         <div class="flex-1 flex flex-col space-y-1">
           <div class="flex justify-between px-1">
             <label class="text-[9px] font-bold uppercase opacity-50">The Vision</label>
-            <div class="flex gap-4">
+            <div class="flex gap-4 items-center">
               <button onclick="clearPrompt()"
-                class="text-[9px] font-bold text-red-400 uppercase hover:text-red-500 transition-colors">Clear</button>
+                class="px-2 py-1 text-xs font-bold text-red-500 uppercase hover:text-red-400 transition-colors">Clear</button>
               <button onclick="pastePrompt()"
-                class="text-[9px] font-bold text-[var(--text-main)] uppercase hover:opacity-70 transition-colors">Paste</button>
+                class="px-2 py-1 text-xs font-bold text-[var(--text-main)] uppercase hover:opacity-70 transition-colors">Paste</button>
               <button onclick="rollOracle()"
-                class="text-[9px] font-bold text-[var(--accent)] uppercase flex items-center gap-1 hover:brightness-125 transition-all">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                class="px-3 py-2 text-xs font-bold text-[var(--accent)] uppercase flex items-center gap-1.5 hover:brightness-125 transition-all border border-[var(--panel-border)] rounded-lg">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
                   <path
                     d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
                 </svg> Oracle
@@ -634,14 +651,14 @@
               class="w-full h-11 px-3 py-2 text-xs resize-none"></textarea>
           </div>
           <button id="matrixBtn" onclick="runMatrixCast()"
-            class="col-span-1 rounded-xl border-2 border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white transition-colors flex items-center justify-center font-bold uppercase text-[9px] tracking-widest shadow-lg">
+            class="col-span-1 rounded-xl border-2 border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white transition-colors flex items-center justify-center font-bold uppercase text-[10px] sm:text-[11px] tracking-widest shadow-lg min-h-[44px]">
             <span id="btnMatrixText">Matrix</span>
             <div id="btnMatrixLoader" class="hidden ml-2">
               <div class="loader" style="width:12px;height:12px;border-width:2px;animation-duration:2s"></div>
             </div>
           </button>
           <button id="generateBtn"
-            class="col-span-2 btn-magic flex items-center justify-center gap-2 font-bold uppercase text-[10px] tracking-widest shadow-lg">
+            class="col-span-2 btn-magic flex items-center justify-center gap-2 font-bold uppercase text-[11px] sm:text-xs tracking-widest shadow-lg min-h-[44px]">
             <span id="btnText">Manifest</span>
             <div id="btnLoader" class="hidden">
               <div class="loader"></div>
@@ -655,6 +672,28 @@
   <div id="footerStatus"
     class="fixed bottom-8 left-1/2 -translate-x-1/2 glass-panel py-3 px-8 text-xs font-bold transition-all translate-y-32 opacity-0 pointer-events-none z-[150]">
   </div>
+
+  <!-- Mobile Nav -->
+  <nav class="sm:hidden fixed bottom-6 left-6 right-6 z-[180] glass-panel p-2 flex items-center justify-around shadow-2xl border-b-4 border-b-[var(--accent)]">
+    <button data-view="generate" class="mobile-nav-item flex flex-col items-center p-2 transition-all opacity-60 active">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+      </svg>
+      <span class="text-[9px] font-black uppercase tracking-tighter">Forge</span>
+    </button>
+    <button data-view="tasks" class="mobile-nav-item flex flex-col items-center p-2 transition-all opacity-60">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <span class="text-[9px] font-black uppercase tracking-tighter">Queue</span>
+    </button>
+    <button data-view="history" class="mobile-nav-item flex flex-col items-center p-2 transition-all opacity-60">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+      </svg>
+      <span class="text-[9px] font-black uppercase tracking-tighter">Vault</span>
+    </button>
+  </nav>
 
   <script>
     window.__SERVER_URL__ = "__SERVER_URL__";
@@ -818,26 +857,52 @@
     }
 
     function currentJobCard(job) {
-      const created = job?.created_at ? new Date(job.created_at).toLocaleString() : "Pending";
-      const promptEscaped = escapeHtml(job?.prompt || "No prompt yet");
+      const created = job?.created_at ? new Date(job.created_at).toLocaleTimeString() : "Pending";
+      const promptEscaped = escapeHtml(job?.prompt || "Inspiration being woven...");
+      const isDone = job?.status === "done";
+      const isError = job?.status === "error";
+      const isMatrix = job?.request_id && job.request_id.startsWith("matrix-");
+
       return `
-        <div class="glass-panel p-4" data-request-id="${job?.request_id}">
-          <div class="flex items-start justify-between gap-3">
-            <div class="min-w-0">
-              <div class="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">${job?.realm || "day"} · ${job?.status || "running"}</div>
-              <div class="font-bold mt-1 truncate" title="${promptEscaped}">${promptEscaped}</div>
+        <div class="glass-panel p-5 relative overflow-hidden transition-all hover:border-[var(--accent)]" data-request-id="${job?.request_id}">
+          ${isDone ? '<div class="absolute top-0 right-0 p-2"><svg class="text-[var(--accent)] w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg></div>' : ''}
+          <div class="flex items-start justify-between gap-4">
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2 mb-2">
+                <span class="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter bg-[var(--accent)] text-white shadow-sm">${job?.realm || "day"}</span>
+                <span class="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">${isDone ? "Manifested" : (isError ? "Fractured" : "Weaving...")}</span>
+              </div>
+              <div class="font-bold text-sm tracking-tight leading-snug line-clamp-2" title="${promptEscaped}">${promptEscaped}</div>
             </div>
-            <span class="status-pill">${job?.request_id ? job.request_id.slice(0, 8) : "new"}</span>
           </div>
-          <div class="mt-3 grid grid-cols-2 gap-2 text-[11px] text-[var(--text-muted)]">
-            <div>Model</div><div class="text-right text-[var(--text-main)] font-semibold">${job?.model || "-"}</div>
-            <div>Quality</div><div class="text-right text-[var(--text-main)] font-semibold">${job?.quality || "-"}</div>
-            <div>Aspect</div><div class="text-right text-[var(--text-main)] font-semibold">${job?.aspect || "-"}</div>
-            <div>Created</div><div class="text-right text-[var(--text-main)] font-semibold">${created}</div>
+          
+          <div class="mt-4 grid grid-cols-2 gap-y-2 gap-x-4 text-[11px]">
+            <div class="flex flex-col">
+              <span class="text-[9px] uppercase font-bold text-[var(--text-muted)] opacity-50">Model</span>
+              <span class="font-bold truncate">${job?.model || "Casting..."}</span>
+            </div>
+            <div class="flex flex-col">
+              <span class="text-[9px] uppercase font-bold text-[var(--text-muted)] opacity-50">Time</span>
+              <span class="font-bold text-[var(--text-muted)]">${created}</span>
+            </div>
           </div>
-          <div class="mt-4 flex gap-2">
-            <button class="btn-magic px-3 py-2 text-[10px] font-bold uppercase tracking-widest" onclick="resumeRequest('${job?.request_id || ""}')" ${job?.status === 'done' ? 'disabled' : ''}>Resume</button>
-            <button class="px-3 py-2 rounded-xl border border-[var(--panel-border)] text-[10px] font-bold uppercase tracking-widest" onclick="copyRequestId('${job?.request_id || ""}')">Copy ID</button>
+
+          <div class="mt-5 flex items-center gap-2">
+            ${isDone ? 
+              `<button class="btn-magic flex-1 py-2.5 text-[10px] font-bold uppercase tracking-widest shadow-md" onclick="resumeRequest('${job?.request_id}')">View Result</button>` :
+              (isError ? 
+                `<button class="flex-1 py-2.5 rounded-xl bg-red-500/10 text-red-500 text-[10px] font-bold uppercase tracking-widest border border-red-500/20" disabled>Failed</button>` :
+                `<button class="flex-1 py-2.5 rounded-xl bg-black/5 text-[var(--text-muted)] text-[10px] font-bold uppercase tracking-widest border border-[var(--panel-border)] flex items-center justify-center gap-2 cursor-wait" disabled>
+                   <div class="loader" style="width:10px;height:10px;border-width:1.5px;border-color:var(--text-muted);border-top-color:transparent"></div>
+                   Wandering...
+                 </button>`)
+            }
+            <button class="px-3 py-2.5 rounded-xl border border-[var(--panel-border)] hover:bg-black/5 transition-colors" onclick="copyRequestId('${job?.request_id}')" title="Copy ID">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+            </button>
           </div>
         </div>
       `;
@@ -884,6 +949,8 @@
 
       let activeIds = [];
       try {
+        setView("generate");
+        toggleConsole("expand");
         setFooterMsg(`Submitting ${models.length} Matrix Jobs...`, "info");
         // We fire them all quickly. The backend Semaphore(1) handles the queueing.
         for (const model of models) {
@@ -904,9 +971,10 @@
         setFooterMsg("Matrix Error: " + err.message, "error");
       } finally {
         dom.generateBtn.disabled = false;
-        mBtn.disabled = false;
-        document.getElementById("btnMatrixText").textContent = "Matrix";
-        document.getElementById("btnMatrixLoader").classList.add("hidden");
+        dom.matrixBtn.disabled = false;
+        dom.btnMatrixText.textContent = "Matrix";
+        dom.btnMatrixLoader.classList.add("hidden");
+        if (window.innerWidth < 1024) toggleConsole("minimize");
       }
     }
 
@@ -962,6 +1030,8 @@
     }
 
     async function runGeneration() {
+      setView("generate");
+      toggleConsole("expand");
       dom.gallery.style.display = "";
       document.getElementById("matrixGallery").classList.remove("grid");
       document.getElementById("matrixGallery").classList.add("hidden");
@@ -995,6 +1065,7 @@
         setProgress(-1);
       } finally {
         setLoading(false);
+        if (window.innerWidth < 1024) toggleConsole("minimize");
       }
     }
 
@@ -1064,21 +1135,44 @@
       await resumeLastRequest();
     }
 
+    let queueInterval = null;
     async function refreshCurrentJob() {
-      try {
-        const res = await apiFetch(`/history?page=1&limit=10`);
-        const running = (res.items || []).filter(it => it.status !== "done" && it.status !== "error");
-        if (running.length > 0) {
-          dom.taskList.innerHTML = running.map(job => currentJobCard(job)).join("");
-        } else if (state.activeRequestId) {
-          const job = await apiFetch(`/job-status/${state.activeRequestId}`);
-          dom.taskList.innerHTML = currentJobCard(job);
-        } else {
-          dom.taskList.innerHTML = '<div class="col-span-full py-20 text-center opacity-20 cinematic-text text-xl uppercase tracking-widest">The queue is silent</div>';
+      if (queueInterval) clearInterval(queueInterval);
+      
+      const doRefresh = async () => {
+        try {
+          const res = await apiFetch(`/history?page=1&limit=10`);
+          // Show any job that isn't totally historical (Status = running or recently done)
+          const currentItems = (res.items || []).filter(it => it.status !== "done" || (new Date() - new Date(it.updated_at)) < 30000);
+          
+          if (currentItems.length > 0) {
+            dom.taskList.innerHTML = currentItems.map(job => currentJobCard(job)).join("");
+          } else if (state.activeRequestId) {
+            try {
+              const job = await apiFetch(`/job-status/${state.activeRequestId}`);
+              dom.taskList.innerHTML = currentJobCard(job);
+            } catch {
+              dom.taskList.innerHTML = '<div class="col-span-full py-20 text-center opacity-20 cinematic-text text-xl uppercase tracking-widest font-thin">Temple of Silence</div>';
+            }
+          } else {
+            dom.taskList.innerHTML = '<div class="col-span-full py-20 text-center opacity-20 cinematic-text text-xl uppercase tracking-widest font-thin">Temple of Silence</div>';
+          }
+        } catch (err) {
+          console.warn("Queue refresh error", err);
         }
-      } catch (err) {
-        console.error(err);
-      }
+      };
+
+      await doRefresh();
+      // Setup live polling while UI is on tasks tab
+      queueInterval = setInterval(() => {
+        const tasksView = document.getElementById("view-tasks");
+        if (tasksView && !tasksView.classList.contains("hidden")) {
+          doRefresh();
+        } else {
+          clearInterval(queueInterval);
+          queueInterval = null;
+        }
+      }, 4000);
     }
 
     function updateTasksView(job) {
@@ -1337,19 +1431,40 @@
 
     function clearVault() { if (confirm("Clear local cache?")) { localStorage.removeItem("a_vault_cache"); dom.historyList.innerHTML = ""; reloadHistory(); } }
     function pastePrompt() { navigator.clipboard.readText().then(text => dom.prompt.value = text); }
-    function toggleConsole() { const el = document.getElementById("desktopConsole"); const isMin = el.classList.toggle("minimized"); document.getElementById("consoleToggleText").textContent = isMin ? "Expand" : "Minimize"; }
+    function toggleConsole(forceState) {
+      const el = document.getElementById("desktopConsole");
+      let isMin = el.classList.contains("minimized");
+      if (forceState === "expand") isMin = false;
+      else if (forceState === "minimize") isMin = true;
+      else isMin = !isMin;
+
+      el.classList.toggle("minimized", isMin);
+      document.getElementById("consoleToggleText").textContent = isMin ? "Expand" : "Minimize";
+    }
     async function copyRequestId(id) { if (id) { await navigator.clipboard.writeText(id); setFooterMsg("Copied ID.", "info"); } }
     function escapeHtml(v) { return String(v).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;"); }
     async function checkBackend() { try { const res = await apiFetch("/health"); dom.backendStatus.textContent = res.status === "ok" ? "Backend Online" : "Backend Latency"; } catch { dom.backendStatus.textContent = "Backend Offline"; } }
 
-    document.querySelectorAll("[data-view]").forEach(btn => btn.addEventListener("click", (e) => {
-      const v = e.currentTarget.dataset.view;
+    function setView(v) {
       document.querySelectorAll(".view").forEach(el => el.classList.add("hidden"));
-      document.getElementById(`view-${v}`).classList.remove("hidden");
-      document.querySelectorAll("[data-view]").forEach(b => b.classList.remove("active"));
-      e.currentTarget.classList.add("active");
+      const viewEl = document.getElementById(`view-${v}`);
+      if (viewEl) viewEl.classList.remove("hidden");
+      document.querySelectorAll("[data-view]").forEach(b => {
+        const isMatch = b.dataset.view === v;
+        b.classList.toggle("active", isMatch);
+        b.classList.toggle("bg-white/20", isMatch && !b.classList.contains("mobile-nav-item"));
+        b.classList.toggle("opacity-100", isMatch);
+        b.classList.toggle("opacity-60", !isMatch);
+      });
       if (v === "history") renderHistory();
-    }));
+
+      // Auto-minimize on mobile for non-forge tabs
+      if (window.innerWidth < 1024 && (v === "history" || v === "tasks")) {
+        toggleConsole("minimize");
+      }
+    }
+
+    document.querySelectorAll("[data-view]").forEach(btn => btn.addEventListener("click", (e) => setView(e.currentTarget.dataset.view)));
 
     document.querySelectorAll("[data-mode]").forEach(btn => btn.addEventListener("click", () => applyMode(btn.dataset.mode)));
     dom.generateBtn.addEventListener("click", runGeneration);
@@ -1357,7 +1472,6 @@
     try {
       applyMode(state.activeMode);
       renderActiveRequest();
-      if (state.activeRequestId) resumeLastRequest();
       setInterval(checkBackend, 15000);
       checkBackend();
     } catch (e) {
