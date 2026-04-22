@@ -110,6 +110,36 @@ async def job_status(request_id: str):
         "error": row.get("error")
     }
 
+from pydantic import BaseModel
+from typing import List
+
+class JobBatchRequest(BaseModel):
+    request_ids: List[str]
+
+@app.post("/job-status-batch")
+async def job_status_batch(req: JobBatchRequest):
+    results = {}
+    for rid in req.request_ids:
+        async with job_lock:
+            job = job_store.get(rid)
+        row = await DB.get_generation(rid)
+        if not row:
+            if job:
+                results[rid] = {"request_id": rid, **job}
+            continue
+        image_rows = await DB.get_generation_images(row["id"])
+        results[rid] = {
+            "request_id": rid,
+            "status": row["status"],
+            "client_id": row["client_id"],
+            "prompt": row["prompt"],
+            "realm": row["realm"],
+            "images": image_rows,
+            "result": row.get("result"),
+            "error": row.get("error")
+        }
+    return results
+
 
 @app.get("/resume/{request_id}")
 async def resume(request_id: str):

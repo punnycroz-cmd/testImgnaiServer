@@ -4,6 +4,15 @@ This room tracks the chronological evolution of the Aether / ImgnAI project.
 
 ## 📈 Timeline
 
+### [2026-04-21 23:30] 🎲 The Infinite Matrix
+- **Matrix Cast UI**: Added a dedicated Matrix comparison grid that automatically fires a prompt across all 24 models (in Day or Star realm).
+- **Sequential Safety Check**: Verified that the backend uses an `asyncio.Lock()` (equivalent to Semaphore(1)), safely queueing all 24 database entries instantly but running exactly 1 Playwright/API context at a time to remain 100% undetected by Cloudflare bot mitigation.
+- **Batch Polling**: Built a `/job-status-batch` endpoint in `main.py` that checks the neon database for 24 jobs in a single query, preventing the frontend from DDoS-ing the FastAPI server during a Matrix Cast.
+
+### [2026-04-21 23:20] ✨ Creative UX Elements
+- **Aether Canvas**: Added a `<canvas>`-based background particle system that renders floating motes of light. The particles dynamically recolor themselves based on the active Realm (Emerald for Day, Violet for Star), adding subtle life to the static dashboard.
+- **Oracle's Dice**: Built a sleek "Oracle" button attached to the Prompt field. Clicking it rolls for a random, hyper-aesthetic demonstration prompt (and automatically configures high-quality settings) to instantly obliterate writer's block.
+
 ### [2026-04-21 23:10] 📱 Responsive Split-Pane Interface
 - **Lightbox Overhaul**: Redesigned the `.bubble-image-reveal` modal into a professional desktop/mobile responsive split-pane component.
 - **Dynamic Sidebar**: Moved metadata, clone actions, download buttons, and thumbnails into an elegant glass-paneled sidebar that scrolls independently of the image.

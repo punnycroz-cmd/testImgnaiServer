@@ -318,6 +318,8 @@
 </head>
 
 <body data-mode="standard">
+  <canvas id="aetherCanvas" class="fixed inset-0 pointer-events-none z-[-1]"></canvas>
+
   <header class="fixed top-5 left-0 right-0 z-[110] px-4 sm:px-8">
     <div class="max-w-7xl mx-auto glass-panel p-4 border-t-4 border-t-[var(--accent)] flex items-center justify-between gap-4 shadow-2xl">
       <div class="flex items-center gap-4 min-w-0">
@@ -404,6 +406,9 @@
         <div id="gallery" class="bubble-container">
           <div id="galleryEmpty" class="col-span-full py-20 text-center opacity-15 text-3xl font-light cinematic-text tracking-[0.3em] uppercase">Void Awaiting Light</div>
         </div>
+
+        <!-- The Matrix Grid -->
+        <div id="matrixGallery" class="hidden grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 py-8"></div>
       </div>
     </section>
 
@@ -485,17 +490,24 @@
           <div class="flex justify-between px-1">
             <label class="text-[9px] font-bold uppercase opacity-50">The Vision</label>
             <div class="flex gap-4">
-              <button onclick="clearPrompt()" class="text-[9px] font-bold text-red-400 uppercase">Clear</button>
-              <button onclick="pastePrompt()" class="text-[9px] font-bold text-[var(--accent)] uppercase">Paste</button>
+              <button onclick="clearPrompt()" class="text-[9px] font-bold text-red-400 uppercase hover:text-red-500 transition-colors">Clear</button>
+              <button onclick="pastePrompt()" class="text-[9px] font-bold text-[var(--text-main)] uppercase hover:opacity-70 transition-colors">Paste</button>
+              <button onclick="rollOracle()" class="text-[9px] font-bold text-[var(--accent)] uppercase flex items-center gap-1 hover:brightness-125 transition-all">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /></svg> Oracle
+              </button>
             </div>
           </div>
           <textarea id="prompt" placeholder="What do you seek to manifest?" class="w-full flex-1 p-3 resize-none text-sm leading-relaxed"></textarea>
         </div>
-        <div class="grid grid-cols-5 gap-3">
-          <div class="col-span-4">
+        <div class="grid grid-cols-6 gap-3">
+          <div class="col-span-3">
             <textarea id="negativePrompt" placeholder="Wards (Banish artifacts...)" class="w-full h-11 px-3 py-2 text-xs resize-none"></textarea>
           </div>
-          <button id="generateBtn" class="col-span-1 btn-magic flex items-center justify-center gap-2 font-bold uppercase text-[10px] tracking-widest shadow-lg">
+          <button id="matrixBtn" onclick="runMatrixCast()" class="col-span-1 rounded-xl border-2 border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white transition-colors flex items-center justify-center font-bold uppercase text-[9px] tracking-widest shadow-lg">
+            <span id="btnMatrixText">Matrix</span>
+            <div id="btnMatrixLoader" class="hidden ml-2"><div class="loader" style="width:12px;height:12px;border-width:2px;animation-duration:2s"></div></div>
+          </button>
+          <button id="generateBtn" class="col-span-2 btn-magic flex items-center justify-center gap-2 font-bold uppercase text-[10px] tracking-widest shadow-lg">
             <span id="btnText">Manifest</span>
             <div id="btnLoader" class="hidden"><div class="loader"></div></div>
           </button>
@@ -695,7 +707,116 @@
       });
     }
 
+    async function runMatrixCast() {
+      const payload = getPayload();
+      if (!payload.prompt) return setFooterMsg("Inspiration required.", "error");
+
+      const models = state.activeMode === "nsfw" ? STAR_MODELS : DAY_MODELS;
+      
+      dom.gallery.style.display = "none";
+      const mGallery = document.getElementById("matrixGallery");
+      mGallery.classList.remove("hidden");
+      mGallery.classList.add("grid");
+      
+      // Build placeholders
+      mGallery.innerHTML = models.map(m => `
+        <div id="matrix-cell-${m.replace(/\\s+/g, '-')}" class="art-frame aspect-square flex flex-col items-center justify-center bg-black/40 border border-white/10 relative group">
+          <span class="text-[10px] font-bold uppercase text-[var(--text-muted)] tracking-widest absolute bottom-3 z-20 group-hover:opacity-0 transition-opacity">${m}</span>
+          <div class="loader opacity-20 hidden"></div>
+          <img src="" class="absolute inset-0 w-full h-full object-cover hidden transition-opacity duration-1000 opacity-0 z-10">
+        </div>
+      `).join("");
+
+      dom.generateBtn.disabled = true;
+      const mBtn = document.getElementById("matrixBtn");
+      mBtn.disabled = true;
+      document.getElementById("btnMatrixText").textContent = "Casting...";
+      document.getElementById("btnMatrixLoader").classList.remove("hidden");
+
+      let activeIds = [];
+      try {
+        setFooterMsg(\`Submitting \${models.length} Matrix Jobs...\`, "info");
+        // We fire them all quickly. The backend Semaphore(1) handles the queueing.
+        for (const model of models) {
+          const mPayload = { ...payload, model };
+          const cell = document.getElementById(\`matrix-cell-\${model.replace(/\\s+/g, '-')}\`);
+          if(cell) cell.querySelector(".loader").classList.remove("hidden");
+
+          const res = await apiFetch("/generate", {
+            method: "POST",
+            body: JSON.stringify(mPayload)
+          });
+          activeIds.push({ id: res.request_id, model: model, payload: mPayload });
+        }
+        
+        setFooterMsg("Matrix Jobs Queued. Processing sequentially...", "info");
+        await pollMatrixUntilDone(activeIds);
+      } catch (err) {
+        setFooterMsg("Matrix Error: " + err.message, "error");
+      } finally {
+        dom.generateBtn.disabled = false;
+        mBtn.disabled = false;
+        document.getElementById("btnMatrixText").textContent = "Matrix";
+        document.getElementById("btnMatrixLoader").classList.add("hidden");
+      }
+    }
+
+    async function pollMatrixUntilDone(activeJobs) {
+      let active = [...activeJobs];
+      
+      while (active.length > 0) {
+        try {
+          const reqIds = active.map(j => j.id);
+          const res = await apiFetch("/job-status-batch", {
+            method: "POST",
+            body: JSON.stringify({ request_ids: reqIds })
+          });
+          
+          let stillActive = [];
+          for (const job of active) {
+            const data = res[job.id];
+            if (!data) { stillActive.push(job); continue; }
+            
+            if (data.status === "done") {
+              const url = data.images && data.images.length ? data.images[0].r2_url : null;
+              const cell = document.getElementById(\`matrix-cell-\${job.model.replace(/\\s+/g, '-')}\`);
+              if (cell) {
+                cell.querySelector(".loader").classList.add("hidden");
+                if (url) {
+                  const img = cell.querySelector("img");
+                  img.src = url;
+                  img.classList.remove("hidden");
+                  // Trigger slow fade
+                  setTimeout(() => img.classList.remove("opacity-0"), 50);
+                  cell.onclick = () => popBubble(cell, url, { ...job.payload, ...data });
+                }
+              }
+            } else if (data.status === "error") {
+              const cell = document.getElementById(\`matrix-cell-\${job.model.replace(/\\s+/g, '-')}\`);
+              if (cell) {
+                cell.querySelector(".loader").classList.add("hidden");
+                cell.querySelector("span").textContent = "Failed";
+                cell.querySelector("span").classList.add("text-red-500");
+              }
+            } else {
+              stillActive.push(job);
+            }
+          }
+          active = stillActive;
+        } catch(err) {
+          console.warn("Matrix poll error", err);
+        }
+        if (active.length > 0) await sleep(3000);
+      }
+      setFooterMsg("Matrix Cast Complete.", "info");
+      state.historyLoaded = false;
+    }
+
     async function runGeneration() {
+      dom.gallery.style.display = "";
+      document.getElementById("matrixGallery").classList.remove("grid");
+      document.getElementById("matrixGallery").classList.add("hidden");
+
       const payload = getPayload();
       if (!payload.prompt) return setFooterMsg("Inspiration required.", "error");
 
@@ -991,6 +1112,79 @@
         if (mainEl.scrollTop + mainEl.clientHeight >= mainEl.scrollHeight - 300) loadHistoryPage();
       }
     };
+
+    // The Oracle Module
+    const ORACLE_PROMPTS = [
+      "(masterpiece, best quality:1.2), an ethereal glass cathedral floating in a nebula, hyper-detailed, incredibly beautiful, cinematic lighting",
+      "A cyberpunk neo-tokyo street vendor selling glowing mechanical cyber-pets, neon rim lighting, dynamic angle, rain, 8k resolution",
+      "Macro photography of a tiny bioluminescent forest growing inside a cracked glowing crystal ball, unreal engine 5 render, highly detailed",
+      "A dark fantasy warrior king made entirely of living shadow and smoke, holding a sword of starlight, dramatic stormy background, greg rutkowski style",
+      "(intricate details:1.1), portrait of a cybernetic angel with wings made of fiber optic cables, glowing datastreams, trending on artstation",
+      "A lush, overgrown sci-fi greenhouse on a spaceship overlooking a black hole, volumetric fog, cinematic colors"
+    ];
+    
+    function rollOracle() {
+      const idx = Math.floor(Math.random() * ORACLE_PROMPTS.length);
+      dom.prompt.value = ORACLE_PROMPTS[idx];
+      dom.negativePrompt.value = "worst quality, low quality, bad anatomy, deformed, watermark, signature";
+      dom.aspect.value = "16:9";
+      dom.quality.value = "High Quality";
+      setFooterMsg("The Oracle has spoken.", "info");
+    }
+
+    // Aether Particles Overlay
+    function initAetherCanvas() {
+      const canvas = document.getElementById('aetherCanvas');
+      const ctx = canvas.getContext('2d');
+      let width, height;
+      const particles = [];
+
+      function resize() {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = width;
+        canvas.height = height;
+      }
+      window.addEventListener('resize', resize);
+      resize();
+
+      for(let i = 0; i < 40; i++) {
+        particles.push({
+          x: Math.random() * width,
+          y: Math.random() * height,
+          vx: (Math.random() - 0.5) * 0.3,
+          vy: (Math.random() - 0.5) * 0.3,
+          size: Math.random() * 2 + 0.5,
+          shift: Math.random() * Math.PI * 2
+        });
+      }
+
+      function animate() {
+        ctx.clearRect(0, 0, width, height);
+        // Color shifts based on mode (Day = Emerald/White, Star = Violet)
+        const isNsfw = state.activeMode === "nsfw";
+        
+        particles.forEach(p => {
+          p.x += p.vx;
+          p.y += p.vy;
+          p.shift += 0.01;
+          
+          if(p.x < 0) p.x = width;
+          if(p.x > width) p.x = 0;
+          if(p.y < 0) p.y = height;
+          if(p.y > height) p.y = 0;
+
+          const alpha = (Math.sin(p.shift) * 0.3) + 0.3;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fillStyle = isNsfw ? `rgba(139, 92, 246, ${alpha})` : `rgba(16, 185, 129, ${alpha})`;
+          ctx.fill();
+        });
+        requestAnimationFrame(animate);
+      }
+      animate();
+    }
+    initAetherCanvas();
 
     function clearVault() { if (confirm("Clear local cache?")) { localStorage.removeItem("a_vault_cache"); dom.historyList.innerHTML = ""; reloadHistory(); } }
     function pastePrompt() { navigator.clipboard.readText().then(text => dom.prompt.value = text); }
