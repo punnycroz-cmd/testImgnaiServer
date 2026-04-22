@@ -24,8 +24,12 @@ The Star engine (formerly `imaginered`) uses browser-based automation via Playwr
   - Playwright for login and age-gate handling.
   - Token extraction (cookies, localStorage, session) for subsequent API requests.
   - Patient polling with backoff logic.
+  - **Live Progress**: Directly writes to the `generation_images` table as images are received, allowing for live streaming in the frontend.
 - **Auth**: Uses cookies stored in `cookie/imaginered_cookie.json`.
 
 ## ⚙️ Model Catalog
 
 All models for both engines must be synchronized in [`config/models.py`](../config/models.py). Addition of new models requires updating both the `MODEL_CONFIGS` and the frontend lists in `index.html`.
+
+---
+*Last Updated: 2026-04-21 17:25*

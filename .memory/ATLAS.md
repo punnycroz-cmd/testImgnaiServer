@@ -29,4 +29,4 @@ The Aether Server is an orchestration layer for image generation. It bridges the
 - **Generation Entry**: [main.py](../main.py)
 
 ---
-*For deep dives into specific subsystems, see the other rooms in the Memory House.*
+*Last Updated: 2026-04-21 17:25*

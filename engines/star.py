@@ -118,7 +118,7 @@ class StarManager:
                 payload["session_uuid"] = session_uuid
                 self.logger.info("star session_uuid=%s", session_uuid)
                 if self.db and request_id:
-                    self.db.update_generation(request_id, session_uuid=session_uuid)
+                    await self.db.update_generation(request_id, session_uuid=session_uuid)
 
                 batch_resp = await client.post(star_api.URL_GENERATE_BATCH, headers=headers, json=payload)
                 if batch_resp.status_code == 401:
@@ -141,7 +141,7 @@ class StarManager:
                     task_uuids = batch_data.get("task_uuids", [])
                 self.logger.info("star task_uuids=%s", task_uuids)
                 if self.db and request_id:
-                    self.db.update_generation(request_id, task_uuids=task_uuids)
+                    await self.db.update_generation(request_id, task_uuids=task_uuids)
                 vaulted_urls = []
                 run_stamp = datetime.now()
                 batch_prefix = self.vault.build_batch_prefix_with_name("star", session_uuid or "session", ts=run_stamp)
@@ -158,10 +158,10 @@ class StarManager:
                         img_path = resp_obj.get("no_watermark_image_url") or resp_obj.get("image_url")
                         if img_path:
                             source_url = f"https://r.imagine.red/{img_path.lstrip('/')}"
-                            cloud_url = self.vault.upload_image(source_url, self.vault.build_object_key(batch_prefix, tuid, "jpg"))
+                            cloud_url = await asyncio.to_thread(self.vault.upload_image, source_url, self.vault.build_object_key(batch_prefix, tuid, "jpg"))
                             vaulted_urls.append(cloud_url)
                             if self.db and request_id:
-                                self.db.add_image(
+                                await self.db.add_image(
                                     generation_id=request_id,
                                     task_uuid=tuid,
                                     r2_url=cloud_url,

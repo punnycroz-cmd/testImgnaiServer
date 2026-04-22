@@ -3,8 +3,8 @@ import logging
 import os
 import uuid
 import traceback
+from contextlib import asynccontextmanager
 
-import anyio
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -29,9 +29,17 @@ R2_VAULT = R2Vault(
     public_url="https://pub-b770478fe936495c8d44e69fb02d2943.r2.dev",
 )
 DB = Database()
-DB.init()
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Initialize DB pool
+    await DB.init()
+    yield
+    # Close DB pool if needed (psycopg_pool handles this mostly, but we can be explicit)
+    if DB.pool:
+        await DB.pool.close()
+
+app = FastAPI(lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 day_mgr = DayManager(COOKIE_DIR, "", R2_VAULT, db=DB)
@@ -64,16 +72,18 @@ async def _run_generation(job_id: str, req: GenerateRequest):
             star_req = StarGenerateRequest(**req.model_dump())
             result = await star_mgr.generate(star_req, request_id=job_id)
         else:
-            result = await anyio.to_thread.run_sync(day_mgr.generate, req, job_id)
+            result = await day_mgr.generate(req, job_id)
+        
         async with job_lock:
             job_store[job_id] = {"status": "done", "result": result, "client_id": req.client_id, "request_id": job_id}
-        DB.update_generation(job_id, status="done", result=result)
+        
+        await DB.update_generation(job_id, status="done", result=result)
         logger.info("job done request_id=%s images=%s", job_id, len(result.get("image_urls", [])))
     except Exception as exc:
         logger.exception("job failed request_id=%s", job_id)
         async with job_lock:
             job_store[job_id] = {"status": "error", "error": str(exc), "client_id": req.client_id, "request_id": job_id}
-        DB.update_generation(job_id, status="error", error=str(exc))
+        await DB.update_generation(job_id, status="error", error=str(exc))
 
 
 @app.get("/job-status/{request_id}")
@@ -81,18 +91,13 @@ async def job_status(request_id: str):
     async with job_lock:
         job = job_store.get(request_id)
     
-    # Always check DB for current state and images
-    row = DB.get_generation(request_id)
+    row = await DB.get_generation(request_id)
     if not row:
         if not job:
             raise HTTPException(status_code=404, detail="job not found")
         return {"request_id": request_id, **job}
     
-    # Get any images generated so far
-    image_rows = []
-    with DB.connect() as conn, conn.cursor() as cur:
-        cur.execute("SELECT * FROM generation_images WHERE generation_id = %s ORDER BY image_index ASC", (row["id"],))
-        image_rows = cur.fetchall()
+    image_rows = await DB.get_generation_images(row["id"])
         
     return {
         "request_id": request_id,
@@ -108,13 +113,12 @@ async def job_status(request_id: str):
 
 @app.get("/resume/{request_id}")
 async def resume(request_id: str):
-    row = DB.get_generation(request_id)
+    row = await DB.get_generation(request_id)
     if not row:
         raise HTTPException(status_code=404, detail="job not found")
-    image_rows = []
-    with DB.connect() as conn, conn.cursor() as cur:
-        cur.execute("SELECT * FROM generation_images WHERE generation_id = %s ORDER BY image_index ASC", (row["id"],))
-        image_rows = cur.fetchall()
+    
+    image_rows = await DB.get_generation_images(row["id"])
+    
     return {
         "request_id": row["request_id"],
         "client_id": row["client_id"],
@@ -139,16 +143,14 @@ async def resume(request_id: str):
 @app.get("/history")
 async def history(page: int = 1, limit: int = 20):
     offset = max(0, (page - 1) * limit)
-    rows = DB.list_generations(limit=limit, offset=offset)
+    rows = await DB.list_generations(limit=limit, offset=offset)
     total = len(rows) if len(rows) < limit else offset + len(rows) + 1
     page_items = []
+    
+    # We could optimize this further with a join, but for now we'll do sequential awaits
+    # which is still non-blocking for OTHER users.
     for row in rows:
-        image_rows = []
-        gen_id = row["id"]
-        if DB.enabled:
-            with DB.connect() as conn, conn.cursor() as cur:
-                cur.execute("SELECT * FROM generation_images WHERE generation_id = %s ORDER BY image_index ASC", (gen_id,))
-                image_rows = cur.fetchall()
+        image_rows = await DB.get_generation_images(row["id"])
         page_items.append(
             {
                 "request_id": row["request_id"],
@@ -180,7 +182,8 @@ async def generate(req: GenerateRequest):
         req.count = 4
         realm = (req.realm or "day").lower()
         request_id = str(uuid.uuid4())
-        DB.create_generation(
+        
+        await DB.create_generation(
             generation_id=request_id,
             request_id=request_id,
             client_id=req.client_id,
@@ -193,11 +196,10 @@ async def generate(req: GenerateRequest):
             negative_prompt=req.negative_prompt,
             count=req.count,
         )
+        
         async with job_lock:
-            existing = job_store.get(request_id)
-            if existing:
-                return {"request_id": request_id, **existing}
             job_store[request_id] = {"status": "running", "client_id": req.client_id, "request_id": request_id}
+        
         logger.info("generate request accepted request_id=%s client_id=%s realm=%s model=%s quality=%s prompt=%s", request_id, req.client_id, realm, req.model, req.quality, req.prompt[:60])
         asyncio.create_task(_run_generation(request_id, req))
         return {"request_id": request_id, "status": "running", "client_id": req.client_id}
