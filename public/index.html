@@ -246,6 +246,58 @@
       transform: translate(-50%, calc(100% - 3.5rem));
       opacity: 0.94;
     }
+
+    /* Progress Matrix */
+    .progress-matrix {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.5rem;
+      margin-top: 1rem;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    .progress-matrix.active { opacity: 1; }
+    .progress-step {
+      height: 4px;
+      background: var(--panel-border);
+      border-radius: 999px;
+      position: relative;
+    }
+    .progress-step.done { background: var(--accent); }
+    .progress-step.active::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--accent);
+      border-radius: 999px;
+      animation: pulse-width 1.5s infinite;
+    }
+    @keyframes pulse-width {
+      0% { width: 0%; opacity: 0.5; }
+      100% { width: 100%; opacity: 0; }
+    }
+    .progress-label {
+      font-size: 8px;
+      text-transform: uppercase;
+      font-weight: 800;
+      letter-spacing: 1px;
+      margin-top: 4px;
+      color: var(--text-muted);
+    }
+    .progress-step.done + .progress-label { color: var(--accent); }
+
+    /* Metadata Panel */
+    .meta-inspector {
+      background: rgba(0,0,0,0.4);
+      border-radius: 1rem;
+      padding: 1rem;
+      margin-top: 1rem;
+      font-size: 11px;
+      border: 1px solid var(--panel-border);
+      backdrop-filter: blur(10px);
+    }
+    .meta-row { display: flex; justify-content: space-between; margin-bottom: 0.5rem; }
+    .meta-val { font-weight: 700; color: var(--text-main); text-align: right; }
   </style>
 </head>
 
@@ -283,6 +335,17 @@
         <button id="resumeFromModal" onclick="resumeSelectedJob()" class="px-6 py-2 btn-magic text-[10px] font-bold uppercase tracking-widest">Resume Job</button>
       </div>
       <div id="bubbleRevealThumbs" class="mt-6 grid grid-cols-4 gap-2 max-w-[90vw]"></div>
+      
+      <div id="metaInspector" class="meta-inspector hidden">
+        <div class="meta-row"><span>Source Realm</span><span class="meta-val" id="metaRealm">-</span></div>
+        <div class="meta-row"><span>Model Used</span><span class="meta-val" id="metaModel">-</span></div>
+        <div class="meta-row"><span>Seed</span><span class="meta-val" id="metaSeed">-</span></div>
+        <div class="meta-row"><span>Manifestation Path</span><span class="meta-val truncate ml-8" id="metaPrompt">-</span></div>
+      </div>
+
+      <div class="flex justify-center mt-6">
+        <button id="cloneBtn" onclick="cloneActiveManifestation()" class="btn-magic px-8 py-3 w-full max-w-xs text-[10px] font-bold uppercase tracking-widest">Invoke Again</button>
+      </div>
     </div>
   </div>
 
@@ -293,7 +356,12 @@
           <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
               <h2 class="text-3xl sm:text-4xl font-bold cinematic-text">Manifestations</h2>
-              <p class="text-sm text-[var(--text-muted)] mt-2">Submit once, then resume polling with the saved request ID if the network is slow.</p>
+              <div class="progress-matrix" id="progressMatrix">
+                <div><div class="progress-step" id="step-0"></div><div class="progress-label">Link</div></div>
+                <div><div class="progress-step" id="step-1"></div><div class="progress-label">Auth</div></div>
+                <div><div class="progress-step" id="step-2"></div><div class="progress-label">Weave</div></div>
+                <div><div class="progress-step" id="step-3"></div><div class="progress-label">Vault</div></div>
+              </div>
             </div>
             <div class="flex items-center gap-2">
               <span id="activeRequestBadge" class="status-pill">No active request</span>
@@ -582,14 +650,30 @@
       `;
     }
 
+    function setProgress(step) {
+      const matrix = document.getElementById("progressMatrix");
+      if (step === -1) {
+        matrix.classList.remove("active");
+        document.querySelectorAll(".progress-step").forEach(s => s.classList.remove("done", "active"));
+        return;
+      }
+      matrix.classList.add("active");
+      document.querySelectorAll(".progress-step").forEach((s, idx) => {
+        s.classList.toggle("done", idx < step);
+        s.classList.toggle("active", idx === step);
+      });
+    }
+
     async function runGeneration() {
       const payload = getPayload();
       if (!payload.prompt) return setFooterMsg("Inspiration required.", "error");
 
       setLoading(true);
+      setProgress(0);
       dom.gallery.innerHTML = '<div class="col-span-full py-24 animate-pulse opacity-50 cinematic-text text-2xl uppercase tracking-widest text-center">Weaving Vision...</div>';
 
       try {
+        setProgress(1);
         const res = await apiFetch("/generate", {
           method: "POST",
           body: JSON.stringify(payload)
@@ -597,6 +681,7 @@
         saveActiveRequest(res.request_id);
         state.activeRequest = res;
         updateTasksView(res);
+        setProgress(2);
         if (res.status === "done" && res.result?.image_urls?.length) {
           handleSuccess(res.result.image_urls, res.request_id, payload, res);
           return;
@@ -606,90 +691,67 @@
       } catch (err) {
         console.error(err);
         setFooterMsg(`Generation failed to start: ${err.message}`, "error");
+        setProgress(-1);
       } finally {
         setLoading(false);
       }
     }
 
-    async function pollUntilDone(requestId, payload, maxAttempts = 90) {
+    async function pollUntilDone(requestId, payload, maxAttempts = 120) {
       state.currentPoll = requestId;
       for (let attempt = 0; attempt < maxAttempts; attempt++) {
-        // If a new poll has started, abort this one to prevent clobbering UI state.
         if (state.currentPoll !== requestId) return false;
-
         try {
           const res = await apiFetch(`/job-status/${requestId}`);
-          
-          // Re-verify current poll after async call
           if (state.currentPoll !== requestId) return false;
-
           state.activeRequest = res;
           updateTasksView(res);
-          
-          // Streaming images as they appear in the DB
           if (res.images && res.images.length > 0) {
             const urls = res.images.map(img => img.r2_url);
-            // Only re-render if count changed or it was empty
             if (urls.length > (dom.gallery.querySelectorAll(".bubble").length)) {
               renderGallery(urls, requestId, payload, res);
             }
           }
-
-          if (res.status === "done" && (res.result?.image_urls?.length || res.images?.length)) {
-            const finalUrls = res.images?.length ? res.images.map(img => img.r2_url) : res.result.image_urls;
-            handleSuccess(finalUrls, requestId, payload, res);
-            setFooterMsg("Vision completed.", "info");
-            return true;
+          if (res.status === "done") {
+            const finalUrls = res.images?.length ? res.images.map(img => img.r2_url) : res.result?.image_urls;
+            if (finalUrls) {
+              setProgress(3);
+              handleSuccess(finalUrls, requestId, payload, res);
+              setTimeout(() => setProgress(-1), 3000);
+              return true;
+            }
           }
           if (res.status === "error") {
             setFooterMsg(res.error || "Generation failed.", "error");
+            setProgress(-1);
             return false;
           }
         } catch (err) {
-          if (err.status === 404) {
-            setFooterMsg("Searching for job pulse...", "info");
-          } else {
-            console.warn("poll error", err);
-          }
+          console.warn("poll error", err);
         }
         await sleep(backoffDelay(attempt));
       }
-      setFooterMsg("Visions still forming. Poll expired.", "info");
       return false;
     }
 
     function backoffDelay(attempt) {
-      const base = 1500;
-      const factor = Math.min(2.5, 1 + attempt / 18);
-      return Math.min(10000, Math.floor(base * factor));
+      return Math.min(6000, 1500 + (attempt * 200));
     }
 
-    function sleep(ms) {
-      return new Promise(resolve => setTimeout(resolve, ms));
-    }
+    function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
     async function resumeLastRequest() {
       if (!state.activeRequestId) return setFooterMsg("No saved request to resume.", "error");
-      setFooterMsg(`Resuming ${state.activeRequestId.slice(0, 8)}...`, "info");
       try {
         const res = await apiFetch(`/resume/${state.activeRequestId}`);
         state.activeRequest = res;
         updateTasksView(res);
-        if (res.status === "done" && res.result?.image_urls?.length) {
-          handleSuccess(res.result.image_urls, state.activeRequestId, {
-            prompt: res.prompt,
-            model: res.model,
-            quality: res.quality,
-            aspect: res.aspect,
-          }, res);
+        if (res.status === "done") {
+          const urls = res.images?.length ? res.images.map(i => i.r2_url) : (res.result?.image_urls || []);
+          handleSuccess(urls, state.activeRequestId, res, res);
           return;
         }
-        await pollUntilDone(state.activeRequestId, {
-          prompt: res.prompt,
-          model: res.model,
-          quality: res.quality,
-          aspect: res.aspect,
-        });
+        await pollUntilDone(state.activeRequestId, res);
       } catch (err) {
         setFooterMsg(`Resume failed: ${err.message}`, "error");
       }
@@ -702,101 +764,76 @@
     }
 
     async function refreshCurrentJob() {
-      // Previously only refreshed the ONE active job. 
-      // Now we fetch the latest history and show all non-completed jobs in the Queue.
       try {
         const res = await apiFetch(`/history?page=1&limit=10`);
-        const items = res.items || [];
-        const running = items.filter(it => it.status !== "done" && it.status !== "error");
-        
+        const running = (res.items || []).filter(it => it.status !== "done" && it.status !== "error");
         if (running.length > 0) {
           dom.taskList.innerHTML = running.map(job => currentJobCard(job)).join("");
-          setFooterMsg(`Watching ${running.length} active souls...`, "info");
         } else if (state.activeRequestId) {
-          // Fallback to specific status check for the most recent request
           const job = await apiFetch(`/job-status/${state.activeRequestId}`);
           dom.taskList.innerHTML = currentJobCard(job);
         } else {
           dom.taskList.innerHTML = '<div class="col-span-full py-20 text-center opacity-20 cinematic-text text-xl uppercase tracking-widest">The queue is silent</div>';
         }
       } catch (err) {
-        setFooterMsg(`Pulse check failed: ${err.message}`, "error");
+        console.error(err);
       }
     }
 
     function updateTasksView(job) {
       if (!dom.taskList) return;
-      // If we are looking at the queue and have a newly active job, ensure it's displayed.
-      // In the future, we could append to a list, but for now we update the active slot.
-      dom.taskList.innerHTML = job ? currentJobCard(job) : '<div class="col-span-full py-20 text-center opacity-20 cinematic-text text-xl uppercase tracking-widest">No active spirits in the queue</div>';
+      dom.taskList.innerHTML = job ? currentJobCard(job) : '<div class="col-span-full py-20 text-center opacity-20 cinematic-text text-xl uppercase tracking-widest">The queue is silent</div>';
     }
 
     function handleSuccess(urls, requestId, payload, meta = {}) {
       saveActiveRequest(requestId);
       state.activeRequest = meta || state.activeRequest;
       renderGallery(urls, requestId, payload, meta);
-
-      updateTasksView({
-        request_id: requestId,
-        realm: payload?.realm || (payload?.nsfw ? "star" : "day"),
-        status: "done",
-        prompt: payload?.prompt,
-        model: payload?.model,
-        quality: payload?.quality,
-        aspect: payload?.aspect,
-        created_at: meta?.created_at || new Date().toISOString(),
-      });
-      setFooterMsg("Vault updated.", "info");
+      updateTasksView({ ...payload, ...meta, request_id: requestId, status: "done" });
       state.historyLoaded = false;
       renderHistory(); 
     }
 
     function renderGallery(urls, requestId, payload, meta = {}) {
-      const cards = urls.map((url, idx) => {
-        const vaulted = (url.includes(".r2.dev") || url.includes("cloudflare")) ? '<span class="vault-badge">Vaulted</span>' : '';
-        return `
-          <div class="bubble" id="bubble-${requestId}-${idx}">
-            ${vaulted}
-            <div class="bubble-img-overlay"><img src="${url}" alt="Generated image ${idx + 1}" loading="lazy"></div>
-            <div class="bubble-sphere"></div>
-            <canvas class="bubble-canvas" width="260" height="260"></canvas>
-          </div>
-        `;
-      }).join("");
-
-      dom.gallery.innerHTML = cards || '<div class="col-span-full py-24 text-center opacity-20 cinematic-text text-2xl uppercase tracking-widest">No images returned.</div>';
-
+      dom.gallery.innerHTML = urls.map((url, idx) => `
+        <div class="bubble" id="bubble-${requestId}-${idx}">
+          ${(url.includes(".r2.dev") || url.includes("cloudflare")) ? '<span class="vault-badge">Vaulted</span>' : ''}
+          <div class="bubble-img-overlay"><img src="${url}" alt="Image ${idx + 1}" loading="lazy"></div>
+          <div class="bubble-sphere"></div>
+          <canvas class="bubble-canvas" width="260" height="260"></canvas>
+        </div>
+      `).join("");
       urls.forEach((url, idx) => {
-        const bubble = document.getElementById(`bubble-${requestId}-${idx}`);
-        if (bubble) bubble.onclick = () => popBubble(bubble, url);
+        const b = document.getElementById(`bubble-${requestId}-${idx}`);
+        if (b) b.onclick = () => popBubble(b, url, { ...payload, ...meta });
       });
     }
 
-    function popBubble(el, url) {
+    function populateInspector(data) {
+      const panel = document.getElementById("metaInspector");
+      if (!data || !data.prompt) {
+        panel.classList.add("hidden");
+        return;
+      }
+      panel.classList.remove("hidden");
+      document.getElementById("metaRealm").textContent = data.realm || "day";
+      document.getElementById("metaModel").textContent = data.model || "Standard";
+      document.getElementById("metaSeed").textContent = data.seed || "Random";
+      document.getElementById("metaPrompt").textContent = data.prompt;
+      state.__inspected_data = data;
+    }
+
+    function popBubble(el, url, data) {
       const canvas = el.querySelector("canvas");
       if (!canvas) return;
       const ctx = canvas.getContext("2d");
       const particles = [];
-      for (let i = 0; i < 36; i++) {
-        particles.push({
-          x: 130, y: 130,
-          vx: (Math.random() - 0.5) * 8,
-          vy: (Math.random() - 0.5) * 8,
-          size: Math.random() * 4 + 1,
-          alpha: 1
-        });
+      for (let i = 0; i < 30; i++) {
+        particles.push({ x: 130, y: 130, vx: (Math.random() - 0.5) * 10, vy: (Math.random() - 0.5) * 10, size: Math.random() * 3, alpha: 1 });
       }
       const animate = () => {
         ctx.clearRect(0, 0, 260, 260);
-        particles.forEach(p => {
-          p.x += p.vx;
-          p.y += p.vy;
-          p.alpha -= 0.02;
-          ctx.fillStyle = `rgba(139, 92, 246, ${Math.max(0, p.alpha)})`;
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-          ctx.fill();
-        });
+        particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.alpha -= 0.03; ctx.fillStyle = `rgba(139, 92, 246, ${Math.max(0, p.alpha)})`; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill(); });
         if (particles[0].alpha > 0) requestAnimationFrame(animate);
       };
       animate();
@@ -804,10 +841,10 @@
         const reveal = document.getElementById("bubbleReveal");
         document.getElementById("bubbleRevealImg").src = url;
         document.getElementById("bubbleRevealDownload").href = url;
-        document.getElementById("resumeFromModal").style.display = state.activeRequestId ? "inline-flex" : "none";
+        populateInspector(data);
         reveal.style.display = "flex";
         setTimeout(() => reveal.classList.add("active"), 10);
-      }, 180);
+      }, 150);
     }
 
     function closeBubbleReveal(e) {
@@ -817,31 +854,31 @@
       setTimeout(() => reveal.style.display = "none", 350);
     }
 
+    function cloneActiveManifestation() {
+      const data = state.__inspected_data;
+      if (!data) return;
+      if (data.realm) applyMode(data.realm === "star" ? "nsfw" : "standard");
+      if (data.model) dom.model.value = data.model;
+      if (data.prompt) dom.prompt.value = data.prompt;
+      if (data.negative_prompt) dom.negativePrompt.value = data.negative_prompt;
+      if (data.aspect) dom.aspect.value = data.aspect;
+      if (data.quality) dom.quality.value = data.quality;
+      if (data.seed) dom.seed.value = data.seed;
+      closeBubbleReveal();
+      document.querySelector('[data-view="generate"]').click();
+      setFooterMsg("Visions cloned to Forge.", "info");
+    }
+
     function openHistoryGroup(entry) {
       const urls = (entry.images || []).map(img => img.r2_url).filter(Boolean);
       if (!urls.length) return;
       const reveal = document.getElementById("bubbleReveal");
       const img = document.getElementById("bubbleRevealImg");
-      const dl = document.getElementById("bubbleRevealDownload");
       const thumbs = document.getElementById("bubbleRevealThumbs");
-      const resumeBtn = document.getElementById("resumeFromModal");
       img.src = urls[0];
-      dl.href = urls[0];
-      thumbs.innerHTML = urls.map((url, idx) => `
-        <button class="art-frame overflow-hidden border border-white/10" data-thumb="${idx}">
-          <img src="${url}" class="w-full aspect-square object-cover" loading="lazy" alt="Vault image ${idx + 1}">
-        </button>
-      `).join("");
-      thumbs.querySelectorAll("[data-thumb]").forEach(btn => {
-        btn.addEventListener("click", (e) => {
-          e.stopPropagation();
-          const url = urls[Number(btn.dataset.thumb)];
-          img.src = url;
-          dl.href = url;
-        });
-      });
-      resumeBtn.style.display = entry.request_id ? "inline-flex" : "none";
-      resumeBtn.onclick = () => entry.request_id ? resumeRequest(entry.request_id) : undefined;
+      document.getElementById("bubbleRevealDownload").href = urls[0];
+      populateInspector(entry);
+      thumbs.innerHTML = urls.map((url, idx) => `<button class="art-frame overflow-hidden border border-white/10" onclick="event.stopPropagation(); document.getElementById('bubbleRevealImg').src='${url}'; document.getElementById('bubbleRevealDownload').href='${url}';"><img src="${url}" class="w-full aspect-square object-cover" loading="lazy"></button>`).join("");
       reveal.style.display = "flex";
       setTimeout(() => reveal.classList.add("active"), 10);
     }
@@ -850,28 +887,20 @@
       if (clear) dom.historyList.innerHTML = "";
       items.forEach(entry => {
         const wrap = document.createElement("div");
-        wrap.className = "glass-panel p-3 cursor-pointer";
-        wrap.addEventListener("click", (e) => {
-          if (e.target.closest("button")) return;
-          openHistoryGroup(entry);
-        });
+        wrap.className = "glass-panel p-3 cursor-pointer group";
+        wrap.onclick = (e) => { if (!e.target.closest("button")) openHistoryGroup(entry); };
         wrap.innerHTML = `
           <div class="flex items-center justify-between gap-2 mb-3">
             <div class="min-w-0">
               <div class="text-[9px] uppercase tracking-widest text-[var(--text-muted)]">${entry.realm || "day"} · ${entry.status || "done"}</div>
               <div class="text-xs font-bold truncate">${escapeHtml(entry.prompt || "")}</div>
             </div>
-            <button class="text-[9px] font-bold uppercase text-[var(--accent)]" data-request="${entry.request_id}">Resume</button>
+            <button class="text-[9px] font-bold uppercase text-[var(--accent)] opacity-0 group-hover:opacity-100 transition-opacity" onclick="event.stopPropagation(); resumeRequest('${entry.request_id}')">Resume</button>
           </div>
           <div class="grid grid-cols-2 gap-2">
-            ${(entry.images || []).map(img => `
-              <div class="art-frame pointer-events-none">
-                <img src="${img.r2_url}" class="w-full aspect-square object-cover" loading="lazy" alt="Vault image">
-              </div>
-            `).join("")}
+            ${(entry.images || []).slice(0, 4).map(img => `<div class="art-frame"><img src="${img.r2_url}" class="w-full aspect-square object-cover" loading="lazy"></div>`).join("")}
           </div>
         `;
-        wrap.querySelector("[data-request]")?.addEventListener("click", () => resumeRequest(entry.request_id));
         dom.historyList.appendChild(wrap);
       });
     }
@@ -879,10 +908,8 @@
     async function loadHistoryPage() {
       if (state.loadingHistory || !state.historyHasMore) return;
       state.loadingHistory = true;
-      dom.loadMoreBtn.disabled = true;
-      dom.loadMoreBtn.textContent = "Loading...";
       try {
-        const res = await apiFetch(`/history?page=${state.historyPage}&limit=${state.historyLimit}`, { method: "GET", headers: {} });
+        const res = await apiFetch(`/history?page=${state.historyPage}&limit=${state.historyLimit}`);
         const items = res.items || [];
         if (state.historyPage === 1) {
           state.historyLoaded = true;
@@ -891,122 +918,58 @@
         } else {
           appendHistoryItems(items, false);
         }
-
         state.historyHasMore = !!res.has_more;
         state.historyPage += 1;
-        dom.loadMoreBtn.classList.toggle("hidden", !state.historyHasMore);
+        dom.loadMoreBtn.classList.toggle("hidden", true); // Hidden because we use infinite scroll
       } catch (err) {
-        setFooterMsg(`History failed: ${err.message}`, "error");
+        console.error(err);
       } finally {
         state.loadingHistory = false;
-        dom.loadMoreBtn.disabled = false;
-        dom.loadMoreBtn.textContent = "Load More";
       }
     }
 
     async function renderHistory(reset = false) {
-      if (!dom.historyList) return;
-      if (document.getElementById("view-history").classList.contains("hidden")) return;
-      
-      // Load from cache first if empty
+      if (!dom.historyList || document.getElementById("view-history").classList.contains("hidden")) return;
       if (dom.historyList.innerHTML === "" && localStorage.getItem("a_vault_cache")) {
-        try {
-          const cached = JSON.parse(localStorage.getItem("a_vault_cache"));
-          appendHistoryItems(cached, true);
-        } catch(e) { console.warn("Cache load failed", e); }
+        try { appendHistoryItems(JSON.parse(localStorage.getItem("a_vault_cache")), true); } catch(e) {}
       }
-
       if (state.historyLoaded && !reset) return;
-
       state.historyPage = 1;
       state.historyHasMore = true;
       await loadHistoryPage();
     }
 
-    async function loadMoreHistory() {
-      await loadHistoryPage();
-    }
-
-    async function reloadHistory() {
-      state.historyLoaded = false;
-      await renderHistory(true);
-    }
-
-    function clearVault() {
-      if (!confirm("Clear local browser cache only?")) return;
-      localStorage.removeItem("a_history");
-      setFooterMsg("Local cache cleared. Backend history is untouched.", "info");
-    }
-
-    function pastePrompt() {
-      navigator.clipboard.readText()
-        .then(text => { dom.prompt.value = text; })
-        .catch(() => setFooterMsg("Clipboard permission denied.", "error"));
-    }
-
-    function clearPrompt() {
-      dom.prompt.value = "";
-    }
-
-    function toggleConsole() {
-      const consoleEl = document.getElementById("desktopConsole");
-      const isMin = consoleEl.classList.toggle("minimized");
-      document.getElementById("consoleToggleText").textContent = isMin ? "Expand" : "Minimize";
-    }
-
-    async function copyRequestId(requestId) {
-      if (!requestId) return;
-      try {
-        await navigator.clipboard.writeText(requestId);
-        setFooterMsg("Request ID copied.", "info");
-      } catch {
-        setFooterMsg("Could not copy request ID.", "error");
+    // Infinite Scroll
+    const mainEl = document.getElementById("mainContent");
+    mainEl.onscroll = () => {
+      if (!document.getElementById("view-history").classList.contains("hidden")) {
+        if (mainEl.scrollTop + mainEl.clientHeight >= mainEl.scrollHeight - 300) loadHistoryPage();
       }
-    }
+    };
 
-    async function resumeSelectedJob() {
-      await resumeLastRequest();
-      closeBubbleReveal();
-    }
-
-    function escapeHtml(value) {
-      return String(value)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-    }
-
-    async function checkBackend() {
-      try {
-        const res = await apiFetch("/health", { method: "GET", headers: {} });
-        dom.backendStatus.textContent = res.status === "ok" ? "Backend ready" : "Backend unknown";
-      } catch {
-        dom.backendStatus.textContent = "Backend offline";
-      }
-    }
+    function clearVault() { if (confirm("Clear local cache?")) { localStorage.removeItem("a_vault_cache"); dom.historyList.innerHTML = ""; reloadHistory(); } }
+    function pastePrompt() { navigator.clipboard.readText().then(text => dom.prompt.value = text); }
+    function toggleConsole() { const el = document.getElementById("desktopConsole"); const isMin = el.classList.toggle("minimized"); document.getElementById("consoleToggleText").textContent = isMin ? "Expand" : "Minimize"; }
+    async function copyRequestId(id) { if (id) { await navigator.clipboard.writeText(id); setFooterMsg("Copied ID.", "info"); } }
+    function escapeHtml(v) { return String(v).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;"); }
+    async function checkBackend() { try { const res = await apiFetch("/health"); dom.backendStatus.textContent = res.status === "ok" ? "Backend Online" : "Backend Latency"; } catch { dom.backendStatus.textContent = "Backend Offline"; } }
 
     document.querySelectorAll("[data-view]").forEach(btn => btn.addEventListener("click", (e) => {
-      const view = e.currentTarget.dataset.view;
-      document.querySelectorAll(".view").forEach(v => v.classList.add("hidden"));
-      document.getElementById(`view-${view}`).classList.remove("hidden");
+      const v = e.currentTarget.dataset.view;
+      document.querySelectorAll(".view").forEach(el => el.classList.add("hidden"));
+      document.getElementById(`view-${v}`).classList.remove("hidden");
       document.querySelectorAll("[data-view]").forEach(b => b.classList.remove("active"));
       e.currentTarget.classList.add("active");
-      if (view === "history") renderHistory(false);
+      if (v === "history") renderHistory();
     }));
 
     document.querySelectorAll("[data-mode]").forEach(btn => btn.addEventListener("click", () => applyMode(btn.dataset.mode)));
-    dom.model.addEventListener("change", () => localStorage.setItem("a_model", dom.model.value));
-    dom.quality.addEventListener("change", () => localStorage.setItem("a_quality", dom.quality.value));
-    dom.aspect.addEventListener("change", () => localStorage.setItem("a_aspect", dom.aspect.value));
     dom.generateBtn.addEventListener("click", runGeneration);
-
     applyMode(state.activeMode);
     renderActiveRequest();
     if (state.activeRequestId) resumeLastRequest();
+    setInterval(checkBackend, 15000);
     checkBackend();
   </script>
 </body>
-
 </html>

@@ -27,29 +27,24 @@ This project uses the **Memory House** system (Spatial Context) for agentic effi
 
 - [`public/index.html`](/Users/sema/Documents/code/work/testImgnai/public/index.html)
 
-## High-Level Summary
+## Core Infrastructure
+- **FastAPI Backend**: Fully asynchronous architecture for non-blocking I/O (DB, Vault, APIs).
+- **Postgres (Neon)**: Persistent storage for every generation manifestation and image vault metadata.
+- **R2 Vaulting**: Permanent storage for generated images on Cloudflare R2, bypassing ephemeral session expiries.
+- **Async DB Migration**: Uses `psycopg_pool` (AsyncConnectionPool) for high-concurrency database access.
 
-- Replit hosts the backend API.
-- Render hosts the frontend.
-- Neon stores generation state and history.
-- Cloudflare R2 stores vaulted images.
-- Frontend requests are routed through `request_id` and `realm`.
+## Frontend: Aether Elite Dashboard
+- **Progress Matrix**: Real-time diagnostic bar for tracking Manifestation stages (*Link -> Auth -> Weave -> Vault*).
+- **Metadata Inspector**: Full "Prophecy Panel" revealing prompts, models, and seeds for every historical image.
+- **Deep Cloning**: "Invoke Again" feature to instantly copy settings from the vault back into the generator.
+- **Infinite Scroll**: Seamless history exploration without manual pagination.
 
 ## Required Environment Variables
+Set these in your local `.env` or Replit Secrets:
+- `IMGNAI_USERNAME` / `IMGNAI_PASSWORD`: ImgnAI credentials.
+- `DATABASE_URL`: Neon / Postgres connection string.
+- `R2_ACCESS_KEY` / `R2_SECRET_KEY`: Cloudflare R2 tokens.
+- `R2_VAULT`: (Internal) Identifier for the vault bucket.
 
-Set these before running the backend:
-
-- `IMGNAI_USERNAME`
-- `IMGNAI_PASSWORD`
-- `DATABASE_URL`
-- `R2_ACCESS_KEY`
-- `R2_SECRET_KEY`
-- `PORT` (optional, defaults to `8080`)
-- `LOG_LEVEL` (optional, defaults to `INFO`)
-
-## Notes For New Agents
-
-- Pull the latest `main` branch before making changes.
-- Read `AGENT_GUIDE.md` first if you need the file map.
-- Read `DEPLOYMENT.md` if you need to understand Render vs Replit.
-- Use `request_id` for retries, not `client_id`.
+---
+*If you are an agent, start with [Memory House LOGBOOK](.memory/LOGBOOK.md) to see the latest fixes.*
