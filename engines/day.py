@@ -30,20 +30,36 @@ class DayManager:
             
             script_path = os.path.join(os.getcwd(), "day_api.py")
             cmd = [
-                sys.executable, script_path, "--prompt", req.prompt, "--model", req.model, "--count", str(req.count),
-                "--aspect", req.aspect, "--quality", req.quality, "--negative-prompt", req.negative_prompt,
-                "--skip-login-prompt", "--confirm-payload",
+                sys.executable, script_path, 
+                "--prompt", str(req.prompt), 
+                "--model", str(req.model), 
+                "--count", str(req.count),
+                "--aspect", str(req.aspect), 
+                "--quality", str(req.quality),
+                "--skip-login-prompt", 
+                "--confirm-payload",
             ]
+            
+            if req.negative_prompt:
+                cmd.extend(["--negative-prompt", str(req.negative_prompt)])
+                
             self.logger.info("day execute: %s", " ".join(cmd))
             
-            process = await asyncio.create_subprocess_exec(*cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT)
+            process = await asyncio.create_subprocess_exec(
+                *cmd, 
+                stdout=asyncio.subprocess.PIPE, 
+                stderr=asyncio.subprocess.STDOUT
+            )
 
             last_json_line = None
+            full_output = []
             while True:
                 line_bytes = await process.stdout.readline()
                 if not line_bytes: break
                 line = line_bytes.decode('utf-8', errors='ignore').strip()
                 if line:
+                    full_output.append(line)
+                    self.logger.info("day engine: %s", line)
                     try:
                         event = json.loads(line)
                         if self.db and request_id:
@@ -52,8 +68,13 @@ class DayManager:
                         if line.startswith("{") and line.endswith("}"): last_json_line = line
                     except: pass
 
-            if await process.wait() != 0: raise RuntimeError("Day failed")
-            if not last_json_line: raise RuntimeError("No output")
+            rc = await process.wait()
+            if rc != 0:
+                self.logger.error("Day engine failed with exit code %s. Output: %s", rc, "\n".join(full_output))
+                raise RuntimeError(f"Day failed (code {rc})")
+                
+            if not last_json_line: 
+                raise RuntimeError("No JSON output from Day engine")
             
             data = json.loads(last_json_line)
             session_uuid, task_uuids, image_urls = data.get("session_uuid", "session"), data.get("task_uuids", []), data.get("image_urls", [])
