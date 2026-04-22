@@ -3,7 +3,7 @@ import json
 import logging
 import os
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 import httpx
 from playwright.async_api import async_playwright
@@ -59,117 +59,81 @@ class StarManager:
             resp = await client.get(url, headers=headers)
             resp.raise_for_status()
             return resp.json()
-        except httpx.TimeoutException:
-            return None
-        except Exception:
+        except:
             return None
 
     async def _sleep_backoff(self, attempt: int, base: float = 1.5, cap: float = 10.0):
         await asyncio.sleep(min(cap, base * (1.4 ** attempt)))
 
     async def start(self):
-        if self.page:
-            return
+        if self.page: return
         self.logger.info("starting star browser session")
         pw = await async_playwright().start()
         self.browser = await pw.chromium.launch(
             headless=False,
             args=["--headless=new", "--no-sandbox", "--disable-dev-shm-usage", "--disable-blink-features=AutomationControlled"],
         )
-        self.context = await self.browser.new_context(
-            viewport={"width": 1440, "height": 900},
-            user_agent=self.get_user_agent(),
-        )
+        self.context = await self.browser.new_context(viewport={"width": 1440, "height": 900}, user_agent=self.get_user_agent())
         self.page = await self.context.new_page()
         await Stealth().apply_stealth_async(self.page)
         if os.path.exists(self.cookies_file):
-            self.logger.info("loading star cookies from %s", self.cookies_file)
             with open(self.cookies_file, "r") as f:
                 await self.context.add_cookies(json.load(f))
         await star_api.ensure_logged_in_async(self.page, self.context, logger=self.logger)
 
+    async def _poll_task(self, client, tuid, headers, batch_prefix, idx, request_id):
+        self.logger.info("polling star task %s", tuid[:8])
+        for attempt in range(90):
+            poll_data = await self._get_json(client, star_api.URL_GENERATE_TASK.format(task_uuid=tuid), headers)
+            if not poll_data:
+                await self._sleep_backoff(attempt)
+                continue
+            resp_obj = poll_data.get("response") or poll_data
+            img_path = resp_obj.get("no_watermark_image_url") or resp_obj.get("image_url")
+            if img_path:
+                source_url = f"https://r.imagine.red/{img_path.lstrip('/')}"
+                key = self.vault.build_object_key(batch_prefix, tuid, "jpg")
+                cloud_url = await asyncio.to_thread(self.vault.upload_image, source_url, key)
+                if self.db and request_id:
+                    await self.db.add_image(generation_id=request_id, task_uuid=tuid, r2_url=cloud_url, r2_key=key, image_index=idx)
+                return cloud_url
+            await self._sleep_backoff(attempt)
+        return None
+
     async def generate(self, req: GenerateRequest, request_id=None):
         async with self._lock:
             await self.start()
-            self.logger.info("star generate start prompt=%s quality=%s model=%s", req.prompt[:60], req.quality, req.model)
+            self.logger.info("star generate start prompt=%s", req.prompt[:60])
             token = await star_api.acquire_auth_token_async(self.page, self.context, logger=self.logger)
             if not token:
-                self.logger.warning("star token missing, forcing re-login")
                 await star_api.ensure_logged_in_async(self.page, self.context, force_login=True, logger=self.logger)
                 token = await star_api.acquire_auth_token_async(self.page, self.context, logger=self.logger)
-            if not token:
-                raise RuntimeError("Star auth token missing")
+            if not token: raise RuntimeError("Auth failed")
 
             payload = star_api.build_payload(req.model, req.quality, req.aspect, req.prompt, req.count, req.seed, True, negative_prompt=req.negative_prompt)
-
-            async with httpx.AsyncClient(timeout=httpx.Timeout(90.0, connect=30.0)) as client:
+            async with httpx.AsyncClient(timeout=90.0) as client:
                 headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json", "Origin": "https://imagine.red"}
                 session_resp = await client.post(star_api.URL_GENERATE_SESSION, headers=headers)
-                if session_resp.status_code == 401:
-                    self.logger.warning("star session 401, retrying after forced login")
-                    await star_api.ensure_logged_in_async(self.page, self.context, force_login=True, logger=self.logger)
-                    token = await star_api.acquire_auth_token_async(self.page, self.context, logger=self.logger)
-                    if not token:
-                        raise RuntimeError("Star auth token missing after re-login")
-                    headers["Authorization"] = f"Bearer {token}"
-                    session_resp = await client.post(star_api.URL_GENERATE_SESSION, headers=headers)
                 session_resp.raise_for_status()
                 session_uuid = star_api.parse_session_uuid(session_resp.text)
-                payload["session_uuid"] = session_uuid
-                self.logger.info("star session_uuid=%s", session_uuid)
-                if self.db and request_id:
-                    await self.db.update_generation(request_id, session_uuid=session_uuid)
+                if self.db and request_id: await self.db.update_generation(request_id, session_uuid=session_uuid)
 
+                payload["session_uuid"] = session_uuid
                 batch_resp = await client.post(star_api.URL_GENERATE_BATCH, headers=headers, json=payload)
-                if batch_resp.status_code == 401:
-                    self.logger.warning("star batch 401, retrying after forced login")
-                    await star_api.ensure_logged_in_async(self.page, self.context, force_login=True, logger=self.logger)
-                    token = await star_api.acquire_auth_token_async(self.page, self.context, logger=self.logger)
-                    if not token:
-                        raise RuntimeError("Star auth token missing after re-login")
-                    headers["Authorization"] = f"Bearer {token}"
-                    session_resp = await client.post(star_api.URL_GENERATE_SESSION, headers=headers)
-                    session_resp.raise_for_status()
-                    session_uuid = star_api.parse_session_uuid(session_resp.text)
-                    payload["session_uuid"] = session_uuid
-                    batch_resp = await client.post(star_api.URL_GENERATE_BATCH, headers=headers, json=payload)
                 batch_resp.raise_for_status()
                 batch_data = batch_resp.json()
-
                 task_uuids = batch_data if isinstance(batch_data, list) else batch_data.get("response", [])
-                if not task_uuids and isinstance(batch_data, dict):
-                    task_uuids = batch_data.get("task_uuids", [])
-                self.logger.info("star task_uuids=%s", task_uuids)
-                if self.db and request_id:
-                    await self.db.update_generation(request_id, task_uuids=task_uuids)
-                vaulted_urls = []
-                run_stamp = datetime.now()
-                batch_prefix = self.vault.build_batch_prefix_with_name("star", session_uuid or "session", ts=run_stamp)
-                self.logger.info("star batch prefix=%s", batch_prefix)
+                if not task_uuids and isinstance(batch_data, dict): task_uuids = batch_data.get("task_uuids", [])
+                
+                if self.db and request_id: await self.db.update_generation(request_id, task_uuids=task_uuids)
 
-                for idx, tuid in enumerate(task_uuids):
-                    self.logger.info("polling star task %s (%s/%s)", tuid[:8], idx + 1, len(task_uuids))
-                    for attempt in range(90):
-                        poll_data = await self._get_json(client, star_api.URL_GENERATE_TASK.format(task_uuid=tuid), headers)
-                        if not poll_data:
-                            await self._sleep_backoff(attempt)
-                            continue
-                        resp_obj = poll_data.get("response") or poll_data
-                        img_path = resp_obj.get("no_watermark_image_url") or resp_obj.get("image_url")
-                        if img_path:
-                            source_url = f"https://r.imagine.red/{img_path.lstrip('/')}"
-                            cloud_url = await asyncio.to_thread(self.vault.upload_image, source_url, self.vault.build_object_key(batch_prefix, tuid, "jpg"))
-                            vaulted_urls.append(cloud_url)
-                            if self.db and request_id:
-                                await self.db.add_image(
-                                    generation_id=request_id,
-                                    task_uuid=tuid,
-                                    r2_url=cloud_url,
-                                    r2_key=self.vault.build_object_key(batch_prefix, tuid, "jpg"),
-                                    image_index=idx,
-                                )
-                            self.logger.info("star image vaulted task=%s url=%s", tuid[:8], cloud_url)
-                            break
-                        await self._sleep_backoff(attempt)
-                self.logger.info("star generate done images=%s", len(vaulted_urls))
-            return {"image_urls": vaulted_urls, "client_id": req.client_id, "model": req.model, "prompt": req.prompt}
+                batch_prefix = self.vault.build_batch_prefix_with_name("star", session_uuid or "session", ts=datetime.now())
+                
+                # Parallel Polling
+                results = await asyncio.gather(*[
+                    self._poll_task(client, tuid, headers, batch_prefix, i, request_id)
+                    for i, tuid in enumerate(task_uuids)
+                ])
+                
+                vaulted_urls = [r for r in results if r]
+                return {"image_urls": vaulted_urls, "client_id": req.client_id, "model": req.model, "prompt": req.prompt}
