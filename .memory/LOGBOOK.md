@@ -4,6 +4,11 @@ This room tracks the chronological evolution of the Aether / ImgnAI project.
 
 ## 📈 Timeline
 
+### [2026-04-22 13:45] 🛡️ Database & UI Stability Overhaul
+- **DB Resilience**: Patched `core/db.py` to fix `SSL connection closed unexpectedly` errors (OperationalError). Added `check=AsyncConnectionPool.check_connection` and `max_idle=300.0` to the Neon connection pool, ensuring stale connections are automatically pruned and verified before use.
+- **Frontend Hotfix**: Resolved a UI "Freeze" where dropdowns and buttons were unresponsive when opened via the `file://` protocol. Added error guards to `apiFetch` and an initialization `try/catch` safety net.
+- **Infinite Matrix Fix**: Corrected a Regex/Template literal syntax error in `runMatrixCast` that was preventing model names with spaces (like "Hyper CGI") from rendering properly.
+
 ### [2026-04-21 23:30] 🎲 The Infinite Matrix
 - **Matrix Cast UI**: Added a dedicated Matrix comparison grid that automatically fires a prompt across all 24 models (in Day or Star realm).
 - **Sequential Safety Check**: Verified that the backend uses an `asyncio.Lock()` (equivalent to Semaphore(1)), safely queueing all 24 database entries instantly but running exactly 1 Playwright/API context at a time to remain 100% undetected by Cloudflare bot mitigation.

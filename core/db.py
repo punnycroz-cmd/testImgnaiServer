@@ -29,6 +29,8 @@ class Database:
                 min_size=2,
                 max_size=10,
                 kwargs={"row_factory": dict_row},
+                check=AsyncConnectionPool.check_connection,
+                max_idle=300.0,
                 open=False
             )
             await self.pool.open()
