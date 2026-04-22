@@ -27,11 +27,15 @@ class DayManager:
     async def generate(self, req, request_id=None):
         async with self._lock:
             self.logger.info("day generate start prompt=%s", req.prompt[:60])
+            
+            script_path = os.path.join(os.getcwd(), "day_api.py")
             cmd = [
-                sys.executable, "day_api.py", "--prompt", req.prompt, "--model", req.model, "--count", str(req.count),
+                sys.executable, script_path, "--prompt", req.prompt, "--model", req.model, "--count", str(req.count),
                 "--aspect", req.aspect, "--quality", req.quality, "--negative-prompt", req.negative_prompt,
                 "--skip-login-prompt", "--confirm-payload",
             ]
+            self.logger.info("day execute: %s", " ".join(cmd))
+            
             process = await asyncio.create_subprocess_exec(*cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT)
 
             last_json_line = None
