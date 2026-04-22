@@ -28,9 +28,10 @@ class Database:
                 conninfo=self.url,
                 min_size=2,
                 max_size=10,
-                kwargs={"row_factory": dict_row}
+                kwargs={"row_factory": dict_row},
+                open=False
             )
-            # We don't necessarily need to wait for it here, but it's cleaner.
+            await self.pool.open()
         return self.pool
 
     async def init(self):
