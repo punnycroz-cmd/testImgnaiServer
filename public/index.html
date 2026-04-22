@@ -566,7 +566,10 @@
       footerStatus: document.getElementById("footerStatus"),
       loadMoreBtn: document.getElementById("loadMoreBtn"),
       activeRequestBadge: document.getElementById("activeRequestBadge"),
-      backendStatus: document.getElementById("backendStatus")
+      backendStatus: document.getElementById("backendStatus"),
+      matrixBtn: document.getElementById("matrixBtn"),
+      btnMatrixText: document.getElementById("btnMatrixText"),
+      btnMatrixLoader: document.getElementById("btnMatrixLoader")
     };
 
     function isUnresolved(v) {
@@ -651,20 +654,29 @@
     }
 
     async function apiFetch(path, opts = {}) {
-      const resp = await fetch(`${state.serverUrl}${path}`, {
-        headers: { "Content-Type": "application/json", ...(opts.headers || {}) },
-        ...opts
-      });
-      const text = await resp.text();
-      let data = null;
-      try { data = text ? JSON.parse(text) : null; } catch { data = { raw: text }; }
-      if (!resp.ok) {
-        const err = new Error(data?.detail || data?.error || `HTTP ${resp.status}`);
-        err.status = resp.status;
-        err.data = data;
-        throw err;
+      if (!state.serverUrl || state.serverUrl.startsWith("file://")) {
+        console.warn("Invalid server URL or file:// protocol. Skipping fetch:", path);
+        throw new Error("Local File Protocol detected. Please run via a web server.");
       }
-      return data;
+      try {
+        const resp = await fetch(`${state.serverUrl}${path}`, {
+          headers: { "Content-Type": "application/json", ...(opts.headers || {}) },
+          ...opts
+        });
+        const text = await resp.text();
+        let data = null;
+        try { data = text ? JSON.parse(text) : null; } catch { data = { raw: text }; }
+        if (!resp.ok) {
+          const err = new Error(data?.detail || data?.error || `HTTP ${resp.status}`);
+          err.status = resp.status;
+          err.data = data;
+          throw err;
+        }
+        return data;
+      } catch (e) {
+        console.error("apiFetch error:", e);
+        throw e;
+      }
     }
 
     function currentJobCard(job) {
@@ -728,10 +740,9 @@
       `).join("");
 
       dom.generateBtn.disabled = true;
-      const mBtn = document.getElementById("matrixBtn");
-      mBtn.disabled = true;
-      document.getElementById("btnMatrixText").textContent = "Casting...";
-      document.getElementById("btnMatrixLoader").classList.remove("hidden");
+      dom.matrixBtn.disabled = true;
+      dom.btnMatrixText.textContent = "Casting...";
+      dom.btnMatrixLoader.classList.remove("hidden");
 
       let activeIds = [];
       try {
@@ -755,9 +766,9 @@
         setFooterMsg("Matrix Error: " + err.message, "error");
       } finally {
         dom.generateBtn.disabled = false;
-        mBtn.disabled = false;
-        document.getElementById("btnMatrixText").textContent = "Matrix";
-        document.getElementById("btnMatrixLoader").classList.add("hidden");
+        dom.matrixBtn.disabled = false;
+        dom.btnMatrixText.textContent = "Matrix";
+        dom.btnMatrixLoader.classList.add("hidden");
       }
     }
 
@@ -1204,11 +1215,17 @@
 
     document.querySelectorAll("[data-mode]").forEach(btn => btn.addEventListener("click", () => applyMode(btn.dataset.mode)));
     dom.generateBtn.addEventListener("click", runGeneration);
-    applyMode(state.activeMode);
-    renderActiveRequest();
-    if (state.activeRequestId) resumeLastRequest();
-    setInterval(checkBackend, 15000);
-    checkBackend();
+
+    try {
+      applyMode(state.activeMode);
+      renderActiveRequest();
+      if (state.activeRequestId) resumeLastRequest();
+      setInterval(checkBackend, 15000);
+      checkBackend();
+    } catch (e) {
+      console.error("Initialization error:", e);
+      setFooterMsg("Connect to Server for full functionality.", "info");
+    }
   </script>
 </body>
 </html>
