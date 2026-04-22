@@ -152,13 +152,19 @@ async def run_async():
     async with async_playwright() as p:
         browser = await p.chromium.launch(
             headless=True, 
-            args=["--headless=new", "--no-sandbox", "--disable-dev-shm-usage"]
+            args=["--headless=new", "--no-sandbox", "--disable-dev-shm-usage", "--disable-blink-features=AutomationControlled"]
         )
-        context = await browser.new_context(viewport={"width": 1440, "height": 1000}, user_agent="Mozilla/5.0")
+        context = await browser.new_context(viewport={"width": 1440, "height": 1000}, user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
         page = await context.new_page()
         await Stealth().apply_stealth_async(page)
 
         await ensure_logged_in(page, context)
+        
+        # Wait for Cloudflare to clear
+        for _ in range(10):
+            if "Just a moment" not in await page.content(): break
+            await asyncio.sleep(2)
+            
         token = await acquire_auth_token(page, context)
         if not token: raise RuntimeError("Auth token missing")
 
