@@ -51,11 +51,10 @@ class DayManager:
         self.logger.info("Starting persistent Day browser session")
         pw = await async_playwright().start()
         self.browser = await pw.chromium.launch(
-            headless=True,
+            headless=False,
             args=["--headless=new", "--no-sandbox", "--disable-dev-shm-usage", "--disable-blink-features=AutomationControlled"]
         )
         self.context = await self.browser.new_context(
-            viewport={"width": 1440, "height": 1000},
             user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
         )
         self.page = await self.context.new_page()
@@ -67,20 +66,28 @@ class DayManager:
         
         await self.ensure_logged_in()
 
+    async def _wait_for_cloudflare(self):
+        for _ in range(15):
+            content = await self.page.content()
+            if "Just a moment" not in content and "challenges.cloudflare.com" not in content:
+                break
+            self.logger.info("Waiting for Cloudflare challenge...")
+            await asyncio.sleep(2)
+
     async def ensure_logged_in(self, force_login=False):
         if not force_login:
             await self.page.goto(URL_GENERATE, wait_until="domcontentloaded")
+            await self._wait_for_cloudflare()
             if "login" not in self.page.url.lower():
-                # Challenge check
-                for _ in range(5):
-                    if "Just a moment" not in await self.page.content(): break
-                    await asyncio.sleep(2)
                 return
 
         self.logger.info("Performing Day login")
         await self.page.goto(URL_LOGIN, wait_until="domcontentloaded")
-        await self.page.locator('input[name="username"]').type(self.username, delay=50)
-        await self.page.locator('input[type="password"]').type(self.password, delay=50)
+        await self._wait_for_cloudflare()
+        
+        await self.page.wait_for_selector('input[name="username"]', timeout=30000)
+        await self.page.locator('input[name="username"]').type(self.username, delay=100)
+        await self.page.locator('input[type="password"]').type(self.password, delay=100)
         await self.page.keyboard.press("Enter")
         await self.page.wait_for_url("**/generate", timeout=60000)
         
