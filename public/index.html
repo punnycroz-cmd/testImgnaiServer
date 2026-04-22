@@ -47,7 +47,12 @@
       transition: background-color 0.6s ease, color 0.3s ease;
     }
 
-    h1, h2, h3, .cinematic-text { font-family: 'Cinzel', serif; }
+    h1,
+    h2,
+    h3,
+    .cinematic-text {
+      font-family: 'Cinzel', serif;
+    }
 
     .glass-panel {
       background: var(--panel-bg);
@@ -58,10 +63,21 @@
       border-radius: 2rem;
     }
 
-    .nav-pill { transition: all 0.25s ease; color: var(--text-muted); cursor: pointer; }
-    .nav-pill.active { color: var(--accent-text); background: var(--accent); box-shadow: 0 10px 25px var(--accent-glow); }
+    .nav-pill {
+      transition: all 0.25s ease;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
 
-    textarea, select, input {
+    .nav-pill.active {
+      color: var(--accent-text);
+      background: var(--accent);
+      box-shadow: 0 10px 25px var(--accent-glow);
+    }
+
+    textarea,
+    select,
+    input {
       background: var(--panel-bg) !important;
       border: 1px solid var(--panel-border) !important;
       color: var(--text-main) !important;
@@ -69,7 +85,9 @@
       transition: all 0.2s ease !important;
     }
 
-    textarea:focus, select:focus, input:focus {
+    textarea:focus,
+    select:focus,
+    input:focus {
       outline: none !important;
       box-shadow: 0 0 0 3px var(--accent-glow) !important;
       border-color: var(--accent) !important;
@@ -104,11 +122,20 @@
       animation: spin 1s linear infinite;
     }
 
-    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
 
     @keyframes float {
-      from { transform: translateY(0px); }
-      to { transform: translateY(-14px); }
+      from {
+        transform: translateY(0px);
+      }
+
+      to {
+        transform: translateY(-14px);
+      }
     }
 
     main {
@@ -119,7 +146,9 @@
       padding-bottom: 20rem;
     }
 
-    main::-webkit-scrollbar { width: 0; }
+    main::-webkit-scrollbar {
+      width: 0;
+    }
 
     .bubble-container {
       display: grid;
@@ -141,8 +170,21 @@
       isolation: isolate;
     }
 
-    .bubble-img-overlay { position: absolute; inset: 0; border-radius: 50%; overflow: hidden; z-index: 1; }
-    .bubble-img-overlay img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+    .bubble-img-overlay {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      overflow: hidden;
+      z-index: 1;
+    }
+
+    .bubble-img-overlay img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+    }
+
     .bubble-sphere {
       width: 100%;
       height: 100%;
@@ -150,8 +192,8 @@
       position: absolute;
       inset: 0;
       z-index: 2;
-      background: radial-gradient(circle at 30% 25%, rgba(255,255,255,0.42) 0%, transparent 60%);
-      border: 1px solid rgba(255,255,255,0.18);
+      background: radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.42) 0%, transparent 60%);
+      border: 1px solid rgba(255, 255, 255, 0.18);
     }
 
     .bubble-canvas {
@@ -191,20 +233,28 @@
       cursor: pointer;
       border: 2px solid transparent;
     }
-    .art-frame:hover { transform: translateY(-4px); border-color: var(--accent); }
+
+    .art-frame:hover {
+      transform: translateY(-4px);
+      border-color: var(--accent);
+    }
 
     .bubble-image-reveal {
       position: fixed;
       inset: 0;
       z-index: 200;
       display: none;
-      background: rgba(0,0,0,0.9);
+      background: rgba(0, 0, 0, 0.9);
       backdrop-filter: blur(12px);
       opacity: 0;
       transition: opacity 0.35s ease;
       padding: 1rem;
     }
-    .bubble-image-reveal.active { display: block; opacity: 1; }
+
+    .bubble-image-reveal.active {
+      display: block;
+      opacity: 1;
+    }
 
     .reveal-content {
       width: 100%;
@@ -216,13 +266,16 @@
       border: 1px solid var(--panel-border);
       overflow: hidden;
       position: relative;
-      box-shadow: 0 30px 60px rgba(0,0,0,0.6);
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6);
       transform: scale(0.96) translateY(20px);
       transition: transform 0.4s cubic-bezier(0.19, 1, 0.22, 1);
       display: flex;
       flex-direction: column;
     }
-    .bubble-image-reveal.active .reveal-content { transform: scale(1) translateY(0); }
+
+    .bubble-image-reveal.active .reveal-content {
+      transform: scale(1) translateY(0);
+    }
 
     .reveal-close {
       position: absolute;
@@ -231,9 +284,9 @@
       width: 2.5rem;
       height: 2.5rem;
       border-radius: 999px;
-      background: rgba(0,0,0,0.5);
+      background: rgba(0, 0, 0, 0.5);
       color: white;
-      border: 1px solid rgba(255,255,255,0.2);
+      border: 1px solid rgba(255, 255, 255, 0.2);
       font-size: 1.5rem;
       display: flex;
       align-items: center;
@@ -242,7 +295,11 @@
       cursor: pointer;
       transition: all 0.2s ease;
     }
-    .reveal-close:hover { background: var(--accent); transform: scale(1.1); }
+
+    .reveal-close:hover {
+      background: var(--accent);
+      transform: scale(1.1);
+    }
 
     .status-pill {
       display: inline-flex;
@@ -250,7 +307,7 @@
       gap: 0.5rem;
       padding: 0.35rem 0.7rem;
       border-radius: 999px;
-      background: rgba(255,255,255,0.08);
+      background: rgba(255, 255, 255, 0.08);
       color: var(--text-muted);
       font-size: 11px;
       font-weight: 700;
@@ -283,14 +340,22 @@
       opacity: 0;
       transition: opacity 0.3s ease;
     }
-    .progress-matrix.active { opacity: 1; }
+
+    .progress-matrix.active {
+      opacity: 1;
+    }
+
     .progress-step {
       height: 4px;
       background: var(--panel-border);
       border-radius: 999px;
       position: relative;
     }
-    .progress-step.done { background: var(--accent); }
+
+    .progress-step.done {
+      background: var(--accent);
+    }
+
     .progress-step.active::after {
       content: '';
       position: absolute;
@@ -299,10 +364,19 @@
       border-radius: 999px;
       animation: pulse-width 1.5s infinite;
     }
+
     @keyframes pulse-width {
-      0% { width: 0%; opacity: 0.5; }
-      100% { width: 100%; opacity: 0; }
+      0% {
+        width: 0%;
+        opacity: 0.5;
+      }
+
+      100% {
+        width: 100%;
+        opacity: 0;
+      }
     }
+
     .progress-label {
       font-size: 8px;
       text-transform: uppercase;
@@ -311,7 +385,10 @@
       margin-top: 4px;
       color: var(--text-muted);
     }
-    .progress-step.done + .progress-label { color: var(--accent); }
+
+    .progress-step.done+.progress-label {
+      color: var(--accent);
+    }
 
     /* Removed old meta-inspector css since it is explicitly rewritten using tailwind */
   </style>
@@ -321,11 +398,15 @@
   <canvas id="aetherCanvas" class="fixed inset-0 pointer-events-none z-[-1]"></canvas>
 
   <header class="fixed top-5 left-0 right-0 z-[110] px-4 sm:px-8">
-    <div class="max-w-7xl mx-auto glass-panel p-4 border-t-4 border-t-[var(--accent)] flex items-center justify-between gap-4 shadow-2xl">
+    <div
+      class="max-w-7xl mx-auto glass-panel p-4 border-t-4 border-t-[var(--accent)] flex items-center justify-between gap-4 shadow-2xl">
       <div class="flex items-center gap-4 min-w-0">
-        <div class="w-10 h-10 rounded-xl bg-[var(--accent)] text-white flex items-center justify-center shadow-lg transform -rotate-3 shrink-0">
-          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+        <div
+          class="w-10 h-10 rounded-xl bg-[var(--accent)] text-white flex items-center justify-center shadow-lg transform -rotate-3 shrink-0">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2.5">
+            <path
+              d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
           </svg>
         </div>
         <div class="min-w-0">
@@ -335,9 +416,12 @@
       </div>
 
       <nav class="flex items-center gap-2 bg-black/5 p-1 rounded-2xl shrink-0">
-        <button data-view="generate" class="nav-pill active px-4 sm:px-5 py-2 rounded-xl font-bold uppercase text-[10px] tracking-widest">Forge</button>
-        <button data-view="tasks" class="nav-pill px-4 sm:px-5 py-2 rounded-xl font-bold uppercase text-[10px] tracking-widest">Queue</button>
-        <button data-view="history" class="nav-pill px-4 sm:px-5 py-2 rounded-xl font-bold uppercase text-[10px] tracking-widest">Vault</button>
+        <button data-view="generate"
+          class="nav-pill active px-4 sm:px-5 py-2 rounded-xl font-bold uppercase text-[10px] tracking-widest">Forge</button>
+        <button data-view="tasks"
+          class="nav-pill px-4 sm:px-5 py-2 rounded-xl font-bold uppercase text-[10px] tracking-widest">Queue</button>
+        <button data-view="history"
+          class="nav-pill px-4 sm:px-5 py-2 rounded-xl font-bold uppercase text-[10px] tracking-widest">Vault</button>
       </nav>
 
       <div class="status-pill hidden sm:inline-flex" id="backendStatus">Checking backend...</div>
@@ -347,14 +431,16 @@
   <div id="bubbleReveal" class="bubble-image-reveal" onclick="closeBubbleReveal(event)">
     <div class="reveal-content flex flex-col lg:flex-row" onclick="event.stopPropagation()">
       <button onclick="closeBubbleReveal()" class="reveal-close">&times;</button>
-      
+
       <!-- Image Section -->
       <div class="flex-1 bg-black/60 flex items-center justify-center p-4 sm:p-8 relative min-h-[50vh] lg:min-h-0">
-        <img id="bubbleRevealImg" src="" alt="Manifestation" class="max-w-full max-h-full object-contain rounded-xl shadow-2xl transition-transform duration-500">
+        <img id="bubbleRevealImg" src="" alt="Manifestation"
+          class="max-w-full max-h-full object-contain rounded-xl shadow-2xl transition-transform duration-500">
       </div>
-      
+
       <!-- Sidebar Section -->
-      <div class="w-full lg:w-[380px] bg-[var(--panel-bg)] backdrop-blur-3xl border-l border-[var(--panel-border)] p-6 lg:p-8 flex flex-col gap-8 overflow-y-auto">
+      <div
+        class="w-full lg:w-[380px] bg-[var(--panel-bg)] backdrop-blur-3xl border-l border-[var(--panel-border)] p-6 lg:p-8 flex flex-col gap-8 overflow-y-auto">
         <!-- Thumbnails -->
         <div id="thumbsSection" class="hidden">
           <h3 class="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-3">Variations</h3>
@@ -363,20 +449,34 @@
 
         <!-- Metadata -->
         <div id="metaInspector" class="hidden flex-col gap-4 text-[13px] border-y border-[var(--panel-border)] py-6">
-          <div class="flex justify-between items-center"><span class="opacity-60 text-[10px] font-bold uppercase tracking-widest">Realm</span><span class="font-bold text-[var(--accent)] uppercase" id="metaRealm">-</span></div>
-          <div class="flex justify-between items-center"><span class="opacity-60 text-[10px] font-bold uppercase tracking-widest">Model</span><span class="font-bold" id="metaModel">-</span></div>
-          <div class="flex justify-between items-center"><span class="opacity-60 text-[10px] font-bold uppercase tracking-widest">Seed</span><span class="font-bold font-mono text-[var(--text-muted)]" id="metaSeed">-</span></div>
+          <div class="flex justify-between items-center"><span
+              class="opacity-60 text-[10px] font-bold uppercase tracking-widest">Realm</span><span
+              class="font-bold text-[var(--accent)] uppercase" id="metaRealm">-</span></div>
+          <div class="flex justify-between items-center"><span
+              class="opacity-60 text-[10px] font-bold uppercase tracking-widest">Model</span><span class="font-bold"
+              id="metaModel">-</span></div>
+          <div class="flex justify-between items-center"><span
+              class="opacity-60 text-[10px] font-bold uppercase tracking-widest">Seed</span><span
+              class="font-bold font-mono text-[var(--text-muted)]" id="metaSeed">-</span></div>
           <div class="flex flex-col gap-2 mt-2">
             <span class="opacity-60 text-[10px] font-bold uppercase tracking-widest">Prompt</span>
-            <div class="p-4 bg-black/5 rounded-xl text-sm leading-relaxed max-h-40 overflow-y-auto shadow-inner border border-[var(--panel-border)]" id="metaPrompt">-</div>
+            <div
+              class="p-4 bg-black/5 rounded-xl text-sm leading-relaxed max-h-40 overflow-y-auto shadow-inner border border-[var(--panel-border)]"
+              id="metaPrompt">-</div>
           </div>
         </div>
-        
+
         <!-- Actions -->
         <div class="flex flex-col gap-3 mt-auto shrink-0 pt-4">
-          <a id="bubbleRevealDownload" href="#" download class="btn-magic block w-full text-center py-4 rounded-xl text-[11px] font-bold uppercase tracking-widest shadow-lg">Save Image</a>
-          <button id="resumeFromModal" onclick="resumeSelectedJob()" class="w-full py-4 rounded-xl border-2 border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white transition-colors text-[11px] font-bold uppercase tracking-widest content-center" style="display:none;">Resume Job</button>
-          <button id="cloneBtn" onclick="cloneActiveManifestation()" class="w-full py-4 rounded-xl border-2 border-[var(--panel-border)] hover:border-[var(--accent)] hover:bg-black/5 text-[11px] font-bold uppercase tracking-widest content-center transition-colors">Invoke Again</button>
+          <a id="bubbleRevealDownload" href="#" download
+            class="btn-magic block w-full text-center py-4 rounded-xl text-[11px] font-bold uppercase tracking-widest shadow-lg">Save
+            Image</a>
+          <button id="resumeFromModal" onclick="resumeSelectedJob()"
+            class="w-full py-4 rounded-xl border-2 border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white transition-colors text-[11px] font-bold uppercase tracking-widest content-center"
+            style="display:none;">Resume Job</button>
+          <button id="cloneBtn" onclick="cloneActiveManifestation()"
+            class="w-full py-4 rounded-xl border-2 border-[var(--panel-border)] hover:border-[var(--accent)] hover:bg-black/5 text-[11px] font-bold uppercase tracking-widest content-center transition-colors">Invoke
+            Again</button>
         </div>
       </div>
     </div>
@@ -390,21 +490,36 @@
             <div>
               <h2 class="text-3xl sm:text-4xl font-bold cinematic-text">Manifestations</h2>
               <div class="progress-matrix" id="progressMatrix">
-                <div><div class="progress-step" id="step-0"></div><div class="progress-label">Link</div></div>
-                <div><div class="progress-step" id="step-1"></div><div class="progress-label">Auth</div></div>
-                <div><div class="progress-step" id="step-2"></div><div class="progress-label">Weave</div></div>
-                <div><div class="progress-step" id="step-3"></div><div class="progress-label">Vault</div></div>
+                <div>
+                  <div class="progress-step" id="step-0"></div>
+                  <div class="progress-label">Link</div>
+                </div>
+                <div>
+                  <div class="progress-step" id="step-1"></div>
+                  <div class="progress-label">Auth</div>
+                </div>
+                <div>
+                  <div class="progress-step" id="step-2"></div>
+                  <div class="progress-label">Weave</div>
+                </div>
+                <div>
+                  <div class="progress-step" id="step-3"></div>
+                  <div class="progress-label">Vault</div>
+                </div>
               </div>
             </div>
             <div class="flex items-center gap-2">
               <span id="activeRequestBadge" class="status-pill">No active request</span>
-              <button id="retryBtn" onclick="resumeLastRequest()" class="btn-magic px-4 py-2 text-[10px] font-bold uppercase tracking-widest" disabled>Retry Last</button>
+              <button id="retryBtn" onclick="resumeLastRequest()"
+                class="btn-magic px-4 py-2 text-[10px] font-bold uppercase tracking-widest" disabled>Retry Last</button>
             </div>
           </div>
         </div>
 
         <div id="gallery" class="bubble-container">
-          <div id="galleryEmpty" class="col-span-full py-20 text-center opacity-15 text-3xl font-light cinematic-text tracking-[0.3em] uppercase">Void Awaiting Light</div>
+          <div id="galleryEmpty"
+            class="col-span-full py-20 text-center opacity-15 text-3xl font-light cinematic-text tracking-[0.3em] uppercase">
+            Void Awaiting Light</div>
         </div>
 
         <!-- The Matrix Grid -->
@@ -417,9 +532,11 @@
         <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-8">
           <div>
             <h2 class="text-3xl sm:text-4xl font-bold cinematic-text">Active Journeys</h2>
-            <p class="text-sm text-[var(--text-muted)] mt-2">Current requests and resume tokens live here while a job is running.</p>
+            <p class="text-sm text-[var(--text-muted)] mt-2">Current requests and resume tokens live here while a job is
+              running.</p>
           </div>
-          <button onclick="refreshCurrentJob()" class="text-[10px] font-bold uppercase tracking-widest text-[var(--accent)]">Refresh</button>
+          <button onclick="refreshCurrentJob()"
+            class="text-[10px] font-bold uppercase tracking-widest text-[var(--accent)]">Refresh</button>
         </div>
         <div id="taskList" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
       </div>
@@ -433,27 +550,32 @@
             <p class="text-sm text-[var(--text-muted)] mt-2">Loads from Neon and R2, 20 records at a time.</p>
           </div>
           <div class="flex items-center gap-3">
-            <button onclick="reloadHistory()" class="text-[10px] font-bold uppercase tracking-widest text-[var(--accent)]">Reload</button>
-            <button onclick="clearVault()" class="text-[10px] font-bold uppercase text-red-500 hover:opacity-70">Clear Local Cache</button>
+            <button onclick="reloadHistory()"
+              class="text-[10px] font-bold uppercase tracking-widest text-[var(--accent)]">Reload</button>
+            <button onclick="clearVault()" class="text-[10px] font-bold uppercase text-red-500 hover:opacity-70">Clear
+              Local Cache</button>
           </div>
         </div>
         <div id="historyList" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"></div>
         <div class="mt-8 flex justify-center">
-          <button id="loadMoreBtn" onclick="loadMoreHistory()" class="btn-magic px-5 py-3 text-[10px] font-bold uppercase tracking-widest">Load More</button>
+          <button id="loadMoreBtn" onclick="loadMoreHistory()"
+            class="btn-magic px-5 py-3 text-[10px] font-bold uppercase tracking-widest">Load More</button>
         </div>
       </div>
     </section>
   </main>
 
   <div id="desktopConsole" class="bottom-console glass-panel p-4 border-2 border-[var(--accent)]">
-    <button onclick="toggleConsole()" class="absolute -top-10 left-1/2 -translate-x-1/2 bg-[var(--accent)] text-white px-6 py-2 rounded-t-xl font-bold text-[10px] uppercase tracking-widest shadow-lg">
+    <button onclick="toggleConsole()"
+      class="absolute -top-10 left-1/2 -translate-x-1/2 bg-[var(--accent)] text-white px-6 py-2 rounded-t-xl font-bold text-[10px] uppercase tracking-widest shadow-lg">
       <span id="consoleToggleText">Minimize</span>
     </button>
 
     <div class="grid grid-cols-12 gap-4 items-stretch">
       <div class="col-span-12 lg:col-span-4 flex flex-col gap-3">
         <div class="flex items-center gap-1 bg-black/5 p-1 rounded-xl h-9">
-          <button data-mode="standard" class="nav-pill active w-1/2 h-full rounded-lg text-[9px] font-bold uppercase">Day</button>
+          <button data-mode="standard"
+            class="nav-pill active w-1/2 h-full rounded-lg text-[9px] font-bold uppercase">Day</button>
           <button data-mode="nsfw" class="nav-pill w-1/2 h-full rounded-lg text-[9px] font-bold uppercase">Star</button>
         </div>
         <div class="space-y-1">
@@ -490,42 +612,58 @@
           <div class="flex justify-between px-1">
             <label class="text-[9px] font-bold uppercase opacity-50">The Vision</label>
             <div class="flex gap-4">
-              <button onclick="clearPrompt()" class="text-[9px] font-bold text-red-400 uppercase hover:text-red-500 transition-colors">Clear</button>
-              <button onclick="pastePrompt()" class="text-[9px] font-bold text-[var(--text-main)] uppercase hover:opacity-70 transition-colors">Paste</button>
-              <button onclick="rollOracle()" class="text-[9px] font-bold text-[var(--accent)] uppercase flex items-center gap-1 hover:brightness-125 transition-all">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /></svg> Oracle
+              <button onclick="clearPrompt()"
+                class="text-[9px] font-bold text-red-400 uppercase hover:text-red-500 transition-colors">Clear</button>
+              <button onclick="pastePrompt()"
+                class="text-[9px] font-bold text-[var(--text-main)] uppercase hover:opacity-70 transition-colors">Paste</button>
+              <button onclick="rollOracle()"
+                class="text-[9px] font-bold text-[var(--accent)] uppercase flex items-center gap-1 hover:brightness-125 transition-all">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                  <path
+                    d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+                </svg> Oracle
               </button>
             </div>
           </div>
-          <textarea id="prompt" placeholder="What do you seek to manifest?" class="w-full flex-1 p-3 resize-none text-sm leading-relaxed"></textarea>
+          <textarea id="prompt" placeholder="What do you seek to manifest?"
+            class="w-full flex-1 p-3 resize-none text-sm leading-relaxed"></textarea>
         </div>
         <div class="grid grid-cols-6 gap-3">
           <div class="col-span-3">
-            <textarea id="negativePrompt" placeholder="Wards (Banish artifacts...)" class="w-full h-11 px-3 py-2 text-xs resize-none"></textarea>
+            <textarea id="negativePrompt" placeholder="Wards (Banish artifacts...)"
+              class="w-full h-11 px-3 py-2 text-xs resize-none"></textarea>
           </div>
-          <button id="matrixBtn" onclick="runMatrixCast()" class="col-span-1 rounded-xl border-2 border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white transition-colors flex items-center justify-center font-bold uppercase text-[9px] tracking-widest shadow-lg">
+          <button id="matrixBtn" onclick="runMatrixCast()"
+            class="col-span-1 rounded-xl border-2 border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white transition-colors flex items-center justify-center font-bold uppercase text-[9px] tracking-widest shadow-lg">
             <span id="btnMatrixText">Matrix</span>
-            <div id="btnMatrixLoader" class="hidden ml-2"><div class="loader" style="width:12px;height:12px;border-width:2px;animation-duration:2s"></div></div>
+            <div id="btnMatrixLoader" class="hidden ml-2">
+              <div class="loader" style="width:12px;height:12px;border-width:2px;animation-duration:2s"></div>
+            </div>
           </button>
-          <button id="generateBtn" class="col-span-2 btn-magic flex items-center justify-center gap-2 font-bold uppercase text-[10px] tracking-widest shadow-lg">
+          <button id="generateBtn"
+            class="col-span-2 btn-magic flex items-center justify-center gap-2 font-bold uppercase text-[10px] tracking-widest shadow-lg">
             <span id="btnText">Manifest</span>
-            <div id="btnLoader" class="hidden"><div class="loader"></div></div>
+            <div id="btnLoader" class="hidden">
+              <div class="loader"></div>
+            </div>
           </button>
         </div>
       </div>
     </div>
   </div>
 
-  <div id="footerStatus" class="fixed bottom-8 left-1/2 -translate-x-1/2 glass-panel py-3 px-8 text-xs font-bold transition-all translate-y-32 opacity-0 pointer-events-none z-[150]"></div>
+  <div id="footerStatus"
+    class="fixed bottom-8 left-1/2 -translate-x-1/2 glass-panel py-3 px-8 text-xs font-bold transition-all translate-y-32 opacity-0 pointer-events-none z-[150]">
+  </div>
 
   <script>
     window.__SERVER_URL__ = "__SERVER_URL__";
     window.__SERVER_URL_NSFW__ = "__SERVER_URL_NSFW__";
 
     const DAY_MODELS = [
-      "Gen", "Ani", "Synth", "Fur", "Noob", "Aura", "Pixel", "Hyper CGI",
-      "Volt", "Muse", "Gothic", "Rend", "Retro", "Pony", "Neo", "Nai",
-      "Glitch", "Flux1 D", "Supra", "Evo", "Toon", "Wassie", "HyperX", "FurXL Classic"
+      "Ani", "Aura", "Evo", "Flux1 D", "Fur", "FurXL Classic", "Gen", "Glitch", "Gothic",
+      "Hyper CGI", "HyperX", "Muse", "Nai", "Neo", "Noob", "Pixel", "Pony", "Rend",
+      "Retro", "Supra", "Synth", "Toon", "Volt", "Wassie"
     ];
     const STAR_MODELS = [
       "Gen", "Ani", "Synth", "Fur", "Noob", "Aura", "Pixel", "Hyper CGI",
@@ -633,7 +771,7 @@
       localStorage.setItem("a_model", dom.model.value);
       localStorage.setItem("a_quality", dom.quality.value);
       localStorage.setItem("a_aspect", dom.aspect.value);
-      
+
       refreshCurrentJob();
     }
 
@@ -724,12 +862,12 @@
       if (!payload.prompt) return setFooterMsg("Inspiration required.", "error");
 
       const models = state.activeMode === "nsfw" ? STAR_MODELS : DAY_MODELS;
-      
+
       dom.gallery.style.display = "none";
       const mGallery = document.getElementById("matrixGallery");
       mGallery.classList.remove("hidden");
       mGallery.classList.add("grid");
-      
+
       // Build placeholders
       mGallery.innerHTML = models.map(m => `
         <div id="matrix-cell-${m.replace(/\s+/g, '-')}" class="art-frame aspect-square flex flex-col items-center justify-center bg-black/40 border border-white/10 relative group">
@@ -751,7 +889,7 @@
         for (const model of models) {
           const mPayload = { ...payload, model };
           const cell = document.getElementById(`matrix-cell-${model.replace(/\s+/g, '-')}`);
-          if(cell) cell.querySelector(".loader").classList.remove("hidden");
+          if (cell) cell.querySelector(".loader").classList.remove("hidden");
 
           const res = await apiFetch("/generate", {
             method: "POST",
@@ -759,22 +897,22 @@
           });
           activeIds.push({ id: res.request_id, model: model, payload: mPayload });
         }
-        
+
         setFooterMsg("Matrix Jobs Queued. Processing sequentially...", "info");
         await pollMatrixUntilDone(activeIds);
       } catch (err) {
         setFooterMsg("Matrix Error: " + err.message, "error");
       } finally {
         dom.generateBtn.disabled = false;
-        dom.matrixBtn.disabled = false;
-        dom.btnMatrixText.textContent = "Matrix";
-        dom.btnMatrixLoader.classList.add("hidden");
+        mBtn.disabled = false;
+        document.getElementById("btnMatrixText").textContent = "Matrix";
+        document.getElementById("btnMatrixLoader").classList.add("hidden");
       }
     }
 
     async function pollMatrixUntilDone(activeJobs) {
       let active = [...activeJobs];
-      
+
       while (active.length > 0) {
         try {
           const reqIds = active.map(j => j.id);
@@ -782,12 +920,12 @@
             method: "POST",
             body: JSON.stringify({ request_ids: reqIds })
           });
-          
+
           let stillActive = [];
           for (const job of active) {
             const data = res[job.id];
             if (!data) { stillActive.push(job); continue; }
-            
+
             if (data.status === "done") {
               const url = data.images && data.images.length ? data.images[0].r2_url : null;
               const cell = document.getElementById(`matrix-cell-${job.model.replace(/\s+/g, '-')}`);
@@ -814,7 +952,7 @@
             }
           }
           active = stillActive;
-        } catch(err) {
+        } catch (err) {
           console.warn("Matrix poll error", err);
         }
         if (active.length > 0) await sleep(3000);
@@ -954,7 +1092,7 @@
       renderGallery(urls, requestId, payload, meta);
       updateTasksView({ ...payload, ...meta, request_id: requestId, status: "done" });
       state.historyLoaded = false;
-      renderHistory(); 
+      renderHistory();
     }
 
     function renderGallery(urls, requestId, payload, meta = {}) {
@@ -1043,7 +1181,7 @@
       img.src = urls[0];
       document.getElementById("bubbleRevealDownload").href = urls[0];
       populateInspector(entry);
-      
+
       const thumbsSection = document.getElementById("thumbsSection");
       if (urls.length > 1) {
         thumbsSection.classList.remove("hidden");
@@ -1051,10 +1189,10 @@
       } else {
         thumbsSection.classList.add("hidden");
       }
-      
+
       const resumeBtn = document.getElementById("resumeFromModal");
       resumeBtn.style.display = entry.request_id ? "block" : "none";
-      resumeBtn.onclick = () => { if(entry.request_id) { resumeRequest(entry.request_id); closeBubbleReveal(); } };
+      resumeBtn.onclick = () => { if (entry.request_id) { resumeRequest(entry.request_id); closeBubbleReveal(); } };
 
       reveal.style.display = "block";
       setTimeout(() => reveal.classList.add("active"), 10);
@@ -1108,7 +1246,7 @@
     async function renderHistory(reset = false) {
       if (!dom.historyList || document.getElementById("view-history").classList.contains("hidden")) return;
       if (dom.historyList.innerHTML === "" && localStorage.getItem("a_vault_cache")) {
-        try { appendHistoryItems(JSON.parse(localStorage.getItem("a_vault_cache")), true); } catch(e) {}
+        try { appendHistoryItems(JSON.parse(localStorage.getItem("a_vault_cache")), true); } catch (e) { }
       }
       if (state.historyLoaded && !reset) return;
       state.historyPage = 1;
@@ -1133,7 +1271,7 @@
       "(intricate details:1.1), portrait of a cybernetic angel with wings made of fiber optic cables, glowing datastreams, trending on artstation",
       "A lush, overgrown sci-fi greenhouse on a spaceship overlooking a black hole, volumetric fog, cinematic colors"
     ];
-    
+
     function rollOracle() {
       const idx = Math.floor(Math.random() * ORACLE_PROMPTS.length);
       dom.prompt.value = ORACLE_PROMPTS[idx];
@@ -1159,7 +1297,7 @@
       window.addEventListener('resize', resize);
       resize();
 
-      for(let i = 0; i < 40; i++) {
+      for (let i = 0; i < 40; i++) {
         particles.push({
           x: Math.random() * width,
           y: Math.random() * height,
@@ -1174,16 +1312,16 @@
         ctx.clearRect(0, 0, width, height);
         // Color shifts based on mode (Day = Emerald/White, Star = Violet)
         const isNsfw = state.activeMode === "nsfw";
-        
+
         particles.forEach(p => {
           p.x += p.vx;
           p.y += p.vy;
           p.shift += 0.01;
-          
-          if(p.x < 0) p.x = width;
-          if(p.x > width) p.x = 0;
-          if(p.y < 0) p.y = height;
-          if(p.y > height) p.y = 0;
+
+          if (p.x < 0) p.x = width;
+          if (p.x > width) p.x = 0;
+          if (p.y < 0) p.y = height;
+          if (p.y > height) p.y = 0;
 
           const alpha = (Math.sin(p.shift) * 0.3) + 0.3;
           ctx.beginPath();
@@ -1201,7 +1339,7 @@
     function pastePrompt() { navigator.clipboard.readText().then(text => dom.prompt.value = text); }
     function toggleConsole() { const el = document.getElementById("desktopConsole"); const isMin = el.classList.toggle("minimized"); document.getElementById("consoleToggleText").textContent = isMin ? "Expand" : "Minimize"; }
     async function copyRequestId(id) { if (id) { await navigator.clipboard.writeText(id); setFooterMsg("Copied ID.", "info"); } }
-    function escapeHtml(v) { return String(v).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;"); }
+    function escapeHtml(v) { return String(v).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;"); }
     async function checkBackend() { try { const res = await apiFetch("/health"); dom.backendStatus.textContent = res.status === "ok" ? "Backend Online" : "Backend Latency"; } catch { dom.backendStatus.textContent = "Backend Offline"; } }
 
     document.querySelectorAll("[data-view]").forEach(btn => btn.addEventListener("click", (e) => {
@@ -1228,4 +1366,5 @@
     }
   </script>
 </body>
+
 </html>

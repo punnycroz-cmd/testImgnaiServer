@@ -46,7 +46,7 @@ MODEL_CONFIGS = {
     "Wassie": {"profile": "wassie", "n_steps": 40, "guidance_scale": 7, "strength": 0.76, "negative_prompt": "wrong,imperfect hands, painting, sketch, concept art, cross-eyed,sketches, (worst quality:2), (low quality:2), (normal quality:2), lowres, normal quality, skin spots, acnes, skin blemishes, bad anatomy, DeepNegative, facing away, tilted head, lowres, bad "},
 }
 
-MODEL_ORDER = ["Gen", "Ani", "Synth", "Fur", "Noob", "Aura", "Pixel", "Hyper CGI", "Volt", "Muse", "Gothic", "Rend", "Retro", "Pony", "Neo", "Nai", "Glitch", "Flux1 D", "Supra", "Evo", "Toon", "Wassie", "HyperX", "FurXL Classic"]
+MODEL_ORDER = ["Ani", "Aura", "Evo", "Flux1 D", "Fur", "FurXL Classic", "Gen", "Glitch", "Gothic", "Hyper CGI", "HyperX", "Muse", "Nai", "Neo", "Noob", "Pixel", "Pony", "Rend", "Retro", "Supra", "Synth", "Toon", "Volt", "Wassie"]
 
 STAR_MODEL_CONFIGS = {
     "Gen": {"profile": "gen", "n_steps": 30, "guidance_scale": 3.5, "strength": 0.76, "negative_prompt": "low quality, bad quality, mutated, low detail, blurry, out of focus, jpeg artifacts, bad anatomy, mutated hands, deformed hands, too many fingers, extra legs, extra arms, deformed feet, bad feet"},
