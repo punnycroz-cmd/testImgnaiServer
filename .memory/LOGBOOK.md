@@ -4,6 +4,11 @@ This room tracks the chronological evolution of the Aether / ImgnAI project.
 
 ## 📈 Timeline
 
+### [2026-04-21 23:10] 📱 Responsive Split-Pane Interface
+- **Lightbox Overhaul**: Redesigned the `.bubble-image-reveal` modal into a professional desktop/mobile responsive split-pane component.
+- **Dynamic Sidebar**: Moved metadata, clone actions, download buttons, and thumbnails into an elegant glass-paneled sidebar that scrolls independently of the image.
+- **Enhanced Transitions**: Refined the scaling overlay transitions and active shadow states to build a more application-like UX for exploring images.
+
 ### [2026-04-21 22:50] 🎨 Elite Frontend Overhaul
 - **Progress Matrix**: Implemented a 4-step real-time diagnostic bar (*Link -> Auth -> Weave -> Vault*) to visualize backend progress.
 - **Prophecy Panel (Inspector)**: Added a deep metadata viewer for both current and historical manifestations, revealing prompts, models, and seeds.
