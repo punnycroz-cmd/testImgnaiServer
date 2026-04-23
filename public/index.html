@@ -1821,9 +1821,10 @@
         const res = await apiFetch(`/history?page=${state.historyPage}&limit=${state.historyLimit}${realmQ}`);
         const items = res.items || [];
         
+        const beforeCount = dom.historyList.children.length;
+        
         if (state.historyPage === 1) {
           state.historyLoaded = true;
-          // Clean up only once we have the fresh data
           dom.historyList.innerHTML = "";
           dom.historyList.style.opacity = "1";
           dom.historyList.style.pointerEvents = "auto";
@@ -1833,14 +1834,21 @@
           appendHistoryItems(items, false);
         }
         
+        const afterCount = dom.historyList.children.length;
+        const appended = afterCount - beforeCount;
+        
         state.historyHasMore = !!res.has_more;
         state.historyPage += 1;
         
-        // Restore Load More
+        // Show diagnostic info on the button
         if (dom.loadMoreBtn) {
            dom.loadMoreBtn.classList.toggle("hidden", !state.historyHasMore);
-           dom.loadMoreBtn.textContent = "Load More";
+           dom.loadMoreBtn.textContent = `Load More (${afterCount} shown)`;
         }
+        
+        // Show diagnostic footer
+        setFooterMsg(`Page ${state.historyPage - 1}: got ${items.length} from server, appended ${appended}, total visible: ${afterCount}`, "info");
+        
       } catch (err) {
         console.error("loadHistoryPage ERROR:", err);
         dom.historyList.style.opacity = "1";
@@ -1848,6 +1856,7 @@
       } finally {
         state.loadingHistory = false;
       }
+
     }
 
 

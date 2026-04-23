@@ -172,6 +172,47 @@ async def resume(request_id: str):
     }
 
 
+@app.get("/debug/vault-stats")
+async def vault_stats(realm: Optional[str] = None):
+    """Debug endpoint: shows total batch count and first few IDs per page."""
+    pool = await DB.get_pool()
+    async with pool.connection() as conn:
+        async with conn.cursor() as cur:
+            # Total count
+            if realm and realm.lower() == 'day':
+                await cur.execute("SELECT COUNT(*) as cnt FROM generations WHERE is_hidden = false AND (LOWER(realm) = 'day' OR realm IS NULL)")
+            elif realm:
+                await cur.execute("SELECT COUNT(*) as cnt FROM generations WHERE is_hidden = false AND LOWER(realm) = LOWER(%s)", (realm,))
+            else:
+                await cur.execute("SELECT COUNT(*) as cnt FROM generations WHERE is_hidden = false")
+            total_row = await cur.fetchone()
+            total = total_row["cnt"] if total_row else 0
+
+            # First 60 IDs ordered by created_at DESC
+            if realm and realm.lower() == 'day':
+                await cur.execute("SELECT request_id, realm, prompt, created_at FROM generations WHERE is_hidden = false AND (LOWER(realm) = 'day' OR realm IS NULL) ORDER BY created_at DESC LIMIT 60")
+            elif realm:
+                await cur.execute("SELECT request_id, realm, prompt, created_at FROM generations WHERE is_hidden = false AND LOWER(realm) = LOWER(%s) ORDER BY created_at DESC LIMIT 60", (realm,))
+            else:
+                await cur.execute("SELECT request_id, realm, prompt, created_at FROM generations WHERE is_hidden = false ORDER BY created_at DESC LIMIT 60")
+            rows = await cur.fetchall()
+
+            # Group into pages of 20
+            pages = {}
+            for i, row in enumerate(rows):
+                page_num = (i // 20) + 1
+                if page_num not in pages:
+                    pages[page_num] = []
+                pages[page_num].append({
+                    "request_id": row["request_id"],
+                    "realm": row["realm"],
+                    "prompt": (row["prompt"] or "")[:50],
+                    "created_at": row["created_at"].isoformat() if row["created_at"] else None,
+                })
+
+    return {"total_batches": total, "realm_filter": realm, "pages_preview": pages}
+
+
 @app.get("/history")
 async def history(page: int = 1, limit: int = 20, realm: Optional[str] = None):
     offset = max(0, (page - 1) * limit)
