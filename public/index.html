@@ -532,36 +532,7 @@
   <main id="mainContent">
     <section id="view-generate" class="view">
       <div class="max-w-7xl mx-auto px-4 sm:px-8">
-        <div class="hidden sm:block glass-panel p-4 sm:p-6 mb-6">
-          <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div>
-              <h2 class="text-3xl sm:text-4xl font-bold cinematic-text">Manifestations</h2>
-              <div class="progress-matrix" id="progressMatrix">
-                <div>
-                  <div class="progress-step" id="step-0"></div>
-                  <div class="progress-label">Link</div>
-                </div>
-                <div>
-                  <div class="progress-step" id="step-1"></div>
-                  <div class="progress-label">Auth</div>
-                </div>
-                <div>
-                  <div class="progress-step" id="step-2"></div>
-                  <div class="progress-label">Weave</div>
-                </div>
-                <div>
-                  <div class="progress-step" id="step-3"></div>
-                  <div class="progress-label">Vault</div>
-                </div>
-              </div>
-            </div>
-            <div class="flex items-center gap-2">
-              <span id="activeRequestBadge" class="status-pill">No active request</span>
-              <button id="retryBtn" onclick="resumeLastRequest()"
-                class="btn-magic px-4 py-2 text-[10px] font-bold uppercase tracking-widest" disabled>Retry Last</button>
-            </div>
-          </div>
-        </div>
+
 
         <div id="gallery" class="bubble-container">
           <div id="galleryEmpty"
@@ -1744,7 +1715,7 @@
 
     async function scrollHistory() {
        if (document.getElementById("view-history").classList.contains("hidden")) return;
-       const threshold = 600;
+       const threshold = 1200;
        if (mainEl.scrollTop + mainEl.clientHeight >= mainEl.scrollHeight - threshold) {
           loadHistoryPage();
        }
