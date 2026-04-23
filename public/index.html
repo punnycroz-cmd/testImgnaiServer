@@ -1804,34 +1804,51 @@
        state.loadingHistory = true;
        if (dom.loadMoreBtn) dom.loadMoreBtn.textContent = "Summoning...";
 
-       let renderedInThisPass = 0;
-       
-       try {
-          // Keep fetching pages until we accumulate 20 valid items, OR we run out of DB items
-          while (renderedInThisPass < state.historyLimit && state.historyHasMore) {
-             const realmQ = state.vaultRealm ? `&realm=${state.vaultRealm}` : "";
-             const res = await apiFetch(`/history?page=${state.historyPage}&limit=${state.historyLimit}${realmQ}`);
-             const items = res.items || [];
-             
-             state.historyHasMore = !!res.has_more;
-             state.historyPage += 1;
+        let renderedInThisPass = 0;
+        console.group("Vault Load Operation");
+        
+        try {
+           while (renderedInThisPass < state.historyLimit && state.historyHasMore) {
+              const realmQ = state.vaultRealm ? `&realm=${state.vaultRealm}` : "";
+              const fetchUrl = `/history?page=${state.historyPage}&limit=${state.historyLimit}${realmQ}`;
+              console.log(`[Vault] Fetching Page ${state.historyPage}:`, fetchUrl);
+              
+              const res = await apiFetch(fetchUrl);
+              const items = res.items || [];
+              console.log(`[Vault] Received ${items.length} items from backend`, items);
+              
+              state.historyHasMore = !!res.has_more;
+              state.historyPage += 1;
 
-             for (const entry of items) {
-                // Ignore items that do not belong to the current realm
-                if (state.vaultRealm && entry.realm && entry.realm.toLowerCase() !== state.vaultRealm.toLowerCase()) continue;
-                // Ignore ghosts with absolutely no images
-                if (!entry.images || entry.images.length === 0) continue;
-                // Ignore duplicates
-                if (document.getElementById(`batch-${entry.request_id}`)) continue;
+              let validInBatch = 0;
+              let duplicates = 0;
+              let ghostCount = 0;
+              
+              for (const entry of items) {
+                 if (state.vaultRealm && entry.realm && entry.realm.toLowerCase() !== state.vaultRealm.toLowerCase()) continue;
+                 
+                 if (!entry.images || entry.images.length === 0) {
+                    ghostCount++;
+                    continue;
+                 }
+                 
+                 if (document.getElementById(`batch-${entry.request_id}`)) {
+                    duplicates++;
+                    continue;
+                 }
 
-                dom.historyList.appendChild(createBatchCard(entry));
-                renderedInThisPass++;
-             }
-          }
-       } catch (err) {
+                 dom.historyList.appendChild(createBatchCard(entry));
+                 renderedInThisPass++;
+                 validInBatch++;
+              }
+              
+              console.log(`[Vault] Page ${state.historyPage - 1} Summary -> Valid: ${validInBatch}, Ghosts: ${ghostCount}, Duplicates: ${duplicates}`);
+           }
+        } catch (err) {
           console.error("Vault load error:", err);
           if (dom.loadMoreBtn) dom.loadMoreBtn.textContent = "Error (Retry)";
        } finally {
+          console.groupEnd();
           state.loadingHistory = false;
        }
 
