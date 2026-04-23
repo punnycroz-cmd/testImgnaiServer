@@ -1460,10 +1460,24 @@
        document.getElementById("toggleSelectBtn").textContent = state.selectionMode ? "Cancel" : "Select Mode";
        document.getElementById("historyList").dataset.selectMode = state.selectionMode;
        
-       // Force rerender to show indicators
-       renderHistory(true);
+       // IN-PLACE UPDATE: Toggle indicators without full reload
+       const cards = document.querySelectorAll('#historyList > div');
+       cards.forEach(card => {
+          const indicator = card.querySelector('.selection-indicator');
+          if (indicator) indicator.classList.toggle('hidden', !state.selectionMode);
+          if (indicator) indicator.classList.toggle('flex', state.selectionMode);
+          if (!state.selectionMode) {
+             card.classList.remove("border-[var(--accent)]", "bg-[var(--accent)]/10");
+             if (indicator) {
+                indicator.classList.remove("bg-[var(--accent)]", "border-[var(--accent)]");
+                indicator.innerHTML = "";
+             }
+          }
+       });
+
        updateSelectionUI();
     }
+
 
     function setVaultRealm(realm) {
        const r = realm.toLowerCase();
@@ -1472,15 +1486,13 @@
        document.getElementById("vbtn-day").classList.toggle("opacity-40", r !== "day");
        document.getElementById("vbtn-star").classList.toggle("opacity-40", r !== "star");
        
-       // CRITICAL: Clear cache so mix-mode manifestations don't flicker
+       // Suffix check to match DB case if needed, but here we use direct strings
        localStorage.removeItem("a_vault_cache");
        if (dom.historyList) dom.historyList.innerHTML = "";
        
-       state.historyPage = 1;
-       state.historyHasMore = true;
-       state.historyLoaded = false;
-       renderHistory(true);
+       reloadHistory(true);
     }
+
 
 
 
@@ -1515,7 +1527,6 @@
 
        if (action === 'delete') {
           openConfirm("Banish Selection?", `Return ${count} manifestations to the void forever?`, async () => {
-             // Targeted Optimistic Animation
              ids.forEach(id => {
                 const el = document.getElementById(`batch-${id}`);
                 if (el) {
@@ -1536,9 +1547,9 @@
              
              setFooterMsg(`Banishing ${count} manifestations...`, "info");
              setTimeout(() => { 
+                ids.forEach(id => { const el = document.getElementById(`batch-${id}`); if (el) el.remove(); });
                 toggleSelectionMode(false); 
-                localStorage.removeItem("a_vault_cache"); 
-                reloadHistory(true); 
+                updateVaultCache();
              }, 850);
           });
        } else if (action === 'hide') {
@@ -1561,12 +1572,19 @@
           
           setFooterMsg(`Hiding ${count} manifestations...`, "info");
           setTimeout(() => { 
+             ids.forEach(id => { const el = document.getElementById(`batch-${id}`); if (el) el.remove(); });
              toggleSelectionMode(false); 
-             localStorage.removeItem("a_vault_cache"); 
-             reloadHistory(true); 
+             updateVaultCache();
           }, 650);
        }
     }
+
+    function updateVaultCache() {
+       // Optional: we can try to rebuild a bit of cache based on remaining DOM elements
+       // but for now we just clear it so next refresh is fresh.
+       localStorage.removeItem("a_vault_cache"); 
+    }
+
 
 
     async function banishCurrentItem() {
@@ -1574,13 +1592,13 @@
        const currentUrl = img.src;
        const data = state.__inspected_data;
        if (!data || !data.images) return;
+       const requestId = data.request_id;
        
        const imgObj = data.images.find(i => i.r2_url === currentUrl);
        if (!imgObj) return;
        
        openConfirm("Banish Spirit?", "This single manifestation will fade into the void.", async () => {
-          // targeted animation for main image only
-          img.style.transition = "all 1s cubic-bezier(0.4, 0, 0.2, 1)";
+          img.style.transition = "all 0.8s cubic-bezier(0.4, 0, 0.2, 1)";
           img.style.filter = "grayscale(1) blur(60px)";
           img.style.opacity = "0";
           img.style.transform = "scale(0.85) translateY(20px)";
@@ -1589,33 +1607,42 @@
              .then(() => {
                 setFooterMsg("Spirit banished.", "info");
                 
-                // Optimistically remove from thumbnail list
+                // Surgical Thumbnail removal
                 const thumb = Array.from(document.querySelectorAll('#bubbleRevealThumbs img')).find(t => t.src === currentUrl);
                 if (thumb) {
                    const btn = thumb.parentElement;
                    btn.style.transition = "all 0.4s ease";
                    btn.style.transform = "scale(0)";
-                   btn.style.opacity = "0";
                    setTimeout(() => btn.remove(), 400);
                 }
                 
-                // Update local data so re-cloning doesn't see it
+                // Surgical Vault card update
+                const vaultCard = document.getElementById(`batch-${requestId}`);
+                if (vaultCard) {
+                   const vImgs = vaultCard.querySelectorAll('.art-frame img');
+                   vImgs.forEach(vImg => {
+                      if (vImg.src === currentUrl) {
+                         const frame = vImg.parentElement;
+                         frame.style.opacity = "0";
+                         setTimeout(() => frame.remove(), 300);
+                      }
+                   });
+                }
+
                 data.images = data.images.filter(i => i.id !== imgObj.id);
                 
                 setTimeout(() => {
-                   // If batch is empty now, close reveal. Otherwise stay open but switch to next image.
                    if (data.images.length === 0) {
                       closeBubbleReveal();
+                      if (vaultCard) vaultCard.remove();
                    } else {
-                      // Attempt to switch to next available image
                       const next = data.images[0].r2_url;
                       img.src = next;
                       document.getElementById('bubbleRevealDownload').href = next;
                       img.style.filter = ""; img.style.opacity = "1"; img.style.transform = "";
                    }
-                   localStorage.removeItem("a_vault_cache");
-                   reloadHistory(true);
-                }, 1000);
+                   updateVaultCache();
+                }, 900);
              })
              .catch(e => {
                 setFooterMsg("Banishment fractured.", "error");
@@ -1627,34 +1654,36 @@
     async function banishBatch() {
        const data = state.__inspected_data;
        if (!data || !data.request_id) return;
+       const requestId = data.request_id;
        
        openConfirm("Banish Entire Batch?", "Return all 4 spirits in this manifestation to the void.", async () => {
-          const mainImg = document.getElementById("bubbleRevealImg");
-          const revealPanel = document.querySelector('.glass-reveal-panel');
           const viewerContainer = document.querySelector('.image-viewer-container');
+          const revealPanel = document.querySelector('.glass-reveal-panel');
           
-          // Animate the entire reveal UI
           if (viewerContainer) {
-             viewerContainer.style.transition = "all 1.2s cubic-bezier(0.4, 0, 0.2, 1)";
+             viewerContainer.style.transition = "all 1s cubic-bezier(0.4, 0, 0.2, 1)";
              viewerContainer.style.filter = "grayscale(1) blur(80px)";
              viewerContainer.style.opacity = "0";
              viewerContainer.style.transform = "scale(0.9)";
           }
-          
           if (revealPanel) {
-             revealPanel.style.transition = "all 1s ease";
+             revealPanel.style.transition = "all 0.8s ease";
              revealPanel.style.opacity = "0";
              revealPanel.style.transform = "translateX(20px)";
           }
           
-          apiFetch(`/history/batch/${data.request_id}`, { method: 'DELETE' })
+          apiFetch(`/history/batch/${requestId}`, { method: 'DELETE' })
              .then(() => {
                 setFooterMsg("Batch banished.", "info");
-                localStorage.removeItem("a_vault_cache");
-                setTimeout(() => { 
-                   closeBubbleReveal(); 
-                   reloadHistory(true); 
-                }, 1200);
+                const vaultCard = document.getElementById(`batch-${requestId}`);
+                if (vaultCard) {
+                   vaultCard.style.transition = "all 0.8s cubic-bezier(0.4, 0, 0.2, 1)";
+                   vaultCard.style.opacity = "0";
+                   vaultCard.style.transform = "scale(0.8) translateY(30px)";
+                   setTimeout(() => vaultCard.remove(), 800);
+                }
+                updateVaultCache();
+                setTimeout(() => { closeBubbleReveal(); }, 1000);
              })
              .catch(e => {
                 setFooterMsg("Banishment failed.", "error");
@@ -1663,6 +1692,8 @@
              });
        });
     }
+
+
 
 
     async function loadHistoryPage() {
