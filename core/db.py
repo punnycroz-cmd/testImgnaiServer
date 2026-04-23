@@ -61,9 +61,11 @@ class Database:
                         task_uuids jsonb NOT NULL DEFAULT '[]'::jsonb,
                         error text,
                         result jsonb,
+                        is_hidden boolean NOT NULL DEFAULT false,
                         created_at timestamptz NOT NULL DEFAULT now(),
                         updated_at timestamptz NOT NULL DEFAULT now()
                     );
+
                     """
                 )
                 await cur.execute(
@@ -173,15 +175,23 @@ class Database:
             async with conn.cursor() as cur:
                 if realm:
                     await cur.execute(
-                        "SELECT * FROM generations WHERE realm = %s ORDER BY created_at DESC LIMIT %s OFFSET %s",
+                        "SELECT * FROM generations WHERE is_hidden = false AND realm = %s ORDER BY created_at DESC LIMIT %s OFFSET %s",
                         (realm, limit, offset),
                     )
                 else:
                     await cur.execute(
-                        "SELECT * FROM generations ORDER BY created_at DESC LIMIT %s OFFSET %s",
+                        "SELECT * FROM generations WHERE is_hidden = false ORDER BY created_at DESC LIMIT %s OFFSET %s",
                         (limit, offset),
                     )
                 return await cur.fetchall()
+
+    async def hide_generation(self, request_id: str):
+        if not self.enabled: return
+        pool = await self.get_pool()
+        async with pool.connection() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute("UPDATE generations SET is_hidden = true WHERE request_id = %s", (request_id,))
+            await conn.commit()
 
     async def delete_generation(self, request_id: str):
         if not self.enabled: return

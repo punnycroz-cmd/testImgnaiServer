@@ -205,6 +205,12 @@ async def history(page: int = 1, limit: int = 20, realm: Optional[str] = None):
     }
 
 
+@app.post("/history/batch/{request_id}/hide")
+async def hide_batch(request_id: str):
+    await DB.hide_generation(request_id)
+    return {"status": "ok", "hidden": request_id}
+
+
 @app.delete("/history/batch/{request_id}")
 async def delete_batch(request_id: str):
     await DB.delete_generation(request_id)
