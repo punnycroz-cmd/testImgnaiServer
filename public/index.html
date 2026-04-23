@@ -1845,23 +1845,6 @@
       }
     }
 
-    const mainEl = document.getElementById("mainContent");
-
-    let scrollThrottle = null;
-    async function scrollHistory() {
-       if (scrollThrottle) return;
-       if (document.getElementById("view-history").classList.contains("hidden")) return;
-       
-       scrollThrottle = setTimeout(() => { scrollThrottle = null; }, 200);
-
-       const threshold = 600;
-       const nearBottom = mainEl.scrollTop + mainEl.clientHeight >= mainEl.scrollHeight - threshold;
-       if (nearBottom && state.historyHasMore && !state.loadingHistory) {
-          loadHistoryPage();
-       }
-    }
-
-    mainEl.addEventListener('scroll', scrollHistory, { passive: true });
 
     async function renderHistory(reset = false) {
       if (!dom.historyList || document.getElementById("view-history").classList.contains("hidden")) return;
