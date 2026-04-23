@@ -1209,6 +1209,7 @@
       if (!payload.prompt) return setFooterMsg("Inspiration required.", "error");
 
       setLoading(true);
+      state.isGenerating = true; // Lock internal updates
       setProgress(0);
       dom.gallery.innerHTML = '<div class="col-span-full py-24 animate-pulse opacity-50 cinematic-text text-2xl uppercase tracking-widest text-center">Weaving Vision...</div>';
 
@@ -1234,6 +1235,7 @@
         setProgress(-1);
       } finally {
         setLoading(false);
+        state.isGenerating = false; // Release internal updates
         if (window.innerWidth < 1024) toggleConsole("minimize");
       }
     }
@@ -1347,6 +1349,9 @@
       await doRefresh();
       // Setup live polling while UI is on tasks tab
       queueInterval = setInterval(() => {
+        // SILENCE: If we are currently generating, don't do background refreshes
+        if (state.isGenerating) return;
+        
         const tasksView = document.getElementById("view-tasks");
         if (tasksView && !tasksView.classList.contains("hidden")) {
           doRefresh();
@@ -1354,7 +1359,7 @@
           clearInterval(queueInterval);
           queueInterval = null;
         }
-      }, 6000);
+      }, 10000); // Increased to 10s for even more minimalism
     }
 
     function updateTasksView(job) {
@@ -2002,7 +2007,9 @@
     try {
       applyMode(state.activeMode);
       renderActiveRequest();
-      setInterval(checkBackend, 30000);
+      setInterval(() => {
+        if (!state.isGenerating) checkBackend();
+      }, 30000);
       checkBackend();
     } catch (e) {
       console.error("Initialization error:", e);
