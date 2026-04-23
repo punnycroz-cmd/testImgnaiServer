@@ -181,12 +181,28 @@ async def vault_stats(realm: Optional[str] = None):
             # Total count
             if realm and realm.lower() == 'day':
                 await cur.execute("SELECT COUNT(*) as cnt FROM generations WHERE is_hidden = false AND (LOWER(realm) = 'day' OR realm IS NULL)")
+                total_row = await cur.fetchone()
+                total = total_row["cnt"] if total_row else 0
+                
+                await cur.execute("SELECT COUNT(DISTINCT g.id) as cnt FROM generations g JOIN generation_images i ON g.id = i.generation_id WHERE (LOWER(g.realm) = 'day' OR g.realm IS NULL) AND g.is_hidden = false")
+                valid_row = await cur.fetchone()
+                valid = valid_row["cnt"] if valid_row else 0
             elif realm:
                 await cur.execute("SELECT COUNT(*) as cnt FROM generations WHERE is_hidden = false AND LOWER(realm) = LOWER(%s)", (realm,))
+                total_row = await cur.fetchone()
+                total = total_row["cnt"] if total_row else 0
+                
+                await cur.execute("SELECT COUNT(DISTINCT g.id) as cnt FROM generations g JOIN generation_images i ON g.id = i.generation_id WHERE LOWER(g.realm) = LOWER(%s) AND g.is_hidden = false", (realm,))
+                valid_row = await cur.fetchone()
+                valid = valid_row["cnt"] if valid_row else 0
             else:
                 await cur.execute("SELECT COUNT(*) as cnt FROM generations WHERE is_hidden = false")
-            total_row = await cur.fetchone()
-            total = total_row["cnt"] if total_row else 0
+                total_row = await cur.fetchone()
+                total = total_row["cnt"] if total_row else 0
+                
+                await cur.execute("SELECT COUNT(DISTINCT g.id) as cnt FROM generations g JOIN generation_images i ON g.id = i.generation_id WHERE g.is_hidden = false")
+                valid_row = await cur.fetchone()
+                valid = valid_row["cnt"] if valid_row else 0
 
             # First 60 IDs ordered by created_at DESC
             if realm and realm.lower() == 'day':
@@ -210,7 +226,7 @@ async def vault_stats(realm: Optional[str] = None):
                     "created_at": row["created_at"].isoformat() if row["created_at"] else None,
                 })
 
-    return {"total_batches": total, "realm_filter": realm, "pages_preview": pages}
+    return {"total_batches": total, "valid_batches": valid, "realm_filter": realm, "pages_preview": pages}
 
 
 @app.get("/history")
@@ -222,6 +238,8 @@ async def history(page: int = 1, limit: int = 20, realm: Optional[str] = None):
     
     for row in rows:
         image_rows = await DB.get_generation_images(row["id"])
+        if not image_rows:
+            continue
         page_items.append(
             {
                 "request_id": row["request_id"],

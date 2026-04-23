@@ -176,19 +176,53 @@ class Database:
             async with conn.cursor() as cur:
                 if realm:
                     if realm.lower() == 'day':
-                        # Backwards compatibility: treat NULL as 'day'
                         await cur.execute(
-                            "SELECT * FROM generations WHERE is_hidden = false AND (LOWER(realm) = 'day' OR realm IS NULL) ORDER BY created_at DESC LIMIT %s OFFSET %s",
+                            """
+                            SELECT g.*
+                            FROM generations g
+                            WHERE g.is_hidden = false
+                              AND g.status = 'done'
+                              AND (LOWER(g.realm) = 'day' OR g.realm IS NULL)
+                              AND EXISTS (
+                                  SELECT 1 FROM generation_images i
+                                  WHERE i.generation_id = g.id
+                              )
+                            ORDER BY g.created_at DESC
+                            LIMIT %s OFFSET %s
+                            """,
                             (limit, offset),
                         )
                     else:
                         await cur.execute(
-                            "SELECT * FROM generations WHERE is_hidden = false AND LOWER(realm) = LOWER(%s) ORDER BY created_at DESC LIMIT %s OFFSET %s",
+                            """
+                            SELECT g.*
+                            FROM generations g
+                            WHERE g.is_hidden = false
+                              AND g.status = 'done'
+                              AND LOWER(g.realm) = LOWER(%s)
+                              AND EXISTS (
+                                  SELECT 1 FROM generation_images i
+                                  WHERE i.generation_id = g.id
+                              )
+                            ORDER BY g.created_at DESC
+                            LIMIT %s OFFSET %s
+                            """,
                             (realm, limit, offset),
                         )
                 else:
                     await cur.execute(
-                        "SELECT * FROM generations WHERE is_hidden = false ORDER BY created_at DESC LIMIT %s OFFSET %s",
+                        """
+                        SELECT g.*
+                        FROM generations g
+                        WHERE g.is_hidden = false
+                          AND g.status = 'done'
+                          AND EXISTS (
+                              SELECT 1 FROM generation_images i
+                              WHERE i.generation_id = g.id
+                          )
+                        ORDER BY g.created_at DESC
+                        LIMIT %s OFFSET %s
+                        """,
                         (limit, offset),
                     )
                 return await cur.fetchall()
