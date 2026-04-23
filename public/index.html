@@ -573,7 +573,7 @@
 
         <div id="historyList" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 transition-all" data-select-mode="false"></div>
         <div class="mt-8 flex justify-center">
-          <button id="loadMoreBtn" onclick="loadMoreHistory()"
+          <button id="loadMoreBtn" onclick="loadHistoryPage()"
             class="btn-magic px-5 py-3 text-[10px] font-bold uppercase tracking-widest">Load More</button>
         </div>
       </div>
@@ -829,14 +829,17 @@
     }
 
     function renderActiveRequest() {
+      const badge = document.getElementById("activeRequestBadge");
+      const retry = document.getElementById("retryBtn");
       if (!state.activeRequestId) {
-        dom.activeRequestBadge.textContent = "No active request";
-        document.getElementById("retryBtn").disabled = true;
+        if (badge) badge.textContent = "No active request";
+        if (retry) retry.disabled = true;
       } else {
-        dom.activeRequestBadge.textContent = `Active request: ${state.activeRequestId.slice(0, 8)}...`;
-        document.getElementById("retryBtn").disabled = false;
+        if (badge) badge.textContent = `Active request: ${state.activeRequestId.slice(0, 8)}...`;
+        if (retry) retry.disabled = false;
       }
     }
+
 
     function applyMode(mode) {
       state.activeMode = mode;
