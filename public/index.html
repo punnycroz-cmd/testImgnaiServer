@@ -1389,7 +1389,10 @@
     function appendHistoryItems(items, clear = false) {
       if (clear) dom.historyList.innerHTML = "";
       items.forEach(entry => {
-        // PREVENT DUPLICATES: Check if this request_id is already in the list
+        // LOCAL FILTER: Ensure we only show items matching the active vault realm
+        if (state.vaultRealm && entry.realm && entry.realm.toLowerCase() !== state.vaultRealm.toLowerCase()) return;
+        
+        // PREVENT DUPLICATES
         if (document.getElementById(`batch-${entry.request_id}`)) return;
 
         const wrap = document.createElement("div");
@@ -1487,17 +1490,19 @@
 
     function setVaultRealm(realm) {
        const r = realm.toLowerCase();
-       state.vaultRealm = r;
+       if (state.vaultRealm === r) return;
        
+       state.vaultRealm = r;
        document.getElementById("vbtn-day").classList.toggle("opacity-40", r !== "day");
        document.getElementById("vbtn-star").classList.toggle("opacity-40", r !== "star");
        
-       // Suffix check to match DB case if needed, but here we use direct strings
-       localStorage.removeItem("a_vault_cache");
-       if (dom.historyList) dom.historyList.innerHTML = "";
+       // Soft Transition: Fade out but don't clear yet
+       dom.historyList.style.opacity = "0.3";
+       dom.historyList.style.pointerEvents = "none";
        
        reloadHistory(true);
     }
+
 
 
 
@@ -1709,41 +1714,57 @@
         const realmQ = state.vaultRealm ? `&realm=${state.vaultRealm}` : "";
         const res = await apiFetch(`/history?page=${state.historyPage}&limit=${state.historyLimit}${realmQ}`);
         const items = res.items || [];
+        
         if (state.historyPage === 1) {
           state.historyLoaded = true;
-          appendHistoryItems(items, true);
+          // Clean up only once we have the fresh data
+          dom.historyList.innerHTML = "";
+          dom.historyList.style.opacity = "1";
+          dom.historyList.style.pointerEvents = "all";
+          appendHistoryItems(items, false);
           localStorage.setItem("a_vault_cache", JSON.stringify(items));
         } else {
           appendHistoryItems(items, false);
         }
+        
         state.historyHasMore = !!res.has_more;
         state.historyPage += 1;
-        dom.loadMoreBtn.classList.toggle("hidden", true);
+        
+        // Show/Hide Load More based on has_more
+        if (dom.loadMoreBtn) dom.loadMoreBtn.classList.toggle("hidden", !state.historyHasMore);
       } catch (err) {
         console.error(err);
+        dom.historyList.style.opacity = "1";
       } finally {
         state.loadingHistory = false;
       }
     }
 
+    async function scrollHistory() {
+       if (document.getElementById("view-history").classList.contains("hidden")) return;
+       const threshold = 600;
+       if (mainEl.scrollTop + mainEl.clientHeight >= mainEl.scrollHeight - threshold) {
+          loadHistoryPage();
+       }
+    }
+
+    // Replace internal scroll with more aggressive one
+    mainEl.onscroll = scrollHistory;
+
     async function renderHistory(reset = false) {
       if (!dom.historyList || document.getElementById("view-history").classList.contains("hidden")) return;
+      
+      // Initial render from cache if list empty
       if (dom.historyList.innerHTML === "" && localStorage.getItem("a_vault_cache")) {
-        try { appendHistoryItems(JSON.parse(localStorage.getItem("a_vault_cache")), true); } catch (e) { }
+        try { appendHistoryItems(JSON.parse(localStorage.getItem("a_vault_cache")), false); } catch (e) { }
       }
+      
       if (state.historyLoaded && !reset) return;
+      
       state.historyPage = 1;
       state.historyHasMore = true;
       await loadHistoryPage();
     }
-
-    // Infinite Scroll
-    const mainEl = document.getElementById("mainContent");
-    mainEl.onscroll = () => {
-      if (!document.getElementById("view-history").classList.contains("hidden")) {
-        if (mainEl.scrollTop + mainEl.clientHeight >= mainEl.scrollHeight - 300) loadHistoryPage();
-      }
-    };
 
     // The Oracle Module
     const ORACLE_PROMPTS = [
