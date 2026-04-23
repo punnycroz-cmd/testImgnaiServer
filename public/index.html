@@ -985,6 +985,8 @@
 
     function setProgress(step) {
       const matrix = document.getElementById("progressMatrix");
+      if (!matrix) return;
+      
       if (step === -1) {
         matrix.classList.remove("active");
         document.querySelectorAll(".progress-step").forEach(s => s.classList.remove("done", "active"));
@@ -2007,6 +2009,12 @@
       setFooterMsg("Connect to Server for full functionality.", "info");
     }
   </script>
+  <div id="progressMatrix" class="fixed top-0 left-0 right-0 h-1 z-[10000] pointer-events-none opacity-0 transition-opacity duration-500 flex gap-1">
+    <div class="progress-step flex-1 h-full"></div>
+    <div class="progress-step flex-1 h-full"></div>
+    <div class="progress-step flex-1 h-full"></div>
+    <div class="progress-step flex-1 h-full"></div>
+  </div>
 </body>
 
 </html>
