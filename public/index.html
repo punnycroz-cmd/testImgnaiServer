@@ -913,6 +913,7 @@
         }
         return data;
       } catch (e) {
+        if (dom.backendStatus) dom.backendStatus.textContent = "Backend Offline";
         console.error("apiFetch error:", e);
         throw e;
       }
@@ -2002,10 +2003,7 @@
     try {
       applyMode(state.activeMode);
       renderActiveRequest();
-      setInterval(() => {
-        if (!state.isGenerating) checkBackend();
-      }, 30000);
-      checkBackend();
+      checkBackend(); // Only one check on load
     } catch (e) {
       console.error("Initialization error:", e);
       setFooterMsg("Connect to Server for full functionality.", "info");
