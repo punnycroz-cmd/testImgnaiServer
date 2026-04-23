@@ -1388,7 +1388,7 @@
       items.forEach(entry => {
         const wrap = document.createElement("div");
         wrap.id = `batch-${entry.request_id}`;
-        wrap.className = "glass-panel p-3 cursor-pointer group relative transition-all duration-300";
+        wrap.className = "glass-panel p-4 pb-5 cursor-pointer group relative transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_20px_50px_rgba(0,0,0,0.4)] border-white/5 hover:border-white/20";
         if (state.selectedIds.has(entry.request_id)) wrap.classList.add("border-[var(--accent)]", "bg-[var(--accent)]/10");
         
         wrap.onclick = (e) => { 
