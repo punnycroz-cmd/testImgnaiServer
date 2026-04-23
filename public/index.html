@@ -1838,8 +1838,19 @@
        // Finalize UI
        const totalCardsVisible = dom.historyList.children.length;
        if (dom.loadMoreBtn) {
-          dom.loadMoreBtn.classList.toggle("hidden", !state.historyHasMore);
-          dom.loadMoreBtn.textContent = `Load More (${totalCardsVisible} shown)`;
+          if (!state.historyHasMore) {
+             dom.loadMoreBtn.classList.remove("hidden");
+             dom.loadMoreBtn.disabled = true;
+             dom.loadMoreBtn.textContent = `End of Vault (${totalCardsVisible} Total)`;
+             dom.loadMoreBtn.style.opacity = "0.5";
+             dom.loadMoreBtn.style.cursor = "default";
+          } else {
+             dom.loadMoreBtn.classList.remove("hidden");
+             dom.loadMoreBtn.disabled = false;
+             dom.loadMoreBtn.style.opacity = "1";
+             dom.loadMoreBtn.style.cursor = "pointer";
+             dom.loadMoreBtn.textContent = `Load More (${totalCardsVisible} shown)`;
+          }
        }
        setFooterMsg(`Loaded batches. Total visible: ${totalCardsVisible}`, "info");
     }
