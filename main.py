@@ -171,14 +171,12 @@ async def resume(request_id: str):
 
 
 @app.get("/history")
-async def history(page: int = 1, limit: int = 20):
+async def history(page: int = 1, limit: int = 20, realm: Optional[str] = None):
     offset = max(0, (page - 1) * limit)
-    rows = await DB.list_generations(limit=limit, offset=offset)
+    rows = await DB.list_generations(limit=limit, offset=offset, realm=realm)
     total = len(rows) if len(rows) < limit else offset + len(rows) + 1
     page_items = []
     
-    # We could optimize this further with a join, but for now we'll do sequential awaits
-    # which is still non-blocking for OTHER users.
     for row in rows:
         image_rows = await DB.get_generation_images(row["id"])
         page_items.append(
@@ -204,6 +202,18 @@ async def history(page: int = 1, limit: int = 20):
         "total": total,
         "has_more": len(rows) == limit,
     }
+
+
+@app.delete("/history/batch/{request_id}")
+async def delete_batch(request_id: str):
+    await DB.delete_generation(request_id)
+    return {"status": "ok", "deleted": request_id}
+
+
+@app.delete("/history/image/{image_id}")
+async def delete_image(image_id: str):
+    await DB.delete_image(image_id)
+    return {"status": "ok", "deleted": image_id}
 
 
 @app.post("/generate")

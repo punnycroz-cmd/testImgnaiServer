@@ -165,14 +165,36 @@ class Database:
                 await cur.execute("SELECT * FROM generation_images WHERE generation_id = %s ORDER BY image_index ASC", (generation_id,))
                 return await cur.fetchall()
 
-    async def list_generations(self, limit: int = 20, offset: int = 0):
+    async def list_generations(self, limit: int = 20, offset: int = 0, realm: Optional[str] = None):
         if not self.enabled:
             return []
         pool = await self.get_pool()
         async with pool.connection() as conn:
             async with conn.cursor() as cur:
-                await cur.execute(
-                    "SELECT * FROM generations ORDER BY created_at DESC LIMIT %s OFFSET %s",
-                    (limit, offset),
-                )
+                if realm:
+                    await cur.execute(
+                        "SELECT * FROM generations WHERE realm = %s ORDER BY created_at DESC LIMIT %s OFFSET %s",
+                        (realm, limit, offset),
+                    )
+                else:
+                    await cur.execute(
+                        "SELECT * FROM generations ORDER BY created_at DESC LIMIT %s OFFSET %s",
+                        (limit, offset),
+                    )
                 return await cur.fetchall()
+
+    async def delete_generation(self, request_id: str):
+        if not self.enabled: return
+        pool = await self.get_pool()
+        async with pool.connection() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute("DELETE FROM generations WHERE request_id = %s", (request_id,))
+            await conn.commit()
+
+    async def delete_image(self, image_id: str):
+        if not self.enabled: return
+        pool = await self.get_pool()
+        async with pool.connection() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute("DELETE FROM generation_images WHERE id = %s", (image_id,))
+            await conn.commit()
