@@ -176,7 +176,7 @@ class Database:
             async with conn.cursor() as cur:
                 if realm:
                     await cur.execute(
-                        "SELECT * FROM generations WHERE is_hidden = false AND realm = %s ORDER BY created_at DESC LIMIT %s OFFSET %s",
+                        "SELECT * FROM generations WHERE is_hidden = false AND LOWER(realm) = LOWER(%s) ORDER BY created_at DESC LIMIT %s OFFSET %s",
                         (realm, limit, offset),
                     )
                 else:
