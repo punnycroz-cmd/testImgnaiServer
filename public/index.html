@@ -541,12 +541,26 @@
         </div>
 
         <!-- The Matrix Grid -->
+        <div id="matrixControls" class="hidden flex items-center justify-between gap-4 py-4 px-2 bg-white/5 rounded-2xl border border-white/10 mb-4 animate-in fade-in slide-in-from-top-4 duration-500">
+           <div class="flex items-center gap-3">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" id="matrixStatusPulse"></span>
+              <span class="text-[10px] font-black uppercase tracking-widest" id="matrixStatusText">Matrix Active</span>
+           </div>
+           <div class="flex items-center gap-2">
+              <button onclick="toggleMatrixPause()" id="matrixPauseBtn" class="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-[9px] font-black uppercase tracking-widest transition-all">Pause</button>
+              <button onclick="cancelMatrix()" class="px-4 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-500 text-[9px] font-black uppercase tracking-widest transition-all border border-red-500/20">Cancel</button>
+           </div>
+        </div>
         <div id="matrixGallery" class="hidden grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 py-8"></div>
       </div>
     </section>
 
     <section id="view-tasks" class="view hidden px-4 sm:px-8">
       <div class="max-w-7xl mx-auto glass-panel p-6 sm:p-10 min-h-[400px]">
+        <div class="flex items-center justify-between gap-4 mb-8">
+           <h2 class="text-xl font-bold uppercase tracking-widest text-[var(--text-muted)]">Active Queue</h2>
+           <button onclick="cancelAllJobs()" class="px-4 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-500 text-[10px] font-black uppercase tracking-widest transition-all border border-red-500/20">Halt All</button>
+        </div>
         <div id="taskList" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
       </div>
     </section>
@@ -772,7 +786,9 @@
       currentPoll: null,
       vaultRealm: 'day',
       selectionMode: false,
-      selectedIds: new Set()
+      selectedIds: new Set(),
+      matrixPaused: false,
+      matrixCancelled: false
     };
 
     const dom = {
@@ -955,6 +971,13 @@
                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
               </svg>
             </button>
+            ${!isDone && !isError ? `
+            <button class="px-3 py-2.5 rounded-xl border border-red-500/20 text-red-500 hover:bg-red-500/10 transition-colors" onclick="cancelJob('${job?.request_id}')" title="Cancel">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>` : ''}
           </div>
         </div>
       `;
@@ -987,10 +1010,10 @@
 
       // Build placeholders
       mGallery.innerHTML = models.map(m => `
-        <div id="matrix-cell-${m.replace(/\s+/g, '-')}" class="art-frame aspect-square flex flex-col items-center justify-center bg-black/40 border border-white/10 relative group">
-          <span class="text-[10px] font-bold uppercase text-[var(--text-muted)] tracking-widest absolute bottom-3 z-20 group-hover:opacity-0 transition-opacity">${m}</span>
-          <div class="loader opacity-20 hidden"></div>
-          <img src="" class="absolute inset-0 w-full h-full object-cover hidden transition-opacity duration-1000 opacity-0 z-10">
+        <div id="matrix-cell-${m.replace(/\s+/g, '-')}" class="art-frame aspect-square flex flex-col items-center justify-center bg-black/40 border border-white/10 relative group overflow-hidden">
+          <span class="text-[10px] font-bold uppercase text-[var(--text-muted)] tracking-widest absolute bottom-3 z-20 group-hover:opacity-0 transition-opacity bg-black/50 px-2 py-0.5 rounded-lg border border-white/5">${m}</span>
+          <div class="loader opacity-40 hidden z-20" style="width:20px;height:20px;"></div>
+          <img src="" class="absolute inset-0 w-full h-full object-cover hidden transition-all duration-1000 opacity-0 scale-110 z-10">
         </div>
       `).join("");
 
@@ -998,27 +1021,63 @@
       dom.matrixBtn.disabled = true;
       dom.btnMatrixText.textContent = "Casting...";
       dom.btnMatrixLoader.classList.remove("hidden");
+      document.getElementById("matrixControls").classList.remove("hidden");
+      document.getElementById("matrixGallery").classList.remove("hidden");
+      
+      state.matrixPaused = false;
+      state.matrixCancelled = false;
+      updateMatrixStatusUI();
 
-      let activeIds = [];
       try {
         setView("generate");
         toggleConsole("expand");
-        setFooterMsg(`Submitting ${models.length} Matrix Jobs...`, "info");
-        // We fire them all quickly. The backend Semaphore(1) handles the queueing.
-        for (const model of models) {
+        
+        for (let i = 0; i < models.length; i++) {
+          // Check for cancellation
+          if (state.matrixCancelled) {
+             setFooterMsg("Matrix Casting Aborted.", "error");
+             break;
+          }
+
+          // Check for pause
+          while (state.matrixPaused) {
+             await sleep(1000);
+             if (state.matrixCancelled) break;
+          }
+          if (state.matrixCancelled) break;
+
+          const model = models[i];
           const mPayload = { ...payload, model };
-          const cell = document.getElementById(`matrix-cell-${model.replace(/\s+/g, '-')}`);
-          if (cell) cell.querySelector(".loader").classList.remove("hidden");
+          const cellId = `matrix-cell-${model.replace(/\s+/g, '-')}`;
+          const cell = document.getElementById(cellId);
+          
+          if (cell) {
+            cell.querySelector(".loader").classList.remove("hidden");
+            cell.classList.add("active-summon");
+          }
+          
+          setFooterMsg(`Summoning Matrix Spirit ${i+1}/${models.length}: ${model}`, "info");
 
-          const res = await apiFetch("/generate", {
-            method: "POST",
-            body: JSON.stringify(mPayload)
-          });
-          activeIds.push({ id: res.request_id, model: model, payload: mPayload });
+          try {
+            const res = await apiFetch("/generate", {
+               method: "POST",
+               body: JSON.stringify(mPayload)
+            });
+            
+            // Poll until THIS one is done before moving to the next
+            await pollSingleMatrixJob(res.request_id, model, cell);
+          } catch (e) {
+            console.error(`Matrix Job failed for ${model}`, e);
+            if (cell) {
+               cell.querySelector(".loader").classList.add("hidden");
+               cell.style.boxShadow = "inset 0 0 40px rgba(239, 68, 68, 0.2)";
+            }
+          } finally {
+            if (cell) cell.classList.remove("active-summon");
+          }
         }
-
-        setFooterMsg("Matrix Jobs Queued. Processing sequentially...", "info");
-        await pollMatrixUntilDone(activeIds);
+        
+        setFooterMsg("Celestial Matrix Complete.", "success");
       } catch (err) {
         setFooterMsg("Matrix Error: " + err.message, "error");
       } finally {
@@ -1026,60 +1085,116 @@
         dom.matrixBtn.disabled = false;
         dom.btnMatrixText.textContent = "Matrix";
         dom.btnMatrixLoader.classList.add("hidden");
-        if (window.innerWidth < 1024) toggleConsole("minimize");
-      }
-    }
-
-    async function pollMatrixUntilDone(activeJobs) {
-      let active = [...activeJobs];
-
-      while (active.length > 0) {
-        try {
-          const reqIds = active.map(j => j.id);
-          const res = await apiFetch("/job-status-batch", {
-            method: "POST",
-            body: JSON.stringify({ request_ids: reqIds })
-          });
-
-          let stillActive = [];
-          for (const job of active) {
-            const data = res[job.id];
-            if (!data) { stillActive.push(job); continue; }
-
-            if (data.status === "done") {
-              const url = data.images && data.images.length ? data.images[0].r2_url : null;
-              const cell = document.getElementById(`matrix-cell-${job.model.replace(/\s+/g, '-')}`);
-              if (cell) {
-                cell.querySelector(".loader").classList.add("hidden");
-                if (url) {
-                  const img = cell.querySelector("img");
-                  img.src = url;
-                  img.classList.remove("hidden");
-                  // Trigger slow fade
-                  setTimeout(() => img.classList.remove("opacity-0"), 50);
-                  cell.onclick = () => popBubble(cell, url, { ...job.payload, ...data });
-                }
-              }
-            } else if (data.status === "error") {
-              const cell = document.getElementById(`matrix-cell-${job.model.replace(/\s+/g, '-')}`);
-              if (cell) {
-                cell.querySelector(".loader").classList.add("hidden");
-                cell.querySelector("span").textContent = "Failed";
-                cell.querySelector("span").classList.add("text-red-500");
-              }
-            } else {
-              stillActive.push(job);
-            }
-          }
-          active = stillActive;
-        } catch (err) {
-          console.warn("Matrix poll error", err);
+        if (!state.matrixCancelled && !state.matrixPaused) {
+           document.getElementById("matrixControls").classList.add("hidden");
         }
-        if (active.length > 0) await sleep(3000);
       }
-      setFooterMsg("Matrix Cast Complete.", "info");
-      state.historyLoaded = false;
     }
+
+    function toggleMatrixPause() {
+      state.matrixPaused = !state.matrixPaused;
+      updateMatrixStatusUI();
+    }
+
+    function cancelMatrix() {
+      state.matrixCancelled = true;
+      state.matrixPaused = false;
+      updateMatrixStatusUI();
+    }
+
+    function updateMatrixStatusUI() {
+      const btn = document.getElementById("matrixPauseBtn");
+      const text = document.getElementById("matrixStatusText");
+      const pulse = document.getElementById("matrixStatusPulse");
+      
+      if (state.matrixCancelled) {
+         text.textContent = "Matrix Cancelled";
+         pulse.className = "w-2 h-2 rounded-full bg-red-500";
+         btn.disabled = true;
+         return;
+      }
+
+      if (state.matrixPaused) {
+         text.textContent = "Matrix Paused";
+         pulse.className = "w-2 h-2 rounded-full bg-amber-500 animate-pulse";
+         btn.textContent = "Resume";
+      } else {
+         text.textContent = "Matrix Active";
+         pulse.className = "w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
+         btn.textContent = "Pause";
+      }
+    }
+
+    async function cancelJob(id) {
+       try {
+          await apiFetch(`/cancel-job/${id}`, { method: 'POST' });
+          setFooterMsg("Job Cancellation Protocol Initiated.", "info");
+          // Re-fetch queue to update UI
+          if (state.activeView === 'tasks') reloadQueue();
+       } catch (err) {
+          setFooterMsg("Cancellation Error: " + err.message, "error");
+       }
+    }
+
+    async function cancelAllJobs() {
+       if (!confirm("Are you sure you want to halt all active manifestations?")) return;
+       try {
+          await apiFetch('/cancel-all-jobs', { method: 'POST' });
+          setFooterMsg("All Jobs Halted.", "success");
+          if (state.activeView === 'tasks') reloadQueue();
+       } catch (err) {
+          setFooterMsg("Global Halt Error: " + err.message, "error");
+       }
+    }
+
+    async function pollSingleMatrixJob(requestId, model, cell, maxAttempts = 180) {
+      // Patience for 60s
+      for (let i = 0; i < 60; i++) {
+         if (state.matrixCancelled) return false;
+         while (state.matrixPaused) { await sleep(1000); if (state.matrixCancelled) return false; }
+         await sleep(1000);
+      }
+
+      // After 60s, checking for task_uuids to hand off to background and start next model
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        if (state.matrixCancelled) return false;
+        try {
+          const res = await apiFetch(`/job-status/${requestId}`);
+          
+          if (res.task_uuids && res.task_uuids.length > 0) {
+             pollSingleMatrixCellBackground(requestId, cell); 
+             return true; 
+          }
+          if (res.status === "error") {
+             if (cell) {
+               cell.querySelector(".loader").classList.add("hidden");
+               cell.style.boxShadow = "inset 0 0 40px rgba(239, 68, 68, 0.2)";
+             }
+             return false;
+          }
+        } catch (err) { }
+        await sleep(3000); 
+      }
+      return false;
+    }
+
+    async function pollSingleMatrixCellBackground(requestId, cell, maxAttempts = 50) {
+       for (let attempt = 0; attempt < maxAttempts; attempt++) {
+          try {
+             const res = await apiFetch(`/job-status/${requestId}`);
+             if (res.status === "done" && res.images && res.images.length > 0) {
+                const urls = res.images.map(img => img.r2_url);
+                updateMatrixCell(cell, urls, requestId);
+                return;
+             }
+             if (res.status === "error") return;
+          } catch (e) {}
+          await sleep(5000); 
+       }
+    }
+
+
+
 
     async function runGeneration() {
       setView("generate");
@@ -1123,6 +1238,19 @@
 
     async function pollUntilDone(requestId, payload, maxAttempts = 120) {
       state.currentPoll = requestId;
+      
+      // 1. Initial quick poll
+      try {
+        const res = await apiFetch(`/job-status/${requestId}`);
+        state.activeRequest = res;
+        updateTasksView(res);
+      } catch (e) {}
+
+      // 2. Patience for 60s
+      setFooterMsg("Manifesting spirit... focus for 60s.", "info");
+      await sleep(60000);
+      if (state.currentPoll !== requestId) return false;
+
       for (let attempt = 0; attempt < maxAttempts; attempt++) {
         if (state.currentPoll !== requestId) return false;
         try {
@@ -1151,7 +1279,7 @@
             return false;
           }
         } catch (err) {
-          console.warn("poll error", err);
+          // console.warn("poll error", err);
         }
         await sleep(backoffDelay(attempt));
       }
@@ -1159,7 +1287,7 @@
     }
 
     function backoffDelay(attempt) {
-      return Math.min(6000, 1500 + (attempt * 200));
+      return Math.min(8000, 2000 + (attempt * 300));
     }
 
     function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
@@ -1210,7 +1338,7 @@
             dom.taskList.innerHTML = '<div class="col-span-full py-20 text-center opacity-20 cinematic-text text-xl uppercase tracking-widest font-thin">Temple of Silence</div>';
           }
         } catch (err) {
-          console.warn("Queue refresh error", err);
+          // console.warn("Queue refresh error", err);
         }
       };
 
@@ -1224,7 +1352,7 @@
           clearInterval(queueInterval);
           queueInterval = null;
         }
-      }, 4000);
+      }, 6000);
     }
 
     function updateTasksView(job) {
@@ -1716,16 +1844,21 @@
 
     const mainEl = document.getElementById("mainContent");
 
+    let scrollThrottle = null;
     async function scrollHistory() {
+       if (scrollThrottle) return;
        if (document.getElementById("view-history").classList.contains("hidden")) return;
-       const threshold = 1200;
-       if (mainEl.scrollTop + mainEl.clientHeight >= mainEl.scrollHeight - threshold) {
+       
+       scrollThrottle = setTimeout(() => { scrollThrottle = null; }, 200);
+
+       const threshold = 600;
+       const nearBottom = mainEl.scrollTop + mainEl.clientHeight >= mainEl.scrollHeight - threshold;
+       if (nearBottom && state.historyHasMore && !state.loadingHistory) {
           loadHistoryPage();
        }
     }
 
-    // Replace internal scroll with more aggressive one
-    mainEl.onscroll = scrollHistory;
+    mainEl.addEventListener('scroll', scrollHistory, { passive: true });
 
     async function renderHistory(reset = false) {
       if (!dom.historyList || document.getElementById("view-history").classList.contains("hidden")) return;
@@ -1735,7 +1868,7 @@
         try { appendHistoryItems(JSON.parse(localStorage.getItem("a_vault_cache")), false); } catch (e) { }
       }
       
-      if (state.historyLoaded && !reset) return;
+      if (state.historyLoaded && !reset && dom.historyList.innerHTML !== "") return;
       
       state.historyPage = 1;
       state.historyHasMore = true;
@@ -1867,7 +2000,7 @@
     try {
       applyMode(state.activeMode);
       renderActiveRequest();
-      setInterval(checkBackend, 15000);
+      setInterval(checkBackend, 30000);
       checkBackend();
     } catch (e) {
       console.error("Initialization error:", e);

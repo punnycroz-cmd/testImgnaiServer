@@ -40,7 +40,7 @@ class GenerateRequest:
 
 
 class StarManager:
-    def __init__(self, cookie_dir: str, output_dir: str, vault: R2Vault, db=None):
+    def __init__(self, cookie_dir: str, output_dir: str, vault: R2Vault, db=None, cancelled_jobs=None):
         self.browser = None
         self.context = None
         self.page = None
@@ -48,6 +48,7 @@ class StarManager:
         self.cookie_dir = cookie_dir
         self.vault = vault
         self.db = db
+        self.cancelled_jobs = cancelled_jobs or set()
         self.cookies_file = os.path.join(cookie_dir, "imaginered_cookie.json")
         self.logger = logging.getLogger("aether.star")
 
@@ -67,7 +68,7 @@ class StarManager:
 
     async def start(self):
         if self.page: return
-        self.logger.info("starting star browser session")
+        # self.logger.info("[S] Star Portal Opening...")
         pw = await async_playwright().start()
         self.browser = await pw.chromium.launch(
             headless=False,
@@ -82,8 +83,11 @@ class StarManager:
         await star_api.ensure_logged_in_async(self.page, self.context, logger=self.logger)
 
     async def _poll_task(self, client, tuid, headers, batch_prefix, idx, request_id):
-        self.logger.info("polling star task %s", tuid[:8])
+        # Silenced polling logs
         for attempt in range(90):
+            if request_id and request_id in self.cancelled_jobs:
+                self.logger.warning("star task poll cancelled: %s", request_id)
+                return None
             poll_data = await self._get_json(client, star_api.URL_GENERATE_TASK.format(task_uuid=tuid), headers)
             if not poll_data:
                 await self._sleep_backoff(attempt)
@@ -91,19 +95,17 @@ class StarManager:
             resp_obj = poll_data.get("response") or poll_data
             img_path = resp_obj.get("no_watermark_image_url") or resp_obj.get("image_url")
             if img_path:
-                source_url = f"https://r.imagine.red/{img_path.lstrip('/')}"
-                key = self.vault.build_object_key(batch_prefix, tuid, "jpg")
-                cloud_url = await asyncio.to_thread(self.vault.upload_image, source_url, key)
-                if self.db and request_id:
-                    await self.db.add_image(generation_id=request_id, task_uuid=tuid, r2_url=cloud_url, r2_key=key, image_index=idx)
-                return cloud_url
+                return f"https://r.imagine.red/{img_path.lstrip('/')}"
             await self._sleep_backoff(attempt)
         return None
 
     async def generate(self, req: GenerateRequest, request_id=None):
         async with self._lock:
+            if request_id and request_id in self.cancelled_jobs:
+                self.logger.info("star generate cancelled before start: %s", request_id)
+                return None
             await self.start()
-            self.logger.info("star generate start prompt=%s", req.prompt[:60])
+            # self.logger.info("[>] Star Pulse: %s", req.prompt[:30] + "...")
             token = await star_api.acquire_auth_token_async(self.page, self.context, logger=self.logger)
             if not token:
                 await star_api.ensure_logged_in_async(self.page, self.context, force_login=True, logger=self.logger)
@@ -126,14 +128,13 @@ class StarManager:
                 if not task_uuids and isinstance(batch_data, dict): task_uuids = batch_data.get("task_uuids", [])
                 
                 if self.db and request_id: await self.db.update_generation(request_id, task_uuids=task_uuids)
-
-                batch_prefix = self.vault.build_batch_prefix_with_name("star", session_uuid or "session", ts=datetime.now())
-                
-                # Parallel Polling
-                results = await asyncio.gather(*[
-                    self._poll_task(client, tuid, headers, batch_prefix, i, request_id)
-                    for i, tuid in enumerate(task_uuids)
-                ])
-                
-                vaulted_urls = [r for r in results if r]
-                return {"image_urls": vaulted_urls, "client_id": req.client_id, "model": req.model, "prompt": req.prompt}
+            
+        # Released Engine Lock: Next job can now start its "nap" or generate phase
+        batch_prefix = self.vault.build_batch_prefix_with_name("star", session_uuid or "session", ts=datetime.now())
+        results = await asyncio.gather(*[
+            self._poll_task(client, tuid, headers, batch_prefix, i, request_id)
+            for i, tuid in enumerate(task_uuids)
+        ])
+        
+        vaulted_urls = [r for r in results if r]
+        return {"image_urls": vaulted_urls, "client_id": req.client_id, "model": req.model, "prompt": req.prompt}

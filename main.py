@@ -43,8 +43,9 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
-day_mgr = DayManager(COOKIE_DIR, "", R2_VAULT, db=DB)
-star_mgr = StarManager(COOKIE_DIR, "", R2_VAULT, db=DB)
+cancelled_jobs = set()
+day_mgr = DayManager(COOKIE_DIR, "", R2_VAULT, db=DB, cancelled_jobs=cancelled_jobs)
+star_mgr = StarManager(COOKIE_DIR, "", R2_VAULT, db=DB, cancelled_jobs=cancelled_jobs)
 job_store = {}
 job_lock = asyncio.Lock()
 
@@ -67,7 +68,7 @@ async def health():
 
 async def _run_generation(job_id: str, req: GenerateRequest):
     try:
-        logger.info("job start request_id=%s client_id=%s realm=%s model=%s quality=%s", job_id, req.client_id, req.realm, req.model, req.quality)
+        logger.info("[>] Job Start: %s", job_id[:8])
         is_star = (req.realm or "").lower() == "star" or req.nsfw
         if is_star:
             star_req = StarGenerateRequest(**req.model_dump())
@@ -79,7 +80,7 @@ async def _run_generation(job_id: str, req: GenerateRequest):
             job_store[job_id] = {"status": "done", "result": result, "client_id": req.client_id, "request_id": job_id}
         
         await DB.update_generation(job_id, status="done", result=result)
-        logger.info("job done request_id=%s images=%s", job_id, len(result.get("image_urls", [])))
+        logger.info("[!] Job: %s finished", job_id[:8])
     except Exception as exc:
         logger.exception("job failed request_id=%s", job_id)
         async with job_lock:
@@ -217,6 +218,29 @@ async def delete_batch(request_id: str):
     return {"status": "ok", "deleted": request_id}
 
 
+@app.post("/cancel-job/{request_id}")
+async def cancel_job(request_id: str):
+    cancelled_jobs.add(request_id)
+    async with job_lock:
+        if request_id in job_store:
+            job_store[request_id]["status"] = "error"
+            job_store[request_id]["error"] = "Job cancelled by user"
+    await DB.update_generation(request_id, status="error")
+    return {"status": "ok", "cancelled": request_id}
+
+
+@app.post("/cancel-all-jobs")
+async def cancel_all_jobs():
+    async with job_lock:
+        for rid in job_store:
+            if job_store[rid]["status"] == "running":
+                cancelled_jobs.add(rid)
+                job_store[rid]["status"] = "error"
+                job_store[rid]["error"] = "All jobs cancelled"
+                await DB.update_generation(rid, status="error")
+    return {"status": "ok"}
+
+
 @app.delete("/history/image/{image_id}")
 async def delete_image(image_id: str):
     await DB.delete_image(image_id)
@@ -247,7 +271,7 @@ async def generate(req: GenerateRequest):
         async with job_lock:
             job_store[request_id] = {"status": "running", "client_id": req.client_id, "request_id": request_id}
         
-        logger.info("generate request accepted request_id=%s client_id=%s realm=%s model=%s quality=%s prompt=%s", request_id, req.client_id, realm, req.model, req.quality, req.prompt[:60])
+        logger.info("[>] Job: %s (%s) started", request_id[:8], req.model)
         asyncio.create_task(_run_generation(request_id, req))
         return {"request_id": request_id, "status": "running", "client_id": req.client_id}
     except Exception as e:
@@ -260,4 +284,5 @@ if __name__ == "__main__":
     import uvicorn
 
     port = int(os.environ.get("PORT", 8080))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    # Setting access_log=False removes the spam of "GET /history" and "GET /health" lines
+    uvicorn.run(app, host="0.0.0.0", port=port, access_log=False)

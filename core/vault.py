@@ -67,7 +67,7 @@ class R2Vault:
                 ContentType="image/jpeg",
             )
             final_url = f"{self.public_url}/{file_name.lstrip('/')}"
-            self.logger.info("uploaded image %s -> %s", image_url[:80], final_url)
+            # self.logger.info("[*] Vaulted: %s...", file_name.split('/')[-1][:12])
             return final_url
         except Exception as exc:
             self.logger.exception("failed to upload image %s: %s", file_name, exc)
