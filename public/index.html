@@ -481,8 +481,7 @@
       <nav class="hidden sm:flex items-center gap-2 bg-black/5 p-1 rounded-2xl shrink-0">
         <button data-view="generate"
           class="nav-pill active px-4 sm:px-5 py-2 rounded-xl font-bold uppercase text-[10px] tracking-widest">Forge</button>
-        <button data-view="tasks"
-          class="nav-pill px-4 sm:px-5 py-2 rounded-xl font-bold uppercase text-[10px] tracking-widest">Queue</button>
+        <!-- Queue Disabled -->
         <button data-view="history"
           class="nav-pill px-4 sm:px-5 py-2 rounded-xl font-bold uppercase text-[10px] tracking-widest">Vault</button>
       </nav>
@@ -700,12 +699,7 @@
       </svg>
       <span class="text-[9px] font-black uppercase tracking-tighter">Forge</span>
     </button>
-    <button data-view="tasks" class="mobile-nav-item flex flex-col items-center p-2 transition-all opacity-60">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-      <span class="text-[9px] font-black uppercase tracking-tighter">Queue</span>
-    </button>
+    <!-- Mobile Queue Disabled -->
     <button data-view="history" class="mobile-nav-item flex flex-col items-center p-2 transition-all opacity-60">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
@@ -1321,6 +1315,7 @@
 
     let queueInterval = null;
     async function refreshCurrentJob() {
+      return; // Disabled
       if (queueInterval) clearInterval(queueInterval);
       
       const doRefresh = async () => {
