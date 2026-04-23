@@ -175,10 +175,17 @@ class Database:
         async with pool.connection() as conn:
             async with conn.cursor() as cur:
                 if realm:
-                    await cur.execute(
-                        "SELECT * FROM generations WHERE is_hidden = false AND LOWER(realm) = LOWER(%s) ORDER BY created_at DESC LIMIT %s OFFSET %s",
-                        (realm, limit, offset),
-                    )
+                    if realm.lower() == 'day':
+                        # Backwards compatibility: treat NULL as 'day'
+                        await cur.execute(
+                            "SELECT * FROM generations WHERE is_hidden = false AND (LOWER(realm) = 'day' OR realm IS NULL) ORDER BY created_at DESC LIMIT %s OFFSET %s",
+                            (limit, offset),
+                        )
+                    else:
+                        await cur.execute(
+                            "SELECT * FROM generations WHERE is_hidden = false AND LOWER(realm) = LOWER(%s) ORDER BY created_at DESC LIMIT %s OFFSET %s",
+                            (realm, limit, offset),
+                        )
                 else:
                     await cur.execute(
                         "SELECT * FROM generations WHERE is_hidden = false ORDER BY created_at DESC LIMIT %s OFFSET %s",
