@@ -81,6 +81,7 @@ class Database:
                     );
                     """
                 )
+                await cur.execute("ALTER TABLE generations ADD COLUMN IF NOT EXISTS is_hidden boolean NOT NULL DEFAULT false")
             await conn.commit()
 
     async def create_generation(self, *, generation_id: str, request_id: str, client_id: Optional[str], realm: str, prompt: str, model: str, quality: str, aspect: str, seed: Optional[int], negative_prompt: Optional[str], count: int = 4):
