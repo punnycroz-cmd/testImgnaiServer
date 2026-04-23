@@ -1815,6 +1815,7 @@
     async function loadHistoryPage() {
       if (state.loadingHistory || !state.historyHasMore) return;
       state.loadingHistory = true;
+      if (dom.loadMoreBtn) dom.loadMoreBtn.textContent = "Summoning...";
       try {
         const realmQ = state.vaultRealm ? `&realm=${state.vaultRealm}` : "";
         const res = await apiFetch(`/history?page=${state.historyPage}&limit=${state.historyLimit}${realmQ}`);
@@ -1835,11 +1836,15 @@
         state.historyHasMore = !!res.has_more;
         state.historyPage += 1;
         
-        // Show/Hide Load More based on has_more
-        if (dom.loadMoreBtn) dom.loadMoreBtn.classList.toggle("hidden", !state.historyHasMore);
+        // Restore Load More
+        if (dom.loadMoreBtn) {
+           dom.loadMoreBtn.classList.toggle("hidden", !state.historyHasMore);
+           dom.loadMoreBtn.textContent = "Load More";
+        }
       } catch (err) {
-        console.error(err);
+        console.error("loadHistoryPage ERROR:", err);
         dom.historyList.style.opacity = "1";
+        if (dom.loadMoreBtn) dom.loadMoreBtn.textContent = "Error (Retry)";
       } finally {
         state.loadingHistory = false;
       }
