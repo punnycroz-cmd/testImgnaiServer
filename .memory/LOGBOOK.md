@@ -49,12 +49,13 @@ This room tracks the chronological evolution of the Aether / ImgnAI project.
 2. **[Mistake] Async Browser Detection**: Async Playwright patterns are more easily detectable than Sync ones in some environments.
    - *Fix*: Stick to Sync Playwright logic for "Hard" Cloudflare targets like Day.
 
-### [2026-04-23 15:15] 🛰️ Pipelined Matrix & Strict Silence
-- **Pipelined Manifestation**: Refactored `DayManager` and `StarManager` to release their execution locks immediately after generation IDs are received. This allows "Model B" to start its 60s nap while "Model A" finishes vaulting in the background.
-- **Strict Silence Mode**: Implemented `state.isGenerating` lock in the frontend to suppress all background health checks and queue refreshes during the critical 60s napping window, eliminating redundant server traffic.
-- **Passive Intelligence Monitoring**: Removed the 30s health polling loop. The UI now reactively detects server outages via `apiFetch` error hooks, maintaining absolute log silence when idle.
-- **Binary Symbolic Logging**: Replaced verbose engine logs with binary markers (`[>] Start`, `[!] Finish`) and silenced Uvicorn access logs to prevent Replit console lag.
-- **Queue Decommission**: Removed the Tasks/Queue view and its polling interval to maximize focus on the Forge and Vault engines.
+### [2026-04-23 16:35] 🏛️ Vault Pagination Engine & Cache Obliteration
+- **Recursive Vault Fetching**: Implemented a robust `advanceVaultLoad` engine that recursively consumes database pages until a full 20-item visual batch is filled, effectively bypassing thousands of "ghost" rows (corrupt/empty batches).
+- **Cache Buster Implementation**: Added strict `Cache-Control: no-cache` headers and `_t=timestamp` query parameters to all `apiFetch` calls. This fixes a critical blocker where browsers (and Replit edge proxies) were serving stale Page 1 data during pagination sweeps.
+- **Ghost & Duplicate Filtering**: Added frontend logic to skip items with 0 images and prevent ID collisions during multi-page sweeps.
+- **Vault Diagnostics**: Added `console.group` tracing to the vault loop for real-time inspection of database quality (Valid vs Ghost vs Duplicate counts).
+- **End-of-Vault Graceful Termination**: The "Load More" button now transitions to an "End of Vault" disabled state once the database is exhausted, preventing redundant network requests.
+- **Extended Stats API**: Updated `/debug/vault-stats` to include a deep-inspect `valid_batches` count, separating database row counts from actual viewable manifests.
 
 ---
-*Last Updated: 2026-04-23 15:15*
+*Last Updated: 2026-04-23 16:35*

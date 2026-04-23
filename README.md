@@ -37,7 +37,9 @@ This project uses the **Memory House** system (Spatial Context) for agentic effi
 - **Progress Matrix**: Real-time diagnostic bar for tracking Manifestation stages (*Link -> Auth -> Weave -> Vault*).
 - **Metadata Inspector**: Full "Prophecy Panel" revealing prompts, models, and seeds for every historical image.
 - **Deep Cloning**: "Invoke Again" feature to instantly copy settings from the vault back into the generator.
-- **Infinite Scroll**: Seamless history exploration without manual pagination.
+- **Recursive Vault Engine**: Advanced pagination engine that recursively sweeps database pages to bypass "ghost" entries and ensure a continuous flow of valid content.
+- **Cache-Bust Fetching**: Strict cache-control and timestamped requests ensure zero stale data in high-latency or proxied environments (like Replit).
+- **Infinite Scroll & Load More**: Seamless history exploration with deterministic "End of Vault" termination.
 - **Mobile Bottom Navigation**: Dedicated floating tab bar for Forge and Vault access on small screens.
 - **UX Automation**: Intelligent console expansion/minimization and tab-switching logic for optimal viewport usage.
 
