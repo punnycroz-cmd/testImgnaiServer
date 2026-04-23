@@ -38,7 +38,7 @@ This project uses the **Memory House** system (Spatial Context) for agentic effi
 - **Metadata Inspector**: Full "Prophecy Panel" revealing prompts, models, and seeds for every historical image.
 - **Deep Cloning**: "Invoke Again" feature to instantly copy settings from the vault back into the generator.
 - **Infinite Scroll**: Seamless history exploration without manual pagination.
-- **Mobile Bottom Navigation**: Dedicated floating tab bar for Forge, Queue, and Vault access on small screens.
+- **Mobile Bottom Navigation**: Dedicated floating tab bar for Forge and Vault access on small screens.
 - **UX Automation**: Intelligent console expansion/minimization and tab-switching logic for optimal viewport usage.
 
 ## Required Environment Variables

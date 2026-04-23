@@ -49,5 +49,12 @@ This room tracks the chronological evolution of the Aether / ImgnAI project.
 2. **[Mistake] Async Browser Detection**: Async Playwright patterns are more easily detectable than Sync ones in some environments.
    - *Fix*: Stick to Sync Playwright logic for "Hard" Cloudflare targets like Day.
 
+### [2026-04-23 15:15] 🛰️ Pipelined Matrix & Strict Silence
+- **Pipelined Manifestation**: Refactored `DayManager` and `StarManager` to release their execution locks immediately after generation IDs are received. This allows "Model B" to start its 60s nap while "Model A" finishes vaulting in the background.
+- **Strict Silence Mode**: Implemented `state.isGenerating` lock in the frontend to suppress all background health checks and queue refreshes during the critical 60s napping window, eliminating redundant server traffic.
+- **Passive Intelligence Monitoring**: Removed the 30s health polling loop. The UI now reactively detects server outages via `apiFetch` error hooks, maintaining absolute log silence when idle.
+- **Binary Symbolic Logging**: Replaced verbose engine logs with binary markers (`[>] Start`, `[!] Finish`) and silenced Uvicorn access logs to prevent Replit console lag.
+- **Queue Decommission**: Removed the Tasks/Queue view and its polling interval to maximize focus on the Forge and Vault engines.
+
 ---
-*Last Updated: 2026-04-21 23:05*
+*Last Updated: 2026-04-23 15:15*

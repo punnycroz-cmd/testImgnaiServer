@@ -11,6 +11,7 @@ The Day engine is based on a CLI-style automation.
 - **Mechanism**:
   - Subprocess execution of the client.
   - Periodic polling of task IDs.
+  - **Pipelined Locking**: Releases engine lock as soon as task IDs are received, allowing the next Matrix job to start its nap while vaulting happens in the background.
   - JSON-line feedback for session and task state tracking.
 - **Auth**: Uses cookies stored in `cookie/imgnai_cookie.json`.
 
@@ -23,6 +24,7 @@ The Star engine (formerly `imaginered`) uses browser-based automation via Playwr
 - **Mechanism**:
   - Playwright for login and age-gate handling.
   - Token extraction (cookies, localStorage, session) for subsequent API requests.
+  - **Pipelined Locking**: Releases engine lock as soon as task IDs are received, allowing parallel generation starts while vaulting finishes in the background.
   - Patient polling with backoff logic.
   - **Live Progress**: Directly writes to the `generation_images` table as images are received, allowing for live streaming in the frontend.
 - **Auth**: Uses cookies stored in `cookie/imaginered_cookie.json`.
