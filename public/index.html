@@ -1491,70 +1491,39 @@
       setTimeout(() => reveal.classList.add("active"), 10);
     }
 
-    function appendHistoryItems(items, clear = false) {
-      if (clear) dom.historyList.innerHTML = "";
-      let stats = { total: items.length, realmFiltered: 0, duplicate: 0, noImages: 0, appended: 0, errors: 0 };
-      items.forEach((entry, idx) => {
-        try {
-          // LOCAL FILTER: Ensure we only show items matching the active vault realm
-          if (state.vaultRealm && entry.realm && entry.realm.toLowerCase() !== state.vaultRealm.toLowerCase()) {
-            stats.realmFiltered++;
-            return;
-          }
-          
-          // PREVENT DUPLICATES
-          if (document.getElementById(`batch-${entry.request_id}`)) {
-            stats.duplicate++;
-            return;
-          }
+    function createBatchCard(entry) {
+        const wrap = document.createElement("div");
+        wrap.id = `batch-${entry.request_id}`;
+        wrap.className = "glass-panel p-4 pb-5 cursor-pointer group relative transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_20px_50px_rgba(0,0,0,0.4)] border-white/5 hover:border-white/20";
+        if (state.selectedIds.has(entry.request_id)) wrap.classList.add("border-[var(--accent)]", "bg-[var(--accent)]/10");
+        
+        wrap.onclick = (e) => { 
+           if (e.target.closest("button")) return;
+           if (state.selectionMode) {
+              toggleBatchSelection(entry.request_id);
+           } else {
+              openHistoryGroup(entry); 
+           }
+        };
 
-          // SKIP EMPTY BATCHES (no images vaulted)
-          if (!entry.images || entry.images.length === 0) {
-            stats.noImages++;
-            return;
-          }
-
-          const wrap = document.createElement("div");
-          wrap.id = `batch-${entry.request_id}`;
-          wrap.className = "glass-panel p-4 pb-5 cursor-pointer group relative transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_20px_50px_rgba(0,0,0,0.4)] border-white/5 hover:border-white/20";
-          if (state.selectedIds.has(entry.request_id)) wrap.classList.add("border-[var(--accent)]", "bg-[var(--accent)]/10");
-          
-          wrap.onclick = (e) => { 
-             if (e.target.closest("button")) return;
-             if (state.selectionMode) {
-                toggleBatchSelection(entry.request_id);
-             } else {
-                openHistoryGroup(entry); 
-             }
-          };
-
-          const isSelected = state.selectedIds.has(entry.request_id);
-          
-          wrap.innerHTML = `
-            <div class="flex items-center justify-between gap-2 mb-3">
-              <div class="min-w-0">
-                <div class="text-[9px] uppercase tracking-widest text-[var(--accent)] font-black">${entry.realm || "day"}</div>
-                <div class="text-xs font-bold truncate opacity-80">${escapeHtml(entry.prompt || "No Inscription")}</div>
-              </div>
-              <div class="selection-indicator ${state.selectionMode ? 'flex' : 'hidden'} w-5 h-5 rounded-full border-2 border-white/20 items-center justify-center ${isSelected ? 'bg-[var(--accent)] border-[var(--accent)]' : ''}">
-                 ${isSelected ? '<svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg>' : ''}
-              </div>
+        const isSelected = state.selectedIds.has(entry.request_id);
+        
+        wrap.innerHTML = `
+          <div class="flex items-center justify-between gap-2 mb-3">
+            <div class="min-w-0">
+              <div class="text-[9px] uppercase tracking-widest text-[var(--accent)] font-black">${entry.realm || "day"}</div>
+              <div class="text-xs font-bold truncate opacity-80">${escapeHtml(entry.prompt || "No Inscription")}</div>
             </div>
-            <div class="grid grid-cols-2 gap-2">
-              ${(entry.images || []).slice(0, 4).map(img => `<div class="art-frame"><img src="${img.r2_url}" class="w-full aspect-square object-cover" loading="lazy"></div>`).join("")}
+            <div class="selection-indicator ${state.selectionMode ? 'flex' : 'hidden'} w-5 h-5 rounded-full border-2 border-white/20 items-center justify-center ${isSelected ? 'bg-[var(--accent)] border-[var(--accent)]' : ''}">
+               ${isSelected ? '<svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg>' : ''}
             </div>
-          `;
-          dom.historyList.appendChild(wrap);
-          stats.appended++;
-        } catch (e) {
-          stats.errors++;
-          console.error(`appendHistoryItems error on item ${idx}:`, e, entry);
-        }
-      });
-      console.log("appendHistoryItems stats:", stats);
-      return stats;
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            ${(entry.images || []).slice(0, 4).map(img => `<div class="art-frame"><img src="${img.r2_url}" class="w-full aspect-square object-cover" loading="lazy"></div>`).join("")}
+          </div>
+        `;
+        return wrap;
     }
-
 
     function toggleBatchSelection(id) {
        if (state.selectedIds.has(id)) state.selectedIds.delete(id);
@@ -1718,9 +1687,7 @@
     }
 
     function updateVaultCache() {
-       // Optional: we can try to rebuild a bit of cache based on remaining DOM elements
-       // but for now we just clear it so next refresh is fresh.
-       localStorage.removeItem("a_vault_cache"); 
+       // Disabled cache for new architecture
     }
 
 
@@ -1832,68 +1799,63 @@
     }
 
 
-
-
     async function loadHistoryPage() {
-      if (state.loadingHistory || !state.historyHasMore) return;
-      state.loadingHistory = true;
-      if (dom.loadMoreBtn) dom.loadMoreBtn.textContent = "Summoning...";
-      try {
-        const realmQ = state.vaultRealm ? `&realm=${state.vaultRealm}` : "";
-        const res = await apiFetch(`/history?page=${state.historyPage}&limit=${state.historyLimit}${realmQ}`);
-        const items = res.items || [];
-        
-        const beforeCount = dom.historyList.children.length;
-        
-        if (state.historyPage === 1) {
-          state.historyLoaded = true;
-          dom.historyList.innerHTML = "";
-          dom.historyList.style.opacity = "1";
-          dom.historyList.style.pointerEvents = "auto";
-          appendHistoryItems(items, false);
-          localStorage.setItem("a_vault_cache", JSON.stringify(items));
-        } else {
-          appendHistoryItems(items, false);
-        }
-        
-        const afterCount = dom.historyList.children.length;
-        
-        state.historyHasMore = !!res.has_more;
-        state.historyPage += 1;
-        
-        // Show diagnostic info on the button
-        if (dom.loadMoreBtn) {
-           dom.loadMoreBtn.classList.toggle("hidden", !state.historyHasMore);
-           dom.loadMoreBtn.textContent = `Load More (${afterCount} shown)`;
-        }
-        
-        // Check console for detailed stats from appendHistoryItems
-        setFooterMsg(`P${state.historyPage - 1}: ${items.length} from server → ${afterCount} visible. Check console for filter details.`, "info");
+       if (state.loadingHistory || !state.historyHasMore) return;
+       state.loadingHistory = true;
+       if (dom.loadMoreBtn) dom.loadMoreBtn.textContent = "Summoning...";
 
-        
-      } catch (err) {
-        console.error("loadHistoryPage ERROR:", err);
-        dom.historyList.style.opacity = "1";
-        if (dom.loadMoreBtn) dom.loadMoreBtn.textContent = "Error (Retry)";
-      } finally {
-        state.loadingHistory = false;
-      }
+       let renderedInThisPass = 0;
+       
+       try {
+          // Keep fetching pages until we accumulate 20 valid items, OR we run out of DB items
+          while (renderedInThisPass < state.historyLimit && state.historyHasMore) {
+             const realmQ = state.vaultRealm ? `&realm=${state.vaultRealm}` : "";
+             const res = await apiFetch(`/history?page=${state.historyPage}&limit=${state.historyLimit}${realmQ}`);
+             const items = res.items || [];
+             
+             state.historyHasMore = !!res.has_more;
+             state.historyPage += 1;
 
+             for (const entry of items) {
+                // Ignore items that do not belong to the current realm
+                if (state.vaultRealm && entry.realm && entry.realm.toLowerCase() !== state.vaultRealm.toLowerCase()) continue;
+                // Ignore ghosts with absolutely no images
+                if (!entry.images || entry.images.length === 0) continue;
+                // Ignore duplicates
+                if (document.getElementById(`batch-${entry.request_id}`)) continue;
+
+                dom.historyList.appendChild(createBatchCard(entry));
+                renderedInThisPass++;
+             }
+          }
+       } catch (err) {
+          console.error("Vault load error:", err);
+          if (dom.loadMoreBtn) dom.loadMoreBtn.textContent = "Error (Retry)";
+       } finally {
+          state.loadingHistory = false;
+       }
+
+       // Finalize UI
+       const totalCardsVisible = dom.historyList.children.length;
+       if (dom.loadMoreBtn) {
+          dom.loadMoreBtn.classList.toggle("hidden", !state.historyHasMore);
+          dom.loadMoreBtn.textContent = `Load More (${totalCardsVisible} shown)`;
+       }
+       setFooterMsg(`Loaded batches. Total visible: ${totalCardsVisible}`, "info");
     }
-
 
     async function renderHistory(reset = false) {
       if (!dom.historyList || document.getElementById("view-history").classList.contains("hidden")) return;
       
-      // Initial render from cache if list empty
-      if (dom.historyList.innerHTML === "" && localStorage.getItem("a_vault_cache")) {
-        try { appendHistoryItems(JSON.parse(localStorage.getItem("a_vault_cache")), false); } catch (e) { }
-      }
-      
       if (state.historyLoaded && !reset && dom.historyList.innerHTML !== "") return;
       
+      state.historyLoaded = true;
       state.historyPage = 1;
       state.historyHasMore = true;
+      dom.historyList.innerHTML = "";
+      dom.historyList.style.opacity = "1";
+      dom.historyList.style.pointerEvents = "auto";
+      
       await loadHistoryPage();
     }
 
