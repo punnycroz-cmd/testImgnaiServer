@@ -898,10 +898,17 @@
         throw new Error("Local File Protocol detected. Please run via a web server.");
       }
       try {
-        const resp = await fetch(`${state.serverUrl}${path}`, {
-          headers: { "Content-Type": "application/json", ...(opts.headers || {}) },
+        const fetchOpts = {
+          headers: { 
+            "Content-Type": "application/json", 
+            "Cache-Control": "no-cache", 
+            "Pragma": "no-cache", 
+            ...opts.headers 
+          },
+          cache: "no-store",
           ...opts
-        });
+        };
+        const resp = await fetch(`${state.serverUrl}${path}`, fetchOpts);
         const text = await resp.text();
         let data = null;
         try { data = text ? JSON.parse(text) : null; } catch { data = { raw: text }; }
@@ -1810,7 +1817,8 @@
         try {
            while (renderedInThisPass < state.historyLimit && state.historyHasMore) {
               const realmQ = state.vaultRealm ? `&realm=${state.vaultRealm}` : "";
-              const fetchUrl = `/history?page=${state.historyPage}&limit=${state.historyLimit}${realmQ}`;
+              const cacheBuster = `&_t=${Date.now()}`;
+              const fetchUrl = `/history?page=${state.historyPage}&limit=${state.historyLimit}${realmQ}${cacheBuster}`;
               console.log(`[Vault] Fetching Page ${state.historyPage}:`, fetchUrl);
               
               const res = await apiFetch(fetchUrl);
