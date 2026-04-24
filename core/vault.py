@@ -98,9 +98,13 @@ def delete_object(key: str) -> bool:
 
 # Compatibility Class
 class R2Vault:
-    def __init__(self, *args, **kwargs):
-        # We ignore these now because we use Environment Variables instead
-        pass
+    def __init__(self, account_id=None, bucket_name=None, public_url=None, access_key=None, secret_key=None):
+        self.account_id = account_id or os.environ.get("R2_ACCOUNT_ID")
+        self.bucket_name = bucket_name or os.environ.get("R2_BUCKET", "imagenai")
+        self.public_url = public_url or os.environ.get("R2_PUBLIC_URL", "")
+        self.access_key = access_key or os.environ.get("R2_ACCESS_KEY")
+        self.secret_key = secret_key or os.environ.get("R2_SECRET_KEY")
+
     def build_batch_prefix(self, *args, **kwargs): return build_batch_prefix(*args, **kwargs)
     def build_object_key(self, *args, **kwargs): return build_object_key(*args, **kwargs)
     def upload_image(self, *args, **kwargs): return upload_image(*args, **kwargs)
