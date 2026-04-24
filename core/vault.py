@@ -4,146 +4,101 @@ from io import BytesIO
 from datetime import datetime
 from uuid import uuid4
 from zoneinfo import ZoneInfo
-from typing import Optional
+from typing import Optional, List, Dict
 
 import boto3
 import requests
 
+# Global Client
+_s3_client = None
+_bucket_name = os.environ.get("R2_BUCKET", "imgnai")
+_public_url = os.environ.get("R2_PUBLIC_URL", "").rstrip("/")
 
+def get_s3_client():
+    global _s3_client
+    if _s3_client is None:
+        account_id = os.environ.get("R2_ACCOUNT_ID")
+        access_key = os.environ.get("R2_ACCESS_KEY")
+        secret_key = os.environ.get("R2_SECRET_KEY")
+        
+        if not all([account_id, access_key, secret_key]):
+            logging.warning("R2 Environment variables missing")
+            return None
+            
+        _s3_client = boto3.client(
+            service_name="s3",
+            endpoint_url=f"https://{account_id}.r2.cloudflarestorage.com",
+            aws_access_key_id=access_key,
+            aws_secret_access_key=secret_key,
+            region_name="auto",
+        )
+    return _s3_client
+
+def build_batch_prefix(source: str, ts: Optional[datetime] = None, batch_id: Optional[str] = None) -> str:
+    stamp_ts = ts or datetime.now(ZoneInfo("America/Los_Angeles"))
+    stamp = stamp_ts.astimezone(ZoneInfo("America/Los_Angeles")).strftime("%Y_%m_%d_%H%M%S")
+    safe_source = source.strip().lower().replace(" ", "_")
+    safe_batch_id = (batch_id or uuid4().hex[:8]).strip().lower()
+    return f"vault/{stamp}_{safe_source}_{safe_batch_id}"
+
+def build_object_key(batch_prefix: str, file_name: str, ext: str = "jpg") -> str:
+    safe_file_name = file_name.strip().replace("/", "_").replace(" ", "_")
+    return f"{batch_prefix}/{safe_file_name}.{ext.lstrip('.')}"
+
+def upload_image(image_url: str, file_name: str) -> str:
+    s3 = get_s3_client()
+    if s3 is None:
+        return image_url
+
+    try:
+        response = requests.get(image_url, timeout=20)
+        response.raise_for_status()
+        s3.put_object(
+            Bucket=_bucket_name,
+            Key=file_name,
+            Body=BytesIO(response.content),
+            ContentType="image/jpeg",
+        )
+        return f"{_public_url}/{file_name.lstrip('/')}"
+    except Exception as exc:
+        logging.error("Failed to upload image %s: %s", file_name, exc)
+        return image_url
+
+def list_images(prefix: str = "vault/") -> List[Dict]:
+    s3 = get_s3_client()
+    if s3 is None: return []
+    
+    try:
+        paginator = s3.get_paginator("list_objects_v2")
+        items = []
+        for page in paginator.paginate(Bucket=_bucket_name, Prefix=prefix):
+            for obj in page.get("Contents", []):
+                key = obj.get("Key")
+                if key and key.lower().endswith((".jpg", ".jpeg", ".png", ".webp")):
+                    items.append({
+                        "key": key,
+                        "url": f"{_public_url}/{key.lstrip('/')}",
+                        "last_modified": obj.get("LastModified").isoformat() if obj.get("LastModified") else None,
+                    })
+        items.sort(key=lambda x: x["key"], reverse=True)
+        return items
+    except Exception as exc:
+        logging.error("Failed to list images: %s", exc)
+        return []
+
+def delete_object(key: str) -> bool:
+    s3 = get_s3_client()
+    if s3 is None: return False
+    try:
+        s3.delete_object(Bucket=_bucket_name, Key=key)
+        return True
+    except Exception as exc:
+        logging.error("Failed to delete key %s: %s", key, exc)
+        return False
+
+# Compatibility Class
 class R2Vault:
-    def __init__(
-        self,
-        account_id: str,
-        bucket_name: str,
-        public_url: str,
-        access_key: Optional[str] = None,
-        secret_key: Optional[str] = None,
-    ):
-        self.account_id = account_id
-        self.bucket_name = bucket_name
-        self.public_url = public_url.rstrip("/")
-        self.access_key = access_key or os.environ.get("R2_ACCESS_KEY")
-        self.secret_key = secret_key or os.environ.get("R2_SECRET_KEY")
-        self.logger = logging.getLogger("aether.vault")
-
-    def build_batch_prefix(self, source: str, ts: Optional[datetime] = None, batch_id: Optional[str] = None) -> str:
-        stamp_ts = ts or datetime.now(ZoneInfo("America/Los_Angeles"))
-        stamp = stamp_ts.astimezone(ZoneInfo("America/Los_Angeles")).strftime("%Y_%m_%d_%H%M%S")
-        safe_source = source.strip().lower().replace(" ", "_")
-        safe_batch_id = (batch_id or uuid4().hex[:8]).strip().lower()
-        return f"vault/{stamp}_{safe_source}_{safe_batch_id}"
-
-    def build_batch_prefix_with_name(self, source: str, name: str, ts: Optional[datetime] = None) -> str:
-        stamp_ts = ts or datetime.now(ZoneInfo("America/Los_Angeles"))
-        stamp = stamp_ts.astimezone(ZoneInfo("America/Los_Angeles")).strftime("%Y_%m_%d_%H%M%S")
-        safe_source = source.strip().lower().replace(" ", "_")
-        safe_name = name.strip().replace("/", "_").replace(" ", "_")
-        return f"vault/{stamp}_{safe_source}_{safe_name}"
-
-    def build_object_key(self, batch_prefix: str, file_name: str, ext: str = "jpg") -> str:
-        safe_file_name = file_name.strip().replace("/", "_").replace(" ", "_")
-        return f"{batch_prefix}/{safe_file_name}.{ext.lstrip('.')}"
-
-    def upload_image(self, image_url: str, file_name: str) -> str:
-        if not self.access_key or "PASTE_YOUR" in self.access_key:
-            self.logger.warning("R2 not configured, returning source url for %s", file_name)
-            return image_url
-
-        s3 = boto3.client(
-            service_name="s3",
-            endpoint_url=f"https://{self.account_id}.r2.cloudflarestorage.com",
-            aws_access_key_id=self.access_key,
-            aws_secret_access_key=self.secret_key,
-            region_name="auto",
-        )
-
-        try:
-            response = requests.get(image_url, timeout=20)
-            response.raise_for_status()
-            s3.put_object(
-                Bucket=self.bucket_name,
-                Key=file_name,
-                Body=BytesIO(response.content),
-                ContentType="image/jpeg",
-            )
-            final_url = f"{self.public_url}/{file_name.lstrip('/')}"
-            # self.logger.info("[*] Vaulted: %s...", file_name.split('/')[-1][:12])
-            return final_url
-        except Exception as exc:
-            self.logger.exception("failed to upload image %s: %s", file_name, exc)
-            return image_url
-
-    def list_images(self, prefix: str = "vault/"):
-        if not self.access_key or "PASTE_YOUR" in self.access_key:
-            return []
-
-        s3 = boto3.client(
-            service_name="s3",
-            endpoint_url=f"https://{self.account_id}.r2.cloudflarestorage.com",
-            aws_access_key_id=self.access_key,
-            aws_secret_access_key=self.secret_key,
-            region_name="auto",
-        )
-        try:
-            paginator = s3.get_paginator("list_objects_v2")
-            items = []
-            for page in paginator.paginate(Bucket=self.bucket_name, Prefix=prefix):
-                for obj in page.get("Contents", []):
-                    key = obj.get("Key")
-                    if key and key.lower().endswith((".jpg", ".jpeg", ".png", ".webp")):
-                        items.append(
-                            {
-                                "key": key,
-                                "url": f"{self.public_url}/{key.lstrip('/')}",
-                                "last_modified": obj.get("LastModified").isoformat() if obj.get("LastModified") else None,
-                            }
-                        )
-            items.sort(key=lambda x: x["key"], reverse=True)
-            return items
-        except Exception as exc:
-            self.logger.exception("failed to list images: %s", exc)
-            return []
-
-    def list_object_keys(self, prefix: str = "vault/"):
-        if not self.access_key or "PASTE_YOUR" in self.access_key:
-            return []
-
-        s3 = boto3.client(
-            service_name="s3",
-            endpoint_url=f"https://{self.account_id}.r2.cloudflarestorage.com",
-            aws_access_key_id=self.access_key,
-            aws_secret_access_key=self.secret_key,
-            region_name="auto",
-        )
-        try:
-            paginator = s3.get_paginator("list_objects_v2")
-            keys = []
-            for page in paginator.paginate(Bucket=self.bucket_name, Prefix=prefix):
-                for obj in page.get("Contents", []):
-                    key = obj.get("Key")
-                    if key:
-                        keys.append(key)
-            keys.sort(reverse=True)
-            return keys
-        except Exception as exc:
-            self.logger.exception("failed to list keys: %s", exc)
-            return []
-
-    def delete_object(self, key: str) -> bool:
-        if not self.access_key or "PASTE_YOUR" in self.access_key:
-            self.logger.warning("R2 not configured, cannot delete %s", key)
-            return False
-
-        s3 = boto3.client(
-            service_name="s3",
-            endpoint_url=f"https://{self.account_id}.r2.cloudflarestorage.com",
-            aws_access_key_id=self.access_key,
-            aws_secret_access_key=self.secret_key,
-            region_name="auto",
-        )
-        try:
-            s3.delete_object(Bucket=self.bucket_name, Key=key)
-            return True
-        except Exception as exc:
-            self.logger.exception("failed to delete key %s: %s", key, exc)
-            return False
+    def build_batch_prefix(self, *args, **kwargs): return build_batch_prefix(*args, **kwargs)
+    def build_object_key(self, *args, **kwargs): return build_object_key(*args, **kwargs)
+    def upload_image(self, *args, **kwargs): return upload_image(*args, **kwargs)
+    def delete_object(self, *args, **kwargs): return delete_object(*args, **kwargs)
