@@ -148,6 +148,10 @@ async def get_generation(request_id: str) -> Optional[Dict]:
 
 async def list_generations(limit: int = 20, offset: int = 0, realm: Optional[str] = None, before: Optional[str] = None) -> List[Dict]:
     pool = await get_pool()
+    
+    # If a cursor (before) is used, we reset offset to 0 to avoid skipping items incorrectly
+    actual_offset = 0 if before else offset
+    
     query = """
         SELECT 
             request_id, client_id, realm, prompt, model, 
@@ -167,14 +171,14 @@ async def list_generations(limit: int = 20, offset: int = 0, realm: Optional[str
             
         if before:
             params.append(before)
-            where_clauses.append(f"created_at < ${len(params)}")
+            where_clauses.append(f"created_at < ${len(params)}::TIMESTAMPTZ")
             
         if where_clauses:
             query += " AND " + " AND ".join(where_clauses)
             
         params.append(limit)
         limit_idx = len(params)
-        params.append(offset)
+        params.append(actual_offset)
         offset_idx = len(params)
         
         query += f" ORDER BY created_at DESC LIMIT ${limit_idx} OFFSET ${offset_idx}"
