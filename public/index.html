@@ -1261,8 +1261,11 @@
       for (let attempt = 0; attempt < maxAttempts; attempt++) {
         try {
           const res = await apiFetch(`/job-status/${requestId}`);
-          if (res.status === "done" && res.images && res.images.length > 0) {
-            const urls = res.images.map(img => img.r2_url);
+          const urls = (res.images && res.images.length > 0)
+            ? res.images.map(img => img.r2_url).filter(Boolean)
+            : (res.result?.image_urls || []).filter(Boolean);
+
+          if (res.status === "done" && urls.length > 0) {
             updateMatrixCell(cell, urls, requestId);
             return;
           }
@@ -1270,6 +1273,27 @@
         } catch (e) { }
         await sleep(3000);
       }
+    }
+
+    function updateMatrixCell(cell, urls, requestId) {
+      if (!cell || !urls || !urls.length) return;
+      const img = cell.querySelector("img");
+      const loader = cell.querySelector(".loader");
+      const label = cell.querySelector("span");
+
+      if (loader) loader.classList.add("hidden");
+      if (img) {
+        img.src = urls[0];
+        img.classList.remove("hidden", "opacity-0", "scale-110");
+        img.classList.add("opacity-100");
+      }
+      if (label) label.classList.add("opacity-0");
+      cell.classList.remove("active-summon");
+      cell.dataset.requestId = requestId || "";
+      cell.onclick = () => openHistoryGroup({
+        request_id: requestId,
+        images: urls.map((u, idx) => ({ r2_url: u, image_index: idx }))
+      });
     }
 
 
