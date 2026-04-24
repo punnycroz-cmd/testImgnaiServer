@@ -1107,19 +1107,17 @@
         setView("generate");
         toggleConsole("expand");
 
-        for (let i = 0; i < models.length; i++) {
-          // Check for cancellation
-          if (state.matrixCancelled) {
-            setFooterMsg("Matrix Casting Aborted.", "error");
-            break;
-          }
+        let completedCount = 0;
+        const totalModels = models.length;
+        const updateMatrixProgress = () => {
+          const statusText = document.getElementById("matrixStatusText");
+          if (statusText) statusText.textContent = `Manifesting: ${completedCount} / ${totalModels} complete`;
+        };
+        updateMatrixProgress();
 
-          // Check for pause
-          while (state.matrixPaused) {
-            await sleep(1000);
-            if (state.matrixCancelled) break;
-          }
+        for (let i = 0; i < totalModels; i++) {
           if (state.matrixCancelled) break;
+          while (state.matrixPaused) { await sleep(1000); if (state.matrixCancelled) break; }
 
           const model = models[i];
           const mPayload = { ...payload, model };
@@ -1131,7 +1129,7 @@
             cell.classList.add("active-summon");
           }
 
-          setFooterMsg(`Summoning Matrix Spirit ${i + 1}/${models.length}: ${model}`, "info");
+          setFooterMsg(`Summoning Matrix Spirit ${i + 1}/${totalModels}: ${model}`, "info");
 
           try {
             const res = await apiFetch("/generate", {
@@ -1140,10 +1138,15 @@
             });
             if (cell) cell.dataset.requestId = res.request_id;
 
-            // Poll until THIS one is done before moving to the next
-            await pollSingleMatrixJob(res.request_id, model, cell);
+            // Poll in background, update progress when done/failed
+            pollSingleMatrixJob(res.request_id, model, cell).then(() => {
+              completedCount++;
+              updateMatrixProgress();
+            });
           } catch (e) {
             console.error(`Matrix Job failed for ${model}`, e);
+            completedCount++;
+            updateMatrixProgress();
             if (cell) {
               cell.querySelector(".loader").classList.add("hidden");
               cell.style.boxShadow = "inset 0 0 40px rgba(239, 68, 68, 0.2)";
@@ -1151,9 +1154,17 @@
           } finally {
             if (cell) cell.classList.remove("active-summon");
           }
+          await sleep(1000);
+        }
+
+        while (completedCount < totalModels && !state.matrixCancelled) {
+          await sleep(2000);
         }
 
         setFooterMsg("Celestial Matrix Complete.", "success");
+        const finalStatusText = document.getElementById("matrixStatusText");
+        if (finalStatusText) finalStatusText.textContent = `Matrix Complete: ${completedCount} Manifested`;
+
       } catch (err) {
         setFooterMsg("Matrix Error: " + err.message, "error");
       } finally {

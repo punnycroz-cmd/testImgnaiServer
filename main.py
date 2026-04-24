@@ -97,26 +97,38 @@ async def health():
 
 
 async def _run_generation(job_id: str, req: GenerateRequest):
-    try:
-        logger.info("[>] Job Start: %s", job_id[:8])
-        is_star = (req.realm or "").lower() == "star" or req.nsfw
-        await DB.update_generation(job_id, status="processing")
-        if is_star:
-            star_req = StarGenerateRequest(**req.model_dump())
-            result = await star_mgr.generate(star_req, request_id=job_id)
-        else:
-            result = await day_mgr.generate(req, job_id)
-        
-        async with job_lock:
-            job_store[job_id] = {"status": "done", "result": result, "client_id": req.client_id, "request_id": job_id}
-        
-        await DB.update_generation(job_id, status="done", result=result, error=None, last_error_text=None)
-        logger.info("[!] Job: %s finished", job_id[:8])
-    except Exception as exc:
-        logger.exception("job failed request_id=%s", job_id)
-        async with job_lock:
-            job_store[job_id] = {"status": "error", "error": str(exc), "client_id": req.client_id, "request_id": job_id}
-        await DB.update_generation(job_id, status="failed", error=str(exc), last_error_text=str(exc))
+    max_retries = 2
+    for attempt in range(max_retries):
+        try:
+            logger.info("[>] Job Start: %s (Attempt %d/%d)", job_id[:8], attempt + 1, max_retries)
+            is_star = (req.realm or "").lower() == "star" or req.nsfw
+            await DB.update_generation(job_id, status="processing")
+            
+            if is_star:
+                star_req = StarGenerateRequest(**req.model_dump())
+                result = await star_mgr.generate(star_req, request_id=job_id)
+            else:
+                result = await day_mgr.generate(req, job_id)
+            
+            async with job_lock:
+                job_store[job_id] = {"status": "done", "result": result, "client_id": req.client_id, "request_id": job_id}
+            
+            await DB.update_generation(job_id, status="done", result=result, error=None, last_error_text=None)
+            logger.info("[!] Job: %s finished successfully", job_id[:8])
+            return # Success!
+            
+        except Exception as exc:
+            logger.warning("[?] Job Attempt %d failed for %s: %s", attempt + 1, job_id[:8], exc)
+            if attempt == max_retries - 1:
+                # Final failure
+                logger.exception("job totally failed request_id=%s", job_id)
+                async with job_lock:
+                    job_store[job_id] = {"status": "error", "error": str(exc), "client_id": req.client_id, "request_id": job_id}
+                await DB.update_generation(job_id, status="failed", error=str(exc), last_error_text=str(exc))
+            else:
+                # Wait a bit before retrying
+                await asyncio.sleep(2)
+
 
 
 @app.get("/job-status/{request_id}")
