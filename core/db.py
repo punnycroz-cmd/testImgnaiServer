@@ -227,6 +227,30 @@ class Database:
                     )
                 return await cur.fetchall()
 
+    async def list_generation_rows(self, limit: int = 20, offset: int = 0, realm: Optional[str] = None, include_hidden: bool = False):
+        if not self.enabled:
+            return []
+        pool = await self.get_pool()
+        async with pool.connection() as conn:
+            async with conn.cursor() as cur:
+                where = []
+                params = []
+                if not include_hidden:
+                    where.append("is_hidden = false")
+                if realm:
+                    if realm.lower() == "day":
+                        where.append("(LOWER(realm) = 'day' OR realm IS NULL)")
+                    else:
+                        where.append("LOWER(realm) = LOWER(%s)")
+                        params.append(realm)
+                sql = "SELECT * FROM generations"
+                if where:
+                    sql += " WHERE " + " AND ".join(where)
+                sql += " ORDER BY created_at DESC LIMIT %s OFFSET %s"
+                params.extend([limit, offset])
+                await cur.execute(sql, tuple(params))
+                return await cur.fetchall()
+
     async def hide_generation(self, request_id: str):
         if not self.enabled: return
         pool = await self.get_pool()

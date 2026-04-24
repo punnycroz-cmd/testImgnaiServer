@@ -103,3 +103,47 @@ class R2Vault:
         except Exception as exc:
             self.logger.exception("failed to list images: %s", exc)
             return []
+
+    def list_object_keys(self, prefix: str = "vault/"):
+        if not self.access_key or "PASTE_YOUR" in self.access_key:
+            return []
+
+        s3 = boto3.client(
+            service_name="s3",
+            endpoint_url=f"https://{self.account_id}.r2.cloudflarestorage.com",
+            aws_access_key_id=self.access_key,
+            aws_secret_access_key=self.secret_key,
+            region_name="auto",
+        )
+        try:
+            paginator = s3.get_paginator("list_objects_v2")
+            keys = []
+            for page in paginator.paginate(Bucket=self.bucket_name, Prefix=prefix):
+                for obj in page.get("Contents", []):
+                    key = obj.get("Key")
+                    if key:
+                        keys.append(key)
+            keys.sort(reverse=True)
+            return keys
+        except Exception as exc:
+            self.logger.exception("failed to list keys: %s", exc)
+            return []
+
+    def delete_object(self, key: str) -> bool:
+        if not self.access_key or "PASTE_YOUR" in self.access_key:
+            self.logger.warning("R2 not configured, cannot delete %s", key)
+            return False
+
+        s3 = boto3.client(
+            service_name="s3",
+            endpoint_url=f"https://{self.account_id}.r2.cloudflarestorage.com",
+            aws_access_key_id=self.access_key,
+            aws_secret_access_key=self.secret_key,
+            region_name="auto",
+        )
+        try:
+            s3.delete_object(Bucket=self.bucket_name, Key=key)
+            return True
+        except Exception as exc:
+            self.logger.exception("failed to delete key %s: %s", key, exc)
+            return False
