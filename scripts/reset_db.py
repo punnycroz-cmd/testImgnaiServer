@@ -2,6 +2,8 @@ import asyncio
 import os
 import asyncpg
 import sys
+import boto3
+import logging
 
 async def reset_db():
     url = os.environ.get("DATABASE_URL")
@@ -9,14 +11,46 @@ async def reset_db():
         print("❌ Error: DATABASE_URL not set.")
         return
 
-    print(f"⚠️  WARNING: This will DELETE ALL DATA in the database.")
-    print(f"Target: {url.split('@')[-1]}") # Print host only for safety
+    print(f"⚠️  WARNING: This will DELETE ALL DATA in the database AND all images in R2 Vault.")
+    print(f"DB Target: {url.split('@')[-1]}")
     
-    confirm = input("Are you absolutely sure? (type 'YES' to delete): ")
+    confirm = input("Are you absolutely sure? (type 'YES' to delete everything): ")
     if confirm != "YES":
         print("Aborted.")
         return
 
+    # --- Step 1: Purge R2 ---
+    try:
+        bucket = os.environ.get("R2_BUCKET", "imgnai")
+        account_id = os.environ.get("R2_ACCOUNT_ID")
+        access_key = os.environ.get("R2_ACCESS_KEY")
+        secret_key = os.environ.get("R2_SECRET_KEY")
+
+        if all([account_id, access_key, secret_key]):
+            print(f"🧹 Purging R2 Bucket: {bucket}...")
+            s3 = boto3.client(
+                service_name="s3",
+                endpoint_url=f"https://{account_id}.r2.cloudflarestorage.com",
+                aws_access_key_id=access_key,
+                aws_secret_access_key=secret_key,
+                region_name="auto",
+            )
+            
+            # List and delete everything with prefix 'vault/'
+            paginator = s3.get_paginator('list_objects_v2')
+            delete_count = 0
+            for page in paginator.paginate(Bucket=bucket, Prefix='vault/'):
+                if 'Contents' in page:
+                    for obj in page['Contents']:
+                        s3.delete_object(Bucket=bucket, Key=obj['Key'])
+                        delete_count += 1
+            print(f"✅ Deleted {delete_count} objects from R2.")
+        else:
+            print("⚠️ Skipping R2 Purge: Environment variables not set.")
+    except Exception as e:
+        print(f"❌ R2 Purge Error: {e}")
+
+    # --- Step 2: Reset DB ---
     try:
         conn = await asyncpg.connect(url)
         
@@ -25,7 +59,7 @@ async def reset_db():
         await conn.execute("DROP TABLE IF EXISTS generations CASCADE")
         
         print("Creating tables...")
-        # Generations table
+        # (Same table creation logic as before)
         await conn.execute("""
             CREATE TABLE generations (
                 id uuid PRIMARY KEY,
@@ -50,7 +84,6 @@ async def reset_db():
             )
         """)
         
-        # Images table
         await conn.execute("""
             CREATE TABLE generation_images (
                 id uuid PRIMARY KEY,
@@ -63,20 +96,16 @@ async def reset_db():
             )
         """)
         
-        # Indexes
         print("Creating indexes...")
         await conn.execute("CREATE INDEX idx_generations_realm_created ON generations (realm, created_at DESC, id)")
         await conn.execute("CREATE INDEX idx_images_generation_id ON generation_images (generation_id)")
         
         await conn.close()
-        print("✅ Database reset successfully. You are now starting with a clean slate!")
+        print("✅ Database reset successfully!")
+        print("\n✨ YOUR SYSTEM IS NOW 100% CLEAN AND FRESH ✨")
         
     except Exception as e:
         print(f"❌ Database error: {e}")
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1] == "--force":
-        # Skip confirmation if --force is passed
-        pass
-    
     asyncio.run(reset_db())
