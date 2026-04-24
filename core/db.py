@@ -82,6 +82,8 @@ class Database:
                     """
                 )
                 await cur.execute("ALTER TABLE generations ADD COLUMN IF NOT EXISTS is_hidden boolean NOT NULL DEFAULT false")
+                # Composite index for fast pagination and filtering
+                await cur.execute("CREATE INDEX IF NOT EXISTS idx_generations_realm_created ON generations (realm, created_at DESC, id)")
             await conn.commit()
 
     async def create_generation(self, *, generation_id: str, request_id: str, client_id: Optional[str], realm: str, prompt: str, model: str, quality: str, aspect: str, seed: Optional[int], negative_prompt: Optional[str], count: int = 4):
