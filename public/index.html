@@ -840,6 +840,7 @@
       activeRequestId: localStorage.getItem("a_active_request_id") || "",
       activeRequest: null,
       historyPage: 1,
+      historyCursor: null,
       historyLimit: 20,
       historyHasMore: true,
       historyLoaded: false,
@@ -1909,15 +1910,16 @@
       try {
         while (renderedInThisPass < state.historyLimit && state.historyHasMore) {
           const cacheBuster = `&_t=${Date.now()}`;
-          const fetchUrl = `/history?page=${state.historyPage}&limit=${state.historyLimit}${cacheBuster}`;
-          console.log(`[Vault] Fetching Page ${state.historyPage}:`, fetchUrl);
+          const cursorParam = state.historyCursor ? `&before=${encodeURIComponent(state.historyCursor)}` : "";
+          const fetchUrl = `/history?limit=${state.historyLimit}${cursorParam}${cacheBuster}`;
+          console.log(`[Vault] Fetching with cursor ${state.historyCursor}:`, fetchUrl);
 
           const res = await apiFetch(fetchUrl);
           const items = res.items || [];
           console.log(`[Vault] Received ${items.length} items from backend`, items);
 
           state.historyHasMore = !!res.has_more;
-          state.historyPage += 1;
+          state.historyCursor = res.next_cursor;
 
           let validInBatch = 0;
           let duplicates = 0;
@@ -1939,7 +1941,7 @@
             validInBatch++;
           }
 
-          console.log(`[Vault] Page ${state.historyPage - 1} Summary -> Valid: ${validInBatch}, Ghosts: ${ghostCount}, Duplicates: ${duplicates}`);
+          console.log(`[Vault] Batch Summary -> Valid: ${validInBatch}, Ghosts: ${ghostCount}, Duplicates: ${duplicates}`);
         }
       } catch (err) {
         console.error("Vault load error:", err);
@@ -1976,6 +1978,7 @@
 
       state.historyLoaded = true;
       state.historyPage = 1;
+      state.historyCursor = null;
       state.historyHasMore = true;
       dom.historyList.innerHTML = "";
       dom.historyList.style.opacity = "1";

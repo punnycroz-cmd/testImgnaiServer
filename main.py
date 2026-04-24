@@ -12,7 +12,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from config.schemas import GenerateRequest
-from core.db import Database
+from core.db import DB
 from core.vault import R2Vault
 from engines.day import DayManager
 from engines.star import GenerateRequest as StarGenerateRequest
@@ -30,16 +30,17 @@ R2_VAULT = R2Vault(
     bucket_name="imagenai",
     public_url="https://pub-b770478fe936495c8d44e69fb02d2943.r2.dev",
 )
-DB = Database()
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Initialize DB pool
     await DB.init()
     yield
-    # Close DB pool if needed (psycopg_pool handles this mostly, but we can be explicit)
-    if DB.pool:
-        await DB.pool.close()
+    # Close DB pool
+    pool = await DB.get_pool()
+    if pool:
+        await pool.close()
 
 app = FastAPI(lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
@@ -271,16 +272,17 @@ async def vault_stats(realm: Optional[str] = None):
 
 
 @app.get("/history")
-async def history(page: int = 1, limit: int = 20, realm: Optional[str] = None):
+async def history(page: int = 1, limit: int = 20, realm: Optional[str] = None, before: Optional[str] = None):
     offset = max(0, (page - 1) * limit)
-    # The new version of list_generations returns images as a nested list!
-    page_items = await DB.list_generations(limit=limit, offset=offset, realm=realm)
+    # Use before (cursor) if provided, otherwise fallback to page-based offset
+    page_items = await DB.list_generations(limit=limit, offset=offset, realm=realm, before=before)
     
     return {
         "items": page_items,
         "page": page,
         "limit": limit,
         "has_more": len(page_items) == limit,
+        "next_cursor": page_items[-1]["created_at"] if page_items else None
     }
 
 

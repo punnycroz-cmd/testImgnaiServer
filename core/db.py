@@ -146,28 +146,49 @@ async def get_generation_images(generation_db_id: Any) -> List[Dict]:
             results.append(d)
         return results
 
-async def list_generations(limit: int = 20, offset: int = 0, realm: Optional[str] = None) -> List[Dict]:
+async def list_generations(limit: int = 20, offset: int = 0, realm: Optional[str] = None, before: Optional[str] = None) -> List[Dict]:
     pool = await get_pool()
     base_query = """
         SELECT g.*, 
                (SELECT json_agg(i.* ORDER BY i.image_index ASC) 
                 FROM generation_images i 
                 WHERE i.generation_id = g.id) as images
+        FROM generations g
         WHERE g.is_hidden = false
           AND g.status = 'done'
           AND EXISTS (SELECT 1 FROM generation_images i WHERE i.generation_id = g.id)
     """
     
     async with pool.acquire() as conn:
+        where_clauses = []
+        params = []
+        
         if realm:
             if realm.lower() == 'day':
-                query = base_query + " AND (LOWER(g.realm) = 'day' OR g.realm IS NULL)"
-                rows = await conn.fetch(query + " ORDER BY g.created_at DESC, g.id DESC LIMIT $1 OFFSET $2", limit, offset)
+                where_clauses.append("(LOWER(g.realm) = 'day' OR g.realm IS NULL)")
             else:
-                query = base_query + " AND LOWER(g.realm) = LOWER($1)"
-                rows = await conn.fetch(query + " ORDER BY g.created_at DESC, g.id DESC LIMIT $2 OFFSET $3", realm, limit, offset)
-        else:
-            rows = await conn.fetch(base_query + " ORDER BY g.created_at DESC, g.id DESC LIMIT $1 OFFSET $2", limit, offset)
+                params.append(realm)
+                where_clauses.append(f"LOWER(g.realm) = LOWER(${len(params)})")
+        
+        if before:
+            params.append(before)
+            where_clauses.append(f"g.created_at < ${len(params)}")
+            
+        full_query = base_query
+        if where_clauses:
+            # base_query already has WHERE g.is_hidden = false etc.
+            full_query += " AND " + " AND ".join(where_clauses)
+            
+        params.append(limit)
+        limit_idx = len(params)
+        
+        # If using 'before' (cursor), we usually don't need 'offset'
+        # but we keep it for backward compatibility
+        params.append(offset)
+        offset_idx = len(params)
+        
+        query = full_query + f" ORDER BY g.created_at DESC, g.id DESC LIMIT ${limit_idx} OFFSET ${offset_idx}"
+        rows = await conn.fetch(query, *params)
             
         results = []
         for r in rows:
@@ -231,8 +252,13 @@ class DatabaseProxy:
     async def get_generation_images(self, guid): return await get_generation_images(guid)
     async def update_generation(self, rid, **kwargs): await update_generation(rid, **kwargs)
     async def create_generation(self, data): return await create_generation(data)
-    async def add_image(self, rid, idx, url): await add_image(rid, idx, url)
-    async def list_generations(self, limit=20, offset=0, realm=None): return await list_generations(limit, offset, realm)
+    async def add_image(self, rid=None, idx=0, url="", **kwargs):
+        # Handle various legacy parameter names used in different engines
+        generation_id = rid or kwargs.get("generation_id") or kwargs.get("generation_request_id")
+        index = idx or kwargs.get("image_index") or 0
+        r2_url = url or kwargs.get("r2_url") or ""
+        await add_image(generation_id, index, r2_url)
+    async def list_generations(self, limit=20, offset=0, realm=None, before=None): return await list_generations(limit, offset, realm, before)
     async def hide_generation(self, rid): await hide_generation(rid)
     async def delete_generation(self, rid): await delete_generation(rid)
     async def delete_image(self, iid):
