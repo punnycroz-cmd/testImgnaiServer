@@ -143,13 +143,29 @@ async def get_generation(request_id: str) -> Optional[Dict]:
     pool = await get_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow("SELECT * FROM generations WHERE request_id = $1", request_id)
-        return dict(row) if row else None
+        if not row: return None
+        # Convert to dict and handle UUID/Datetime serialization if needed
+        data = dict(row)
+        if data.get('id'): data['id'] = str(data['id'])
+        return data
 
-async def get_generation_images(generation_id: str) -> List[Dict]:
+async def get_generation_images(generation_id: Any) -> List[Dict]:
     pool = await get_pool()
+    # Handle cases where generation_id might be a string or a UUID object
+    try:
+        val = uuid.UUID(str(generation_id))
+    except (ValueError, AttributeError):
+        val = generation_id
+
     async with pool.acquire() as conn:
-        rows = await conn.fetch("SELECT * FROM generation_images WHERE generation_id = $1 ORDER BY image_index ASC", uuid.UUID(generation_id))
-        return [dict(r) for r in rows]
+        rows = await conn.fetch("SELECT * FROM generation_images WHERE generation_id = $1 ORDER BY image_index ASC", val)
+        results = []
+        for r in rows:
+            d = dict(r)
+            if d.get('id'): d['id'] = str(d['id'])
+            if d.get('generation_id'): d['generation_id'] = str(d['generation_id'])
+            results.append(d)
+        return results
 
 async def list_generations(limit: int = 20, offset: int = 0, realm: Optional[str] = None) -> List[Dict]:
     pool = await get_pool()
@@ -196,7 +212,12 @@ async def list_generations(limit: int = 20, offset: int = 0, realm: Optional[str
                 """,
                 limit, offset
             )
-        return [dict(r) for r in rows]
+        results = []
+        for r in rows:
+            d = dict(r)
+            if d.get('id'): d['id'] = str(d['id'])
+            results.append(d)
+        return results
 
 async def hide_generation(request_id: str):
     pool = await get_pool()
