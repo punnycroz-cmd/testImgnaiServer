@@ -1,120 +1,91 @@
 import json
-import os
-import uuid
+import logging
 import asyncio
-from datetime import datetime, timezone
-from typing import Any, Optional, List, Dict
-
+from datetime import datetime
+from typing import List, Dict, Any, Optional
+import os
+from dotenv import load_dotenv
 import asyncpg
 
-# Global Pool
-_pool: Optional[asyncpg.Pool] = None
+load_dotenv()
 
-def _now():
-    return datetime.now(timezone.utc)
+_pool = None
 
-async def get_pool() -> asyncpg.Pool:
+async def get_pool():
     global _pool
     if _pool is None:
-        url = os.environ.get("DATABASE_URL")
-        if not url:
-            raise RuntimeError("DATABASE_URL is not set")
+        db_url = os.environ.get("DATABASE_URL")
+        # Ensure it works with asyncpg (postgresql:// instead of postgres:// if needed, though asyncpg usually handles it)
+        if db_url and db_url.startswith("postgres://"):
+            db_url = db_url.replace("postgres://", "postgresql://", 1)
         
-        # Initialize the pool with dictionary-like row access (Record objects)
         _pool = await asyncpg.create_pool(
-            dsn=url,
-            min_size=2,
+            dsn=db_url,
+            min_size=1,
             max_size=10,
-            max_inactive_connection_lifetime=300.0
+            command_timeout=60
         )
     return _pool
 
-async def init():
-    """Initializes tables and indexes. Called on server startup."""
+def _now():
+    return datetime.now()
+
+async def init_db():
     pool = await get_pool()
     async with pool.acquire() as conn:
-        # Create generations table
+        # Create tables if not exists
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS generations (
-                id uuid PRIMARY KEY,
-                request_id text UNIQUE NOT NULL,
-                client_id text,
-                realm text NOT NULL,
-                status text NOT NULL,
-                prompt text NOT NULL,
-                model text,
-                quality text,
-                aspect text,
-                seed bigint,
-                negative_prompt text,
-                count integer NOT NULL DEFAULT 4,
-                session_uuid text,
-                task_uuids jsonb NOT NULL DEFAULT '[]'::jsonb,
-                attempts integer NOT NULL DEFAULT 0,
-                error_type text,
-                max_retries integer NOT NULL DEFAULT 3,
-                last_error text,
-                retry_payload jsonb,
-                error text,
-                result jsonb,
-                is_hidden boolean NOT NULL DEFAULT false,
-                created_at timestamptz NOT NULL DEFAULT now(),
-                updated_at timestamptz NOT NULL DEFAULT now()
-            )
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                request_id TEXT UNIQUE NOT NULL,
+                client_id TEXT,
+                realm TEXT,
+                status TEXT NOT NULL,
+                prompt TEXT,
+                model TEXT,
+                quality TEXT,
+                aspect TEXT,
+                seed BIGINT,
+                negative_prompt TEXT,
+                count INTEGER DEFAULT 1,
+                session_uuid TEXT,
+                task_uuids JSONB NOT NULL DEFAULT '[]'::jsonb,
+                error TEXT,
+                result JSONB,
+                is_hidden BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+            );
         """)
-        
-        # Create images table
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS generation_images (
-                id uuid PRIMARY KEY,
-                generation_id uuid NOT NULL REFERENCES generations(id) ON DELETE CASCADE,
-                task_uuid text NOT NULL,
-                r2_url text NOT NULL,
-                r2_key text NOT NULL,
-                image_index integer NOT NULL,
-                created_at timestamptz NOT NULL DEFAULT now()
-            )
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                generation_id UUID REFERENCES generations(id) ON DELETE CASCADE,
+                image_index INTEGER NOT NULL,
+                r2_url TEXT NOT NULL,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+            );
         """)
-        
-        # Add is_hidden column if missing (safety)
-        await conn.execute("ALTER TABLE generations ADD COLUMN IF NOT EXISTS is_hidden boolean NOT NULL DEFAULT false")
-        await conn.execute("ALTER TABLE generations ADD COLUMN IF NOT EXISTS attempts integer NOT NULL DEFAULT 0")
-        await conn.execute("ALTER TABLE generations ADD COLUMN IF NOT EXISTS error_type text")
-        await conn.execute("ALTER TABLE generations ADD COLUMN IF NOT EXISTS max_retries integer NOT NULL DEFAULT 3")
-        await conn.execute("ALTER TABLE generations ADD COLUMN IF NOT EXISTS last_error text")
-        await conn.execute("ALTER TABLE generations ADD COLUMN IF NOT EXISTS retry_payload jsonb")
-        
-        # Create performance indexes
-        await conn.execute("CREATE INDEX IF NOT EXISTS idx_generations_realm_created ON generations (realm, created_at DESC, id)")
-        await conn.execute("CREATE INDEX IF NOT EXISTS idx_generations_status_updated ON generations (status, updated_at DESC)")
-        await conn.execute("CREATE INDEX IF NOT EXISTS idx_generations_client_created ON generations (client_id, created_at DESC)")
-        await conn.execute("CREATE INDEX IF NOT EXISTS idx_images_generation_id ON generation_images (generation_id)")
+        # Indexes for performance
+        await conn.execute("CREATE INDEX IF NOT EXISTS idx_gen_req_id ON generations(request_id);")
+        await conn.execute("CREATE INDEX IF NOT EXISTS idx_gen_realm ON generations(realm);")
+        await conn.execute("CREATE INDEX IF NOT EXISTS idx_gen_status ON generations(status);")
+        await conn.execute("CREATE INDEX IF NOT EXISTS idx_img_gen_id ON generation_images(generation_id);")
 
-async def create_generation(*, generation_id: str, request_id: str, client_id: Optional[str], realm: str, prompt: str, model: str, quality: str, aspect: str, seed: Optional[int], negative_prompt: Optional[str], count: int = 4, retry_payload: Optional[dict] = None, max_retries: int = 3):
+async def create_generation(data: Dict[str, Any]) -> str:
     pool = await get_pool()
+    cols = []
+    placeholders = []
+    values = []
+    for i, (k, v) in enumerate(data.items()):
+        cols.append(k)
+        placeholders.append(f"${i+1}")
+        # asyncpg handles jsonb automatically
+        values.append(v)
+    
+    query = f"INSERT INTO generations ({', '.join(cols)}) VALUES ({', '.join(placeholders)}) RETURNING request_id"
     async with pool.acquire() as conn:
-        await conn.execute(
-            """
-            INSERT INTO generations (
-                id, request_id, client_id, realm, status, prompt, model, quality, aspect, seed, negative_prompt, count, attempts, max_retries, retry_payload, updated_at
-            ) VALUES ($1, $2, $3, $4, 'pending', $5, $6, $7, $8, $9, $10, $11, 0, $12, $13, $14)
-            ON CONFLICT (request_id) DO UPDATE SET
-                client_id = EXCLUDED.client_id,
-                realm = EXCLUDED.realm,
-                status = EXCLUDED.status,
-                prompt = EXCLUDED.prompt,
-                model = EXCLUDED.model,
-                quality = EXCLUDED.quality,
-                aspect = EXCLUDED.aspect,
-                seed = EXCLUDED.seed,
-                negative_prompt = EXCLUDED.negative_prompt,
-                count = EXCLUDED.count,
-                retry_payload = EXCLUDED.retry_payload,
-                max_retries = EXCLUDED.max_retries,
-                updated_at = EXCLUDED.updated_at
-            """,
-            uuid.UUID(generation_id), request_id, client_id, realm, prompt, model, quality, aspect, seed, negative_prompt, count, max_retries, json.dumps(retry_payload or {}), _now()
-        )
+        return await conn.fetchval(query, *values)
 
 async def update_generation(request_id: str, **fields: Any):
     if not fields:
@@ -125,7 +96,7 @@ async def update_generation(request_id: str, **fields: Any):
     i = 1
     for key, val in fields.items():
         sets.append(f"{key} = ${i}")
-        if key in ("task_uuids", "result", "retry_payload") and not isinstance(val, (str, bytes)):
+        if key in ("task_uuids", "result") and not isinstance(val, (str, bytes)):
             values.append(json.dumps(val))
         else:
             values.append(val)
@@ -142,37 +113,31 @@ async def update_generation(request_id: str, **fields: Any):
     async with pool.acquire() as conn:
         await conn.execute(query, *values)
 
-async def add_image(*, generation_id: str, task_uuid: str, r2_url: str, r2_key: str, image_index: int):
-    pool = await get_pool()
-    async with pool.acquire() as conn:
-        await conn.execute(
-            """
-            INSERT INTO generation_images (id, generation_id, task_uuid, r2_url, r2_key, image_index)
-            VALUES ($1, $2, $3, $4, $5, $6)
-            """,
-            uuid.uuid4(), uuid.UUID(generation_id), task_uuid, r2_url, r2_key, image_index
-        )
-
 async def get_generation(request_id: str) -> Optional[Dict]:
     pool = await get_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow("SELECT * FROM generations WHERE request_id = $1", request_id)
-        if not row: return None
-        # Convert to dict and handle UUID/Datetime serialization if needed
-        data = dict(row)
-        if data.get('id'): data['id'] = str(data['id'])
-        return data
+        if row:
+            d = dict(row)
+            if d.get('id'): d['id'] = str(d['id'])
+            return d
+        return None
 
-async def get_generation_images(generation_id: Any) -> List[Dict]:
+async def add_image(generation_request_id: str, index: int, url: str):
     pool = await get_pool()
-    # Handle cases where generation_id might be a string or a UUID object
-    try:
-        val = uuid.UUID(str(generation_id))
-    except (ValueError, AttributeError):
-        val = generation_id
-
     async with pool.acquire() as conn:
-        rows = await conn.fetch("SELECT * FROM generation_images WHERE generation_id = $1 ORDER BY image_index ASC", val)
+        gen_id = await conn.fetchval("SELECT id FROM generations WHERE request_id = $1", generation_request_id)
+        if gen_id:
+            await conn.execute(
+                "INSERT INTO generation_images (generation_id, image_index, r2_url) VALUES ($1, $2, $3)",
+                gen_id, index, url
+            )
+
+async def get_generation_images(generation_db_id: Any) -> List[Dict]:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        # generation_db_id could be a UUID object or a string
+        rows = await conn.fetch("SELECT * FROM generation_images WHERE generation_id = $1 ORDER BY image_index ASC", generation_db_id)
         results = []
         for r in rows:
             d = dict(r)
@@ -183,53 +148,39 @@ async def get_generation_images(generation_id: Any) -> List[Dict]:
 
 async def list_generations(limit: int = 20, offset: int = 0, realm: Optional[str] = None) -> List[Dict]:
     pool = await get_pool()
+    base_query = """
+        SELECT g.*, 
+               (SELECT json_agg(i.* ORDER BY i.image_index ASC) 
+                FROM generation_images i 
+                WHERE i.generation_id = g.id) as images
+        WHERE g.is_hidden = false
+          AND g.status = 'done'
+          AND EXISTS (SELECT 1 FROM generation_images i WHERE i.generation_id = g.id)
+    """
+    
     async with pool.acquire() as conn:
         if realm:
             if realm.lower() == 'day':
-                rows = await conn.fetch(
-                    """
-                    SELECT g.*
-                    FROM generations g
-                    WHERE g.is_hidden = false
-                      AND g.status = 'done'
-                      AND (LOWER(g.realm) = 'day' OR g.realm IS NULL)
-                      AND EXISTS (SELECT 1 FROM generation_images i WHERE i.generation_id = g.id)
-                    ORDER BY g.created_at DESC, g.id DESC
-                    LIMIT $1 OFFSET $2
-                    """,
-                    limit, offset
-                )
+                query = base_query + " AND (LOWER(g.realm) = 'day' OR g.realm IS NULL)"
+                rows = await conn.fetch(query + " ORDER BY g.created_at DESC, g.id DESC LIMIT $1 OFFSET $2", limit, offset)
             else:
-                rows = await conn.fetch(
-                    """
-                    SELECT g.*
-                    FROM generations g
-                    WHERE g.is_hidden = false
-                      AND g.status = 'done'
-                      AND LOWER(g.realm) = LOWER($1)
-                      AND EXISTS (SELECT 1 FROM generation_images i WHERE i.generation_id = g.id)
-                    ORDER BY g.created_at DESC, g.id DESC
-                    LIMIT $2 OFFSET $3
-                    """,
-                    realm, limit, offset
-                )
+                query = base_query + " AND LOWER(g.realm) = LOWER($1)"
+                rows = await conn.fetch(query + " ORDER BY g.created_at DESC, g.id DESC LIMIT $2 OFFSET $3", realm, limit, offset)
         else:
-            rows = await conn.fetch(
-                """
-                SELECT g.*
-                FROM generations g
-                WHERE g.is_hidden = false
-                  AND g.status = 'done'
-                  AND EXISTS (SELECT 1 FROM generation_images i WHERE i.generation_id = g.id)
-                ORDER BY g.created_at DESC, g.id DESC
-                LIMIT $1 OFFSET $2
-                """,
-                limit, offset
-            )
+            rows = await conn.fetch(base_query + " ORDER BY g.created_at DESC, g.id DESC LIMIT $1 OFFSET $2", limit, offset)
+            
         results = []
         for r in rows:
             d = dict(r)
             if d.get('id'): d['id'] = str(d['id'])
+            if d.get('created_at'): d['created_at'] = d['created_at'].isoformat()
+            if d.get('updated_at'): d['updated_at'] = d['updated_at'].isoformat()
+            if d.get('images'):
+                for img in d['images']:
+                    if img.get('id'): img['id'] = str(img['id'])
+                    if img.get('generation_id'): img['generation_id'] = str(img['generation_id'])
+            else:
+                d['images'] = []
             results.append(d)
         return results
 
@@ -254,37 +205,39 @@ async def list_raw_generations(limit: int = 100, offset: int = 0, realm: Optiona
             if realm.lower() == "day":
                 where.append("(LOWER(realm) = 'day' OR realm IS NULL)")
             else:
-                where.append("LOWER(realm) = LOWER($%d)" % (len(params) + 1))
                 params.append(realm)
-        sql = "SELECT * FROM generations"
+                where.append(f"LOWER(realm) = LOWER(${len(params)})")
+        
+        query = "SELECT * FROM generations"
         if where:
-            sql += " WHERE " + " AND ".join(where)
-        sql += f" ORDER BY created_at DESC, id DESC LIMIT ${len(params)+1} OFFSET ${len(params)+2}"
-        params.extend([limit, offset])
-        rows = await conn.fetch(sql, *params)
+            query += " WHERE " + " AND ".join(where)
+        
+        params.append(limit)
+        params.append(offset)
+        query += f" ORDER BY created_at DESC LIMIT ${len(params)-1} OFFSET ${len(params)}"
+        
+        rows = await conn.fetch(query, *params)
         results = []
         for r in rows:
             d = dict(r)
-            if d.get("id"):
-                d["id"] = str(d["id"])
+            if d.get('id'): d['id'] = str(d['id'])
             results.append(d)
         return results
 
-# Compatibility Class (Temporary)
-class Database:
-    def __init__(self, *args, **kwargs):
-        pass
-    
-    @property
-    def pool(self):
-        return _pool
-
-    async def init(self): await init()
-    async def create_generation(self, **kwargs): await create_generation(**kwargs)
-    async def update_generation(self, rid, **kwargs): await update_generation(rid, **kwargs)
-    async def add_image(self, **kwargs): await add_image(**kwargs)
+# Compatibility Layer
+class DatabaseProxy:
+    async def init(self): await init_db()
     async def get_generation(self, rid): return await get_generation(rid)
-    async def get_generation_images(self, gid): return await get_generation_images(gid)
-    async def list_generations(self, **kwargs): return await list_generations(**kwargs)
+    async def get_generation_images(self, guid): return await get_generation_images(guid)
+    async def update_generation(self, rid, **kwargs): await update_generation(rid, **kwargs)
+    async def create_generation(self, data): return await create_generation(data)
+    async def add_image(self, rid, idx, url): await add_image(rid, idx, url)
+    async def list_generations(self, limit=20, offset=0, realm=None): return await list_generations(limit, offset, realm)
     async def hide_generation(self, rid): await hide_generation(rid)
     async def delete_generation(self, rid): await delete_generation(rid)
+    async def delete_image(self, iid):
+        pool = await get_pool()
+        async with pool.acquire() as conn:
+            await conn.execute("DELETE FROM generation_images WHERE id = $1", iid)
+
+DB = DatabaseProxy()

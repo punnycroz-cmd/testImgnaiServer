@@ -273,36 +273,14 @@ async def vault_stats(realm: Optional[str] = None):
 @app.get("/history")
 async def history(page: int = 1, limit: int = 20, realm: Optional[str] = None):
     offset = max(0, (page - 1) * limit)
-    rows = await DB.list_generations(limit=limit, offset=offset, realm=realm)
-    total = len(rows) if len(rows) < limit else offset + len(rows) + 1
-    page_items = []
+    # The new version of list_generations returns images as a nested list!
+    page_items = await DB.list_generations(limit=limit, offset=offset, realm=realm)
     
-    for row in rows:
-        image_rows = await DB.get_generation_images(row["id"])
-        if not image_rows:
-            continue
-        page_items.append(
-            {
-                "request_id": row["request_id"],
-                "client_id": row["client_id"],
-                "realm": row["realm"],
-                "status": row["status"],
-                "prompt": row["prompt"],
-                "model": row["model"],
-                "quality": row["quality"],
-                "aspect": row["aspect"],
-                "session_uuid": row["session_uuid"],
-                "task_uuids": row["task_uuids"],
-                "images": image_rows,
-                "created_at": row["created_at"].isoformat() if row["created_at"] else None,
-            }
-        )
     return {
         "items": page_items,
         "page": page,
         "limit": limit,
-        "total": total,
-        "has_more": len(rows) == limit,
+        "has_more": len(page_items) == limit,
     }
 
 
