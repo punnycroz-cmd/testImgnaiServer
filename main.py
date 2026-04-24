@@ -257,6 +257,13 @@ async def history(page: int = 1, limit: int = 20, realm: Optional[str] = None, b
     }
 
 
+@app.get("/diag/db")
+async def diag_db():
+    pool = await DB.get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("SELECT request_id, status, realm, is_hidden, created_at FROM generations ORDER BY created_at DESC LIMIT 50")
+        return [dict(r) for r in rows]
+
 @app.post("/history/batch/{request_id}/hide")
 async def hide_batch(request_id: str):
     await DB.hide_generation(request_id)
