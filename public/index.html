@@ -614,12 +614,9 @@
       <div class="max-w-7xl mx-auto min-h-[400px] relative">
         <div class="flex flex-col sm:flex-row items-center justify-between gap-6 mb-10">
           <div class="flex items-center gap-2 bg-black/10 p-1.5 rounded-2xl border border-white/5">
-            <button onclick="setVaultRealm('day')" id="vbtn-day"
-              class="px-6 py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all">SFW /
-              Day</button>
-            <button onclick="setVaultRealm('star')" id="vbtn-star"
-              class="px-6 py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all opacity-40">NSFW
-              / Star</button>
+            <div class="px-6 py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all bg-[var(--accent)] text-white shadow-lg">
+              All Batches
+            </div>
           </div>
 
           <div class="flex items-center gap-4">
@@ -848,7 +845,7 @@
       historyLoaded: false,
       loadingHistory: false,
       currentPoll: null,
-      vaultRealm: 'day',
+      vaultRealm: null,
       selectionMode: false,
       selectedIds: new Set(),
       matrixPaused: false,
@@ -1705,25 +1702,6 @@
     }
 
 
-    function setVaultRealm(realm) {
-      const r = realm.toLowerCase();
-      if (state.vaultRealm === r) return;
-
-      state.vaultRealm = r;
-      document.getElementById("vbtn-day").classList.toggle("opacity-40", r !== "day");
-      document.getElementById("vbtn-star").classList.toggle("opacity-40", r !== "star");
-
-      // Soft Transition: Fade out but don't clear yet
-      dom.historyList.style.opacity = "0.3";
-      dom.historyList.style.pointerEvents = "none";
-
-      reloadHistory(true);
-    }
-
-
-
-
-
     function openConfirm(title, msg, onConfirm) {
       const modal = document.getElementById("confirmModal");
       document.getElementById("confirmTitle").textContent = title;
@@ -1930,9 +1908,8 @@
 
       try {
         while (renderedInThisPass < state.historyLimit && state.historyHasMore) {
-          const realmQ = state.vaultRealm ? `&realm=${state.vaultRealm}` : "";
           const cacheBuster = `&_t=${Date.now()}`;
-          const fetchUrl = `/history?page=${state.historyPage}&limit=${state.historyLimit}${realmQ}${cacheBuster}`;
+          const fetchUrl = `/history?page=${state.historyPage}&limit=${state.historyLimit}${cacheBuster}`;
           console.log(`[Vault] Fetching Page ${state.historyPage}:`, fetchUrl);
 
           const res = await apiFetch(fetchUrl);
@@ -1947,8 +1924,6 @@
           let ghostCount = 0;
 
           for (const entry of items) {
-            if (state.vaultRealm && entry.realm && entry.realm.toLowerCase() !== state.vaultRealm.toLowerCase()) continue;
-
             if (!entry.images || entry.images.length === 0) {
               ghostCount++;
               continue;
