@@ -6,6 +6,7 @@ from typing import List, Dict, Any, Optional
 import os
 from dotenv import load_dotenv
 import asyncpg
+from uuid import uuid4
 
 load_dotenv()
 
@@ -30,17 +31,20 @@ async def get_pool():
 def _now():
     return datetime.now()
 
-async def init_db():
+async def init_db(force: bool = False):
     pool = await get_pool()
     async with pool.acquire() as conn:
-        # Load extensions for UUID generation
+        # Load extensions for UUID generation (still good to have)
         await conn.execute('CREATE EXTENSION IF NOT EXISTS "pgcrypto";')
         await conn.execute('CREATE EXTENSION IF NOT EXISTS "uuid-ossp";')
         
+        if force:
+            await conn.execute("DROP TABLE IF EXISTS generations CASCADE;")
+
         # Create Master History Table with requested constraints
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS generations (
-                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                id UUID PRIMARY KEY,
                 
                 -- Request Identifiers
                 request_id TEXT UNIQUE NOT NULL,
@@ -77,10 +81,13 @@ async def init_db():
         await conn.execute("CREATE INDEX IF NOT EXISTS idx_generations_status ON generations (status);")
 
 
-
-
 async def create_generation(data: Dict[str, Any]) -> str:
     pool = await get_pool()
+    
+    # Generate ID in Python to avoid DB extension issues
+    if "id" not in data:
+        data["id"] = str(uuid4())
+        
     cols = []
     placeholders = []
     values = []
@@ -95,6 +102,7 @@ async def create_generation(data: Dict[str, Any]) -> str:
     query = f"INSERT INTO generations ({', '.join(cols)}) VALUES ({', '.join(placeholders)}) RETURNING request_id"
     async with pool.acquire() as conn:
         return await conn.fetchval(query, *values)
+
 
 async def update_generation(request_id: str, **fields: Any):
     if not fields:
@@ -244,7 +252,7 @@ async def close_pool():
 
 # Compatibility Layer
 class DatabaseProxy:
-    async def init(self): await init_db()
+    async def init(self, force: bool = False): await init_db(force)
     async def get_pool(self): return await get_pool()
     async def close(self): await close_pool()
     async def get_generation(self, rid): return await get_generation(rid)
