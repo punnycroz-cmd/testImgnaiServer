@@ -240,9 +240,17 @@ async def list_raw_generations(limit: int = 100, offset: int = 0, realm: Optiona
             results.append(d)
         return results
 
+async def close_pool():
+    global _pool
+    if _pool:
+        await _pool.close()
+        _pool = None
+
 # Compatibility Layer
 class DatabaseProxy:
     async def init(self): await init_db()
+    async def get_pool(self): return await get_pool()
+    async def close(self): await close_pool()
     async def get_generation(self, rid): return await get_generation(rid)
     async def update_generation(self, rid, **kwargs): await update_generation(rid, **kwargs)
     async def create_generation(self, **data): return await create_generation(data)
@@ -251,3 +259,4 @@ class DatabaseProxy:
     async def delete_generation(self, rid): await delete_generation(rid)
 
 DB = DatabaseProxy()
+

@@ -38,9 +38,7 @@ async def lifespan(app: FastAPI):
     await DB.init()
     yield
     # Close DB pool
-    pool = await DB.get_pool()
-    if pool:
-        await pool.close()
+    await DB.close()
 
 app = FastAPI(lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
