@@ -58,51 +58,42 @@ async def reset_db():
     try:
         conn = await asyncpg.connect(url)
         
+        print("Ensuring extensions...")
+        await conn.execute('CREATE EXTENSION IF NOT EXISTS "pgcrypto";')
+        await conn.execute('CREATE EXTENSION IF NOT EXISTS "uuid-ossp";')
+
         print("Dropping tables...")
         await conn.execute("DROP TABLE IF EXISTS generation_images CASCADE")
         await conn.execute("DROP TABLE IF EXISTS generations CASCADE")
         
-        print("Creating tables...")
-        # (Same table creation logic as before)
+        print("Creating table...")
         await conn.execute("""
             CREATE TABLE generations (
-                id uuid PRIMARY KEY,
-                request_id text UNIQUE NOT NULL,
-                client_id text,
-                realm text NOT NULL,
-                status text NOT NULL,
-                prompt text NOT NULL,
-                model text,
-                quality text,
-                aspect text,
-                seed bigint,
-                negative_prompt text,
-                count integer NOT NULL DEFAULT 4,
-                session_uuid text,
-                task_uuids jsonb NOT NULL DEFAULT '[]'::jsonb,
-                error text,
-                result jsonb,
-                is_hidden boolean NOT NULL DEFAULT false,
-                created_at timestamptz NOT NULL DEFAULT now(),
-                updated_at timestamptz NOT NULL DEFAULT now()
-            )
-        """)
-        
-        await conn.execute("""
-            CREATE TABLE generation_images (
-                id uuid PRIMARY KEY,
-                generation_id uuid NOT NULL REFERENCES generations(id) ON DELETE CASCADE,
-                task_uuid text NOT NULL,
-                r2_url text NOT NULL,
-                r2_key text NOT NULL,
-                image_index integer NOT NULL,
-                created_at timestamptz NOT NULL DEFAULT now()
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                request_id TEXT UNIQUE NOT NULL,
+                client_id TEXT,
+                realm TEXT CHECK (realm IN ('star', 'day')),
+                prompt TEXT,
+                negative_prompt TEXT,
+                model TEXT,
+                quality TEXT,
+                aspect TEXT,
+                seed BIGINT,
+                count INTEGER,
+                session_uuid TEXT,
+                status TEXT CHECK (status IN ('pending', 'processing', 'done', 'failed')) DEFAULT 'pending',
+                is_hidden BOOLEAN DEFAULT FALSE,
+                result JSONB DEFAULT '{}',
+                error TEXT,
+                last_error_text TEXT,
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                updated_at TIMESTAMPTZ DEFAULT NOW()
             )
         """)
         
         print("Creating indexes...")
-        await conn.execute("CREATE INDEX idx_generations_realm_created ON generations (realm, created_at DESC, id)")
-        await conn.execute("CREATE INDEX idx_images_generation_id ON generation_images (generation_id)")
+        await conn.execute("CREATE INDEX idx_generations_realm_created ON generations (realm, created_at DESC)")
+        await conn.execute("CREATE INDEX idx_generations_status ON generations (status)")
         
         await conn.close()
         print("✅ Database reset successfully!")

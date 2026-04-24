@@ -69,7 +69,7 @@ class DayManager:
                         event = json.loads(line)
                         if self.db and request_id:
                             if event.get("event") == "session": await self.db.update_generation(request_id, session_uuid=event["session_uuid"])
-                            if event.get("event") == "tasks": await self.db.update_generation(request_id, task_uuids=event["task_uuids"])
+
                         if line.startswith("{") and line.endswith("}"): last_json_line = line
                     except: pass
 

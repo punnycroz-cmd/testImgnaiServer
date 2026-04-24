@@ -33,39 +33,54 @@ def _now():
 async def init_db():
     pool = await get_pool()
     async with pool.acquire() as conn:
-        # Drop old tables and start fresh
+        # Load extensions for UUID generation
+        await conn.execute('CREATE EXTENSION IF NOT EXISTS "pgcrypto";')
+        await conn.execute('CREATE EXTENSION IF NOT EXISTS "uuid-ossp";')
+        
+        # Drop old tables and start fresh (as requested)
         await conn.execute("DROP TABLE IF EXISTS generation_images CASCADE;")
         await conn.execute("DROP TABLE IF EXISTS generations CASCADE;")
         
-        # Create Master History Table
+        # Create Master History Table with requested constraints
         await conn.execute("""
-            CREATE TABLE IF NOT EXISTS generations (
+            CREATE TABLE generations (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                
+                -- Request Identifiers
                 request_id TEXT UNIQUE NOT NULL,
                 client_id TEXT,
-                realm TEXT,
+                
+                -- Configuration
+                realm TEXT CHECK (realm IN ('star', 'day')),
                 prompt TEXT,
                 negative_prompt TEXT,
                 model TEXT,
                 quality TEXT,
                 aspect TEXT,
                 seed BIGINT,
-                count INTEGER DEFAULT 1,
+                count INTEGER,
+                
+                -- Grouping & Status
                 session_uuid TEXT,
-                task_uuids JSONB NOT NULL DEFAULT '[]'::jsonb,
-                status TEXT NOT NULL DEFAULT 'pending',
+                status TEXT CHECK (status IN ('pending', 'processing', 'done', 'failed')) DEFAULT 'pending',
                 is_hidden BOOLEAN DEFAULT FALSE,
-                result JSONB DEFAULT '{}',
+                
+                -- Results & Errors
+                result JSONB DEFAULT '{}', -- Will hold { "image_urls": [...] }
                 error TEXT,
                 last_error_text TEXT,
+                
+                -- Timestamps
                 created_at TIMESTAMPTZ DEFAULT NOW(),
                 updated_at TIMESTAMPTZ DEFAULT NOW()
             );
         """)
         
-        # Critical Indexes
-        await conn.execute("CREATE INDEX IF NOT EXISTS idx_generations_realm_created ON generations (realm, created_at DESC);")
-        await conn.execute("CREATE INDEX IF NOT EXISTS idx_generations_status ON generations (status);")
+        # CRITICAL INDEXES (Prevents 502 errors & sorts correctly)
+        await conn.execute("CREATE INDEX idx_generations_realm_created ON generations (realm, created_at DESC);")
+        await conn.execute("CREATE INDEX idx_generations_status ON generations (status);")
+
+
 
 
 async def create_generation(data: Dict[str, Any]) -> str:
@@ -76,7 +91,7 @@ async def create_generation(data: Dict[str, Any]) -> str:
     for i, (k, v) in enumerate(data.items()):
         cols.append(k)
         placeholders.append(f"${i+1}")
-        if k in ("task_uuids", "result", "retry_payload") and not isinstance(v, (str, bytes)):
+        if k == "result" and not isinstance(v, (str, bytes)):
             values.append(json.dumps(v))
         else:
             values.append(v)
@@ -94,7 +109,7 @@ async def update_generation(request_id: str, **fields: Any):
     i = 1
     for key, val in fields.items():
         sets.append(f"{key} = ${i}")
-        if key in ("task_uuids", "result", "retry_payload") and not isinstance(val, (str, bytes)):
+        if key == "result" and not isinstance(val, (str, bytes)):
             values.append(json.dumps(val))
         else:
             values.append(val)

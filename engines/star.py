@@ -127,7 +127,7 @@ class StarManager:
                 task_uuids = batch_data if isinstance(batch_data, list) else batch_data.get("response", [])
                 if not task_uuids and isinstance(batch_data, dict): task_uuids = batch_data.get("task_uuids", [])
                 
-                if self.db and request_id: await self.db.update_generation(request_id, task_uuids=task_uuids)
+
 
                 # Released Engine Lock: Next job can now start its "nap" or generate phase
                 batch_prefix = self.vault.build_batch_prefix_with_name("star", session_uuid or "session", ts=datetime.now())
