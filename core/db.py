@@ -50,6 +50,11 @@ async def init():
                 count integer NOT NULL DEFAULT 4,
                 session_uuid text,
                 task_uuids jsonb NOT NULL DEFAULT '[]'::jsonb,
+                attempts integer NOT NULL DEFAULT 0,
+                error_type text,
+                max_retries integer NOT NULL DEFAULT 3,
+                last_error text,
+                retry_payload jsonb,
                 error text,
                 result jsonb,
                 is_hidden boolean NOT NULL DEFAULT false,
@@ -73,19 +78,26 @@ async def init():
         
         # Add is_hidden column if missing (safety)
         await conn.execute("ALTER TABLE generations ADD COLUMN IF NOT EXISTS is_hidden boolean NOT NULL DEFAULT false")
+        await conn.execute("ALTER TABLE generations ADD COLUMN IF NOT EXISTS attempts integer NOT NULL DEFAULT 0")
+        await conn.execute("ALTER TABLE generations ADD COLUMN IF NOT EXISTS error_type text")
+        await conn.execute("ALTER TABLE generations ADD COLUMN IF NOT EXISTS max_retries integer NOT NULL DEFAULT 3")
+        await conn.execute("ALTER TABLE generations ADD COLUMN IF NOT EXISTS last_error text")
+        await conn.execute("ALTER TABLE generations ADD COLUMN IF NOT EXISTS retry_payload jsonb")
         
         # Create performance indexes
         await conn.execute("CREATE INDEX IF NOT EXISTS idx_generations_realm_created ON generations (realm, created_at DESC, id)")
+        await conn.execute("CREATE INDEX IF NOT EXISTS idx_generations_status_updated ON generations (status, updated_at DESC)")
+        await conn.execute("CREATE INDEX IF NOT EXISTS idx_generations_client_created ON generations (client_id, created_at DESC)")
         await conn.execute("CREATE INDEX IF NOT EXISTS idx_images_generation_id ON generation_images (generation_id)")
 
-async def create_generation(*, generation_id: str, request_id: str, client_id: Optional[str], realm: str, prompt: str, model: str, quality: str, aspect: str, seed: Optional[int], negative_prompt: Optional[str], count: int = 4):
+async def create_generation(*, generation_id: str, request_id: str, client_id: Optional[str], realm: str, prompt: str, model: str, quality: str, aspect: str, seed: Optional[int], negative_prompt: Optional[str], count: int = 4, retry_payload: Optional[dict] = None, max_retries: int = 3):
     pool = await get_pool()
     async with pool.acquire() as conn:
         await conn.execute(
             """
             INSERT INTO generations (
-                id, request_id, client_id, realm, status, prompt, model, quality, aspect, seed, negative_prompt, count, updated_at
-            ) VALUES ($1, $2, $3, $4, 'running', $5, $6, $7, $8, $9, $10, $11, $12)
+                id, request_id, client_id, realm, status, prompt, model, quality, aspect, seed, negative_prompt, count, attempts, max_retries, retry_payload, updated_at
+            ) VALUES ($1, $2, $3, $4, 'pending', $5, $6, $7, $8, $9, $10, $11, 0, $12, $13, $14)
             ON CONFLICT (request_id) DO UPDATE SET
                 client_id = EXCLUDED.client_id,
                 realm = EXCLUDED.realm,
@@ -97,9 +109,11 @@ async def create_generation(*, generation_id: str, request_id: str, client_id: O
                 seed = EXCLUDED.seed,
                 negative_prompt = EXCLUDED.negative_prompt,
                 count = EXCLUDED.count,
+                retry_payload = EXCLUDED.retry_payload,
+                max_retries = EXCLUDED.max_retries,
                 updated_at = EXCLUDED.updated_at
             """,
-            uuid.UUID(generation_id), request_id, client_id, realm, prompt, model, quality, aspect, seed, negative_prompt, count, _now()
+            uuid.UUID(generation_id), request_id, client_id, realm, prompt, model, quality, aspect, seed, negative_prompt, count, max_retries, json.dumps(retry_payload or {}), _now()
         )
 
 async def update_generation(request_id: str, **fields: Any):
@@ -111,7 +125,7 @@ async def update_generation(request_id: str, **fields: Any):
     i = 1
     for key, val in fields.items():
         sets.append(f"{key} = ${i}")
-        if key in ("task_uuids", "result") and not isinstance(val, (str, bytes)):
+        if key in ("task_uuids", "result", "retry_payload") and not isinstance(val, (str, bytes)):
             values.append(json.dumps(val))
         else:
             values.append(val)
@@ -228,6 +242,33 @@ async def delete_generation(request_id: str):
     pool = await get_pool()
     async with pool.acquire() as conn:
         await conn.execute("DELETE FROM generations WHERE request_id = $1", request_id)
+
+async def list_raw_generations(limit: int = 100, offset: int = 0, realm: Optional[str] = None, include_hidden: bool = True) -> List[Dict]:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        where = []
+        params = []
+        if not include_hidden:
+            where.append("is_hidden = false")
+        if realm:
+            if realm.lower() == "day":
+                where.append("(LOWER(realm) = 'day' OR realm IS NULL)")
+            else:
+                where.append("LOWER(realm) = LOWER($%d)" % (len(params) + 1))
+                params.append(realm)
+        sql = "SELECT * FROM generations"
+        if where:
+            sql += " WHERE " + " AND ".join(where)
+        sql += f" ORDER BY created_at DESC, id DESC LIMIT ${len(params)+1} OFFSET ${len(params)+2}"
+        params.extend([limit, offset])
+        rows = await conn.fetch(sql, *params)
+        results = []
+        for r in rows:
+            d = dict(r)
+            if d.get("id"):
+                d["id"] = str(d["id"])
+            results.append(d)
+        return results
 
 # Compatibility Class (Temporary)
 class Database:

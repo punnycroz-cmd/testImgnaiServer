@@ -50,11 +50,15 @@ class DayManager:
             )
 
             last_json_line = None
+            tail = []
             while True:
                 line_bytes = await process.stdout.readline()
                 if not line_bytes: break
                 line = line_bytes.decode('utf-8', errors='ignore').strip()
                 if line:
+                    tail.append(line)
+                    if len(tail) > 8:
+                        tail.pop(0)
                     # Silenced engine logs
                     if request_id and request_id in self.cancelled_jobs:
                         self.logger.warning("day job cancelled during execution, terminating: %s", request_id)
@@ -70,7 +74,9 @@ class DayManager:
                     except: pass
 
             rc = await process.wait()
-            if rc != 0: raise RuntimeError(f"Day failed (code {rc})")
+            if rc != 0:
+                reason = " | ".join(tail[-4:]) if tail else "no output"
+                raise RuntimeError(f"Day failed (code {rc}): {reason}")
             if not last_json_line: raise RuntimeError("Engine output missing")
             
             data = json.loads(last_json_line)

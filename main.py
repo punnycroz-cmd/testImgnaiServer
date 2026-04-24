@@ -4,6 +4,7 @@ import logging
 import os
 import uuid
 import traceback
+import json
 from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
@@ -50,6 +51,26 @@ job_store = {}
 job_lock = asyncio.Lock()
 
 
+def classify_error(message: str) -> str:
+    msg = (message or "").lower()
+    permanent = [
+        "authentication", "unauthorized", "401", "403",
+        "invalid prompt", "content policy", "bad request", "validation error", "400",
+        "quota exceeded", "account disabled", "payment required",
+    ]
+    transient = [
+        "timeout", "connection refused", "network unreachable",
+        "502", "503", "504", "gateway error", "vault upload failed",
+        "r2 error", "s3 error", "connection pool exhausted",
+        "subprocess crashed", "exit code", "killed", "day failed",
+    ]
+    if any(k in msg for k in permanent):
+        return "PERMANENT"
+    if any(k in msg for k in transient):
+        return "TRANSIENT"
+    return "TRANSIENT"
+
+
 @app.get("/")
 async def index():
     return {"status": "Aether Server Online", "vault": R2_VAULT.bucket_name}
@@ -70,6 +91,7 @@ async def _run_generation(job_id: str, req: GenerateRequest):
     try:
         logger.info("[>] Job Start: %s", job_id[:8])
         is_star = (req.realm or "").lower() == "star" or req.nsfw
+        await DB.update_generation(job_id, status="processing", attempts=1, last_error=None, error_type=None)
         if is_star:
             star_req = StarGenerateRequest(**req.model_dump())
             result = await star_mgr.generate(star_req, request_id=job_id)
@@ -79,13 +101,14 @@ async def _run_generation(job_id: str, req: GenerateRequest):
         async with job_lock:
             job_store[job_id] = {"status": "done", "result": result, "client_id": req.client_id, "request_id": job_id}
         
-        await DB.update_generation(job_id, status="done", result=result)
+        await DB.update_generation(job_id, status="done", result=result, last_error=None, error_type=None)
         logger.info("[!] Job: %s finished", job_id[:8])
     except Exception as exc:
+        error_type = classify_error(str(exc))
         logger.exception("job failed request_id=%s", job_id)
         async with job_lock:
             job_store[job_id] = {"status": "error", "error": str(exc), "client_id": req.client_id, "request_id": job_id}
-        await DB.update_generation(job_id, status="error", error=str(exc))
+        await DB.update_generation(job_id, status="failed", error=str(exc), last_error=str(exc), error_type=error_type)
 
 
 @app.get("/job-status/{request_id}")
@@ -107,6 +130,12 @@ async def job_status(request_id: str):
         "client_id": row["client_id"],
         "prompt": row["prompt"],
         "realm": row["realm"],
+        "attempts": row.get("attempts"),
+        "error_type": row.get("error_type"),
+        "last_error": row.get("last_error"),
+        "max_retries": row.get("max_retries"),
+        "retry_payload": row.get("retry_payload"),
+        "retryable": row.get("error_type") != "PERMANENT" if row.get("status") in ("failed", "error") else False,
         "images": image_rows,
         "result": row.get("result"),
         "error": row.get("error")
@@ -136,6 +165,12 @@ async def job_status_batch(req: JobBatchRequest):
             "client_id": row["client_id"],
             "prompt": row["prompt"],
             "realm": row["realm"],
+            "attempts": row.get("attempts"),
+            "error_type": row.get("error_type"),
+            "last_error": row.get("last_error"),
+            "max_retries": row.get("max_retries"),
+            "retry_payload": row.get("retry_payload"),
+            "retryable": row.get("error_type") != "PERMANENT" if row.get("status") in ("failed", "error") else False,
             "images": image_rows,
             "result": row.get("result"),
             "error": row.get("error")
@@ -165,6 +200,12 @@ async def resume(request_id: str):
         "count": row["count"],
         "session_uuid": row["session_uuid"],
         "task_uuids": row["task_uuids"],
+        "attempts": row.get("attempts"),
+        "error_type": row.get("error_type"),
+        "last_error": row.get("last_error"),
+        "max_retries": row.get("max_retries"),
+        "retry_payload": row.get("retry_payload"),
+        "retryable": row.get("error_type") != "PERMANENT" if row.get("status") in ("failed", "error") else False,
         "result": row["result"],
         "images": image_rows,
         "created_at": row["created_at"].isoformat() if row["created_at"] else None,
@@ -312,6 +353,7 @@ async def generate(req: GenerateRequest):
         req.count = 4
         realm = (req.realm or "day").lower()
         request_id = str(uuid.uuid4())
+        retry_payload = req.model_dump()
         
         await DB.create_generation(
             generation_id=request_id,
@@ -325,18 +367,44 @@ async def generate(req: GenerateRequest):
             seed=req.seed,
             negative_prompt=req.negative_prompt,
             count=req.count,
+            retry_payload=retry_payload,
         )
         
         async with job_lock:
-            job_store[request_id] = {"status": "running", "client_id": req.client_id, "request_id": request_id}
+            job_store[request_id] = {"status": "pending", "client_id": req.client_id, "request_id": request_id}
         
         logger.info("[>] Job: %s (%s) started", request_id[:8], req.model)
         asyncio.create_task(_run_generation(request_id, req))
-        return {"request_id": request_id, "status": "running", "client_id": req.client_id}
+        return {"request_id": request_id, "status": "pending", "client_id": req.client_id}
     except Exception as e:
         traceback.print_exc()
         logger.exception("generate request failed")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/retry-job/{request_id}")
+async def retry_job(request_id: str):
+    row = await DB.get_generation(request_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="job not found")
+    if row.get("status") not in ("failed", "error"):
+        raise HTTPException(status_code=400, detail="Only failed jobs can be retried")
+    if row.get("error_type") == "PERMANENT":
+        raise HTTPException(status_code=400, detail="This error is not retryable")
+    payload = row.get("retry_payload") or {}
+    if isinstance(payload, str):
+        try:
+            payload = json.loads(payload)
+        except Exception:
+            payload = {}
+    payload["client_id"] = row.get("client_id")
+    payload["realm"] = row.get("realm") or payload.get("realm") or "day"
+    payload["count"] = payload.get("count", 4)
+    await DB.update_generation(request_id, status="pending", attempts=0, error_type=None, last_error=None, result=None)
+    async with job_lock:
+        job_store[request_id] = {"status": "pending", "client_id": row.get("client_id"), "request_id": request_id}
+    asyncio.create_task(_run_generation(request_id, GenerateRequest(**payload)))
+    return {"status": "ok", "request_id": request_id, "queued": True}
 
 
 if __name__ == "__main__":

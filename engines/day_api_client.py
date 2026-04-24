@@ -39,6 +39,15 @@ R2_VAULT = R2Vault(
 LOGGER = logging.getLogger("aether.day.cli")
 
 
+def fatal(code: str, message: str, extra: Optional[dict] = None, exit_code: int = 1):
+    payload = {"event": "error", "code": code, "message": message}
+    if extra:
+        payload.update(extra)
+    print(json.dumps(payload))
+    print(message)
+    sys.exit(exit_code)
+
+
 def sleep_seconds_for_quality(quality: str, attempt: int) -> float:
     if quality == "4k+":
         base = 2.75
@@ -338,8 +347,7 @@ def run():
         return
 
     if not os.path.exists(COOKIES_FILE) and not USERNAME:
-        print(f"Missing {COOKIES_FILE} and IMGNAI_USERNAME. You need a saved login session.")
-        sys.exit(1)
+        fatal("missing_login", f"Missing {COOKIES_FILE} and IMGNAI_USERNAME. You need a saved login session.")
 
     model_name = model_choice_from_args_or_prompt(args)
     quality = quality_choice_from_args_or_prompt(args)
@@ -362,7 +370,7 @@ def run():
         auth_token = acquire_auth_token(page, context)
         if not auth_token:
             LOGGER.error("Could not locate an authorization token")
-            sys.exit(1)
+            fatal("token_missing", "Could not locate an authorization token")
 
         api_headers = {
             "Authorization": f"Bearer {auth_token}",
@@ -379,14 +387,12 @@ def run():
             ensure_logged_in(page, context, load_saved_cookies=False)
             auth_token = acquire_auth_token(page, context)
             if not auth_token:
-                print("Could not locate an authorization token after forcing login.")
-                sys.exit(1)
+                fatal("token_missing", "Could not locate an authorization token after forcing login.")
             api_headers["Authorization"] = f"Bearer {auth_token}"
             session_result = browser_fetch(page, "POST", URL_GENERATE_SESSION, headers=api_headers)
 
         if not session_result["ok"]:
-            print(f"Failed to create session: {session_result['status']}")
-            sys.exit(1)
+            fatal("session_failed", f"Failed to create session: {session_result['status']}", {"status": session_result["status"], "body": session_result.get("text")})
 
         session_uuid = session_result["text"].strip()
         print(json.dumps({"event": "session", "session_uuid": session_uuid}))
@@ -431,8 +437,7 @@ def run():
         try:
             task_uuids = json.loads(batch_result["text"])
         except Exception as e:
-            print(f"Could not parse batch response: {e}")
-            sys.exit(1)
+            fatal("batch_parse_failed", f"Could not parse batch response: {e}", {"body": batch_result.get("text")})
         print(json.dumps({"event": "tasks", "task_uuids": task_uuids}))
 
         final_image_urls = []
