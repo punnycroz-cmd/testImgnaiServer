@@ -98,6 +98,9 @@ def delete_object(key: str) -> bool:
 
 # Compatibility Class
 class R2Vault:
+    def __init__(self, *args, **kwargs):
+        # We ignore these now because we use Environment Variables instead
+        pass
     def build_batch_prefix(self, *args, **kwargs): return build_batch_prefix(*args, **kwargs)
     def build_object_key(self, *args, **kwargs): return build_object_key(*args, **kwargs)
     def upload_image(self, *args, **kwargs): return upload_image(*args, **kwargs)

@@ -210,6 +210,13 @@ async def delete_generation(request_id: str):
 
 # Compatibility Class (Temporary)
 class Database:
+    def __init__(self, *args, **kwargs):
+        pass
+    
+    @property
+    def pool(self):
+        return _pool
+
     async def init(self): await init()
     async def create_generation(self, **kwargs): await create_generation(**kwargs)
     async def update_generation(self, rid, **kwargs): await update_generation(rid, **kwargs)
