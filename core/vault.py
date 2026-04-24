@@ -11,8 +11,8 @@ import requests
 
 # Global Client
 _s3_client = None
-_bucket_name = os.environ.get("R2_BUCKET", "imgnai")
-_public_url = os.environ.get("R2_PUBLIC_URL", "").rstrip("/")
+_bucket_name = os.environ.get("R2_BUCKET", "imagenai")
+_public_url = os.environ.get("R2_PUBLIC_URL", "https://pub-b770478fe936495c8d44e69fb02d2943.r2.dev").rstrip("/")
 
 def get_s3_client():
     global _s3_client
