@@ -33,8 +33,9 @@ def _now():
 async def init_db():
     pool = await get_pool()
     async with pool.acquire() as conn:
-        # Drop old confusing table
+        # Drop old tables and start fresh
         await conn.execute("DROP TABLE IF EXISTS generation_images CASCADE;")
+        await conn.execute("DROP TABLE IF EXISTS generations CASCADE;")
         
         # Create Master History Table
         await conn.execute("""
@@ -52,16 +53,11 @@ async def init_db():
                 count INTEGER DEFAULT 1,
                 session_uuid TEXT,
                 task_uuids JSONB NOT NULL DEFAULT '[]'::jsonb,
-                status TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'pending',
                 is_hidden BOOLEAN DEFAULT FALSE,
                 result JSONB DEFAULT '{}',
                 error TEXT,
                 last_error_text TEXT,
-                attempts INTEGER DEFAULT 0,
-                error_type TEXT,
-                last_error TEXT,
-                max_retries INTEGER DEFAULT 3,
-                retry_payload JSONB,
                 created_at TIMESTAMPTZ DEFAULT NOW(),
                 updated_at TIMESTAMPTZ DEFAULT NOW()
             );
