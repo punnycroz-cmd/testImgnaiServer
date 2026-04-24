@@ -56,7 +56,7 @@ def build_object_key(batch_prefix: str, file_name: str, ext: str = "jpg") -> str
 def upload_image(image_url: str, file_name: str) -> str:
     s3 = get_s3_client()
     if s3 is None:
-        return image_url
+        raise RuntimeError(f"R2 not configured for upload: {file_name}")
 
     try:
         response = requests.get(image_url, timeout=20)
@@ -67,10 +67,12 @@ def upload_image(image_url: str, file_name: str) -> str:
             Body=BytesIO(response.content),
             ContentType="image/jpeg",
         )
-        return f"{_public_url}/{file_name.lstrip('/')}"
+        final_url = f"{_public_url}/{file_name.lstrip('/')}"
+        logging.info("vaulted image key=%s", file_name)
+        return final_url
     except Exception as exc:
         logging.error("Failed to upload image %s: %s", file_name, exc)
-        return image_url
+        raise
 
 def list_images(prefix: str = "vault/") -> List[Dict]:
     s3 = get_s3_client()
