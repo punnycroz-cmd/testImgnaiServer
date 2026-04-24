@@ -44,8 +44,8 @@ R2_VAULT = R2Vault(
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Initialize DB pool (Force reset for one-time schema fix)
-    await DB.init(force=True)
+    # Initialize DB pool
+    await DB.init(force=False)
     yield
     # Close DB pool
     await DB.close()
