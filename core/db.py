@@ -111,10 +111,8 @@ async def update_generation(request_id: str, **fields: Any):
     i = 1
     for key, val in fields.items():
         sets.append(f"{key} = ${i}")
-        if key in ("task_uuids", "result") and not isinstance(val, str):
-            values.append(json.dumps(val))
-        else:
-            values.append(val)
+        # asyncpg handles jsonb automatically, NO NEED to json.dumps
+        values.append(val)
         i += 1
     
     sets.append(f"updated_at = ${i}")
