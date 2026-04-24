@@ -1129,26 +1129,27 @@
             cell.classList.add("active-summon");
           }
 
-          setFooterMsg(`Summoning Matrix Spirit ${i + 1}/${totalModels}: ${model}`, "info");
-
+          console.log(`[Matrix] Starting model ${i + 1}/${totalModels}: ${model}`);
           try {
             const res = await apiFetch("/generate", {
               method: "POST",
               body: JSON.stringify(mPayload)
             });
+            console.log(`[Matrix] Received ID for ${model}:`, res.request_id);
             if (cell) cell.dataset.requestId = res.request_id;
 
             // Poll in background, update progress when done/failed
-            pollSingleMatrixJob(res.request_id, model, cell).then(() => {
+            pollSingleMatrixJob(res.request_id, model, cell).then((success) => {
               completedCount++;
               updateMatrixProgress();
+              console.log(`[Matrix] Job ${model} finalized. Success: ${success}. Total: ${completedCount}/${totalModels}`);
             });
           } catch (e) {
-            console.error(`Matrix Job failed for ${model}`, e);
+            console.error(`[Matrix] FAILED to start ${model}:`, e);
             completedCount++;
             updateMatrixProgress();
             if (cell) {
-              cell.querySelector(".loader").classList.add("hidden");
+              cell.querySelector(".loader")?.classList.add("hidden");
               cell.style.boxShadow = "inset 0 0 40px rgba(239, 68, 68, 0.2)";
             }
           } finally {
