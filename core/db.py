@@ -53,10 +53,32 @@ async def init_db():
                 error TEXT,
                 result JSONB,
                 is_hidden BOOLEAN DEFAULT FALSE,
+                attempts INTEGER DEFAULT 0,
+                error_type TEXT,
+                last_error TEXT,
+                max_retries INTEGER DEFAULT 3,
+                retry_payload JSONB,
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
             );
         """)
+        # Add columns if they don't exist (for existing tables)
+        try:
+            await conn.execute("ALTER TABLE generations ADD COLUMN attempts INTEGER DEFAULT 0;")
+        except Exception: pass
+        try:
+            await conn.execute("ALTER TABLE generations ADD COLUMN error_type TEXT;")
+        except Exception: pass
+        try:
+            await conn.execute("ALTER TABLE generations ADD COLUMN last_error TEXT;")
+        except Exception: pass
+        try:
+            await conn.execute("ALTER TABLE generations ADD COLUMN max_retries INTEGER DEFAULT 3;")
+        except Exception: pass
+        try:
+            await conn.execute("ALTER TABLE generations ADD COLUMN retry_payload JSONB;")
+        except Exception: pass
+
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS generation_images (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -80,8 +102,10 @@ async def create_generation(data: Dict[str, Any]) -> str:
     for i, (k, v) in enumerate(data.items()):
         cols.append(k)
         placeholders.append(f"${i+1}")
-        # asyncpg handles jsonb automatically
-        values.append(v)
+        if k in ("task_uuids", "result", "retry_payload") and not isinstance(v, (str, bytes)):
+            values.append(json.dumps(v))
+        else:
+            values.append(v)
     
     query = f"INSERT INTO generations ({', '.join(cols)}) VALUES ({', '.join(placeholders)}) RETURNING request_id"
     async with pool.acquire() as conn:
@@ -96,7 +120,7 @@ async def update_generation(request_id: str, **fields: Any):
     i = 1
     for key, val in fields.items():
         sets.append(f"{key} = ${i}")
-        if key in ("task_uuids", "result") and not isinstance(val, (str, bytes)):
+        if key in ("task_uuids", "result", "retry_payload") and not isinstance(val, (str, bytes)):
             values.append(json.dumps(val))
         else:
             values.append(val)
