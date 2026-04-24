@@ -4,6 +4,9 @@ import asyncpg
 import sys
 import boto3
 import logging
+from dotenv import load_dotenv
+
+load_dotenv()
 
 async def reset_db():
     url = os.environ.get("DATABASE_URL")
@@ -21,13 +24,14 @@ async def reset_db():
 
     # --- Step 1: Purge R2 ---
     try:
-        bucket = os.environ.get("R2_BUCKET", "imgnai")
-        account_id = os.environ.get("R2_ACCOUNT_ID")
+        # Get from env or fallback to values from main.py
+        bucket = os.environ.get("R2_BUCKET", "imagenai")
+        account_id = os.environ.get("R2_ACCOUNT_ID", "c733aa6dbf847adf0949e4387eb6f15f")
         access_key = os.environ.get("R2_ACCESS_KEY")
         secret_key = os.environ.get("R2_SECRET_KEY")
 
         if all([account_id, access_key, secret_key]):
-            print(f"🧹 Purging R2 Bucket: {bucket}...")
+            print(f"🧹 Purging R2 Bucket: {bucket} (Account: {account_id[:8]}...)")
             s3 = boto3.client(
                 service_name="s3",
                 endpoint_url=f"https://{account_id}.r2.cloudflarestorage.com",
