@@ -251,7 +251,7 @@ class DatabaseProxy:
     async def get_generation(self, rid): return await get_generation(rid)
     async def get_generation_images(self, guid): return await get_generation_images(guid)
     async def update_generation(self, rid, **kwargs): await update_generation(rid, **kwargs)
-    async def create_generation(self, data): return await create_generation(data)
+    async def create_generation(self, **data): return await create_generation(data)
     async def add_image(self, rid=None, idx=0, url="", **kwargs):
         # Handle various legacy parameter names used in different engines
         generation_id = rid or kwargs.get("generation_id") or kwargs.get("generation_request_id")
