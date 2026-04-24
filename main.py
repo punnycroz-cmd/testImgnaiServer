@@ -18,6 +18,16 @@ from engines.day import DayManager
 from engines.star import GenerateRequest as StarGenerateRequest
 from engines.star import StarManager
 
+# --- Logging Cleanup ---
+class EndpointFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        # Ignore these high-frequency polling endpoints in the console
+        msg = record.getMessage()
+        return "/job-status/" not in msg and "/history" not in msg
+
+# Apply filter to uvicorn access logs
+logging.getLogger("uvicorn.access").addFilter(EndpointFilter())
+
 load_dotenv()
 logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO"))
 logger = logging.getLogger("aether")
