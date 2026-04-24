@@ -6,6 +6,7 @@ import re
 import sys
 import time
 import urllib.parse
+from typing import Optional
 
 from dotenv import load_dotenv
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
