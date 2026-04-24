@@ -1221,9 +1221,8 @@
       }
     }
 
-    async function pollSingleMatrixJob(requestId, model, cell, maxAttempts = 40) {
-      // Keep this responsive: hand off as soon as the backend has either
-      // produced task UUIDs or already finished with images.
+    async function pollSingleMatrixJob(requestId, model, cell, maxAttempts = 20) {
+      // Matrix should move on quickly: the backend owns the long poll.
       for (let attempt = 0; attempt < maxAttempts; attempt++) {
         if (state.matrixCancelled) return false;
         while (state.matrixPaused) { await sleep(1000); if (state.matrixCancelled) return false; }
@@ -1239,6 +1238,11 @@
             pollSingleMatrixCellBackground(requestId, cell);
             return true;
           }
+          if (res.status === "running" || res.status === "queued") {
+            // The job is alive; hand off and let the background poll finish it.
+            pollSingleMatrixCellBackground(requestId, cell);
+            return true;
+          }
           if (res.status === "error") {
             if (cell) {
               cell.querySelector(".loader").classList.add("hidden");
@@ -1247,8 +1251,9 @@
             return false;
           }
         } catch (err) { }
-        await sleep(1500);
+        await sleep(1000);
       }
+      pollSingleMatrixCellBackground(requestId, cell);
       return false;
     }
 
@@ -1263,7 +1268,7 @@
           }
           if (res.status === "error") return;
         } catch (e) { }
-        await sleep(5000);
+        await sleep(3000);
       }
     }
 
