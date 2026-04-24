@@ -41,6 +41,13 @@ def build_batch_prefix(source: str, ts: Optional[datetime] = None, batch_id: Opt
     safe_batch_id = (batch_id or uuid4().hex[:8]).strip().lower()
     return f"vault/{stamp}_{safe_source}_{safe_batch_id}"
 
+def build_batch_prefix_with_name(source: str, name: str, ts: Optional[datetime] = None) -> str:
+    stamp_ts = ts or datetime.now(ZoneInfo("America/Los_Angeles"))
+    stamp = stamp_ts.astimezone(ZoneInfo("America/Los_Angeles")).strftime("%Y_%m_%d_%H%M%S")
+    safe_source = source.strip().lower().replace(" ", "_")
+    safe_name = name.strip().replace("/", "_").replace(" ", "_")
+    return f"vault/{stamp}_{safe_source}_{safe_name}"
+
 def build_object_key(batch_prefix: str, file_name: str, ext: str = "jpg") -> str:
     safe_file_name = file_name.strip().replace("/", "_").replace(" ", "_")
     return f"{batch_prefix}/{safe_file_name}.{ext.lstrip('.')}"
@@ -106,6 +113,7 @@ class R2Vault:
         self.secret_key = secret_key or os.environ.get("R2_SECRET_KEY")
 
     def build_batch_prefix(self, *args, **kwargs): return build_batch_prefix(*args, **kwargs)
+    def build_batch_prefix_with_name(self, *args, **kwargs): return build_batch_prefix_with_name(*args, **kwargs)
     def build_object_key(self, *args, **kwargs): return build_object_key(*args, **kwargs)
     def upload_image(self, *args, **kwargs): return upload_image(*args, **kwargs)
     def delete_object(self, *args, **kwargs): return delete_object(*args, **kwargs)
