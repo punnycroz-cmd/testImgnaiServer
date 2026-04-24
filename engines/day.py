@@ -20,31 +20,29 @@ class DayManager:
         self.logger = logging.getLogger("aether.day")
 
     async def generate(self, req, request_id=None):
-        async with self._lock:
-            if request_id and request_id in self.cancelled_jobs:
-                self.logger.info("day generate cancelled before start: %s", request_id)
-                return None
+        if request_id and request_id in self.cancelled_jobs:
+            self.logger.info("day generate cancelled before start: %s", request_id)
+            return None
 
-            # self.logger.info("[>] Day Pulse: %s", req.prompt[:30] + "...")
+        # self.logger.info("[>] Day Pulse: %s", req.prompt[:30] + "...")
+        
+        # Using absolute path for stability on Replit
+        script_path = os.path.join(os.getcwd(), "day_api.py")
+        cmd = [
+            sys.executable, script_path, 
+            "--prompt", str(req.prompt), 
+            "--model", str(req.model), 
+            "--count", str(req.count),
+            "--aspect", str(req.aspect), 
+            "--quality", str(req.quality),
+            "--skip-login-prompt", 
+            "--confirm-payload",
+        ]
+        if req.negative_prompt:
+            cmd.extend(["--negative-prompt", str(req.negative_prompt)])
             
-            # Using absolute path for stability on Replit
-            script_path = os.path.join(os.getcwd(), "day_api.py")
-            cmd = [
-                sys.executable, script_path, 
-                "--prompt", str(req.prompt), 
-                "--model", str(req.model), 
-                "--count", str(req.count),
-                "--aspect", str(req.aspect), 
-                "--quality", str(req.quality),
-                "--skip-login-prompt", 
-                "--confirm-payload",
-            ]
-            if req.negative_prompt:
-                cmd.extend(["--negative-prompt", str(req.negative_prompt)])
-                
-            # Silenced execute logs
-            
-            # Use asyncio subprocess but call the original SYNC script
+        # We only lock the PROCESS START to prevent login collisions
+        async with self._lock:
             process = await asyncio.create_subprocess_exec(
                 *cmd, 
                 stdout=asyncio.subprocess.PIPE, 
