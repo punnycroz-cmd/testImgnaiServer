@@ -84,11 +84,18 @@ class DayManager:
 
         # Released Engine Lock: Next job can start
         batch_prefix = self.vault.build_batch_prefix_with_name("day", session_uuid, ts=datetime.now())
-        vaulted_urls = []
-        for idx, url in enumerate(image_urls):
-            task_uuid = task_uuids[idx] if idx < len(task_uuids) else f"{idx + 1:03d}"
-            key = self.vault.build_object_key(batch_prefix, task_uuid, "jpg")
-            cloud_url = await asyncio.to_thread(self.vault.upload_image, url, key)
-            vaulted_urls.append(cloud_url)
+        
+        async def safe_upload(url, idx):
+            try:
+                task_uuid = task_uuids[idx] if idx < len(task_uuids) else f"{idx + 1:03d}"
+                key = self.vault.build_object_key(batch_prefix, task_uuid, "jpg")
+                return await asyncio.to_thread(self.vault.upload_image, url, key)
+            except Exception as e:
+                self.logger.error("Failed to vault image %d for job %s: %s", idx, request_id, e)
+                return None
+
+        vault_tasks = [safe_upload(url, i) for i, url in enumerate(image_urls)]
+        results = await asyncio.gather(*vault_tasks)
+        vaulted_urls = [u for u in results if u]
 
         return {"image_urls": vaulted_urls, "client_id": req.client_id, "model": req.model, "prompt": req.prompt}

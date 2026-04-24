@@ -131,18 +131,23 @@ class StarManager:
 
                 # Released Engine Lock: Next job can now start its "nap" or generate phase
                 batch_prefix = self.vault.build_batch_prefix_with_name("star", session_uuid or "session", ts=datetime.now())
-                results = await asyncio.gather(*[
+                poll_results = await asyncio.gather(*[
                     self._poll_task(client, tuid, headers, batch_prefix, i, request_id)
                     for i, tuid in enumerate(task_uuids)
                 ])
 
-                vaulted_urls = []
-                for idx, final_url in enumerate(results):
-                    if not final_url:
-                        continue
-                    task_uuid = task_uuids[idx] if idx < len(task_uuids) else f"{idx + 1:03d}"
-                    key = self.vault.build_object_key(batch_prefix, task_uuid, "jpg")
-                    cloud_url = await asyncio.to_thread(self.vault.upload_image, final_url, key)
-                    vaulted_urls.append(cloud_url)
+                async def safe_upload(url, idx):
+                    if not url: return None
+                    try:
+                        task_uuid = task_uuids[idx] if idx < len(task_uuids) else f"{idx + 1:03d}"
+                        key = self.vault.build_object_key(batch_prefix, task_uuid, "jpg")
+                        return await asyncio.to_thread(self.vault.upload_image, url, key)
+                    except Exception as e:
+                        self.logger.error("Failed to vault star image %d for job %s: %s", idx, request_id, e)
+                        return None
+
+                vault_tasks = [safe_upload(url, i) for i, url in enumerate(poll_results)]
+                final_results = await asyncio.gather(*vault_tasks)
+                vaulted_urls = [u for u in final_results if u]
 
                 return {"image_urls": vaulted_urls, "client_id": req.client_id, "model": req.model, "prompt": req.prompt}

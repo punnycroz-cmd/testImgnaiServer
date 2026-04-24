@@ -1238,7 +1238,7 @@
             pollSingleMatrixCellBackground(requestId, cell);
             return true;
           }
-          if (res.status === "running" || res.status === "queued") {
+          if (res.status === "processing" || res.status === "pending" || res.status === "running" || res.status === "queued") {
             // The job is alive; hand off and let the background poll finish it.
             pollSingleMatrixCellBackground(requestId, cell);
             return true;
