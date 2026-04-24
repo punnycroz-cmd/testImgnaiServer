@@ -17,12 +17,13 @@ _public_url = os.environ.get("R2_PUBLIC_URL", "").rstrip("/")
 def get_s3_client():
     global _s3_client
     if _s3_client is None:
-        account_id = os.environ.get("R2_ACCOUNT_ID")
+        # Get from env or use the fallback from your main.py config
+        account_id = os.environ.get("R2_ACCOUNT_ID", "c733aa6dbf847adf0949e4387eb6f15f")
         access_key = os.environ.get("R2_ACCESS_KEY")
         secret_key = os.environ.get("R2_SECRET_KEY")
         
         if not all([account_id, access_key, secret_key]):
-            logging.warning("R2 Environment variables missing")
+            logging.warning("R2 Environment variables missing (Access/Secret Key)")
             return None
             
         _s3_client = boto3.client(
