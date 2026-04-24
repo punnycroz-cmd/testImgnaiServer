@@ -37,13 +37,9 @@ async def init_db():
         await conn.execute('CREATE EXTENSION IF NOT EXISTS "pgcrypto";')
         await conn.execute('CREATE EXTENSION IF NOT EXISTS "uuid-ossp";')
         
-        # Drop old tables and start fresh (as requested)
-        await conn.execute("DROP TABLE IF EXISTS generation_images CASCADE;")
-        await conn.execute("DROP TABLE IF EXISTS generations CASCADE;")
-        
         # Create Master History Table with requested constraints
         await conn.execute("""
-            CREATE TABLE generations (
+            CREATE TABLE IF NOT EXISTS generations (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                 
                 -- Request Identifiers
@@ -77,8 +73,8 @@ async def init_db():
         """)
         
         # CRITICAL INDEXES (Prevents 502 errors & sorts correctly)
-        await conn.execute("CREATE INDEX idx_generations_realm_created ON generations (realm, created_at DESC);")
-        await conn.execute("CREATE INDEX idx_generations_status ON generations (status);")
+        await conn.execute("CREATE INDEX IF NOT EXISTS idx_generations_realm_created ON generations (realm, created_at DESC);")
+        await conn.execute("CREATE INDEX IF NOT EXISTS idx_generations_status ON generations (status);")
 
 
 
