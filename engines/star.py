@@ -144,13 +144,5 @@ class StarManager:
                     key = self.vault.build_object_key(batch_prefix, task_uuid, "jpg")
                     cloud_url = await asyncio.to_thread(self.vault.upload_image, final_url, key)
                     vaulted_urls.append(cloud_url)
-                    if self.db and request_id:
-                        await self.db.add_image(
-                            generation_id=request_id,
-                            task_uuid=task_uuid,
-                            r2_url=cloud_url,
-                            r2_key=key,
-                            image_index=len(vaulted_urls) - 1,
-                        )
 
                 return {"image_urls": vaulted_urls, "client_id": req.client_id, "model": req.model, "prompt": req.prompt}

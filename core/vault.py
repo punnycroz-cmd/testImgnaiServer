@@ -44,10 +44,10 @@ def build_batch_prefix(source: str, ts: Optional[datetime] = None, batch_id: Opt
 
 def build_batch_prefix_with_name(source: str, name: str, ts: Optional[datetime] = None) -> str:
     stamp_ts = ts or datetime.now(ZoneInfo("America/Los_Angeles"))
-    stamp = stamp_ts.astimezone(ZoneInfo("America/Los_Angeles")).strftime("%Y_%m_%d_%H%M%S")
+    stamp = stamp_ts.astimezone(ZoneInfo("America/Los_Angeles")).strftime("%Y_%m_%d")
     safe_source = source.strip().lower().replace(" ", "_")
     safe_name = name.strip().replace("/", "_").replace(" ", "_")
-    return f"vault/{stamp}_{safe_source}_{safe_name}"
+    return f"vault/{stamp}/{safe_source}_{safe_name}"
 
 def build_object_key(batch_prefix: str, file_name: str, ext: str = "jpg") -> str:
     safe_file_name = file_name.strip().replace("/", "_").replace(" ", "_")
@@ -58,6 +58,14 @@ def upload_image(image_url: str, file_name: str) -> str:
     if s3 is None:
         raise RuntimeError(f"R2 not configured for upload: {file_name}")
 
+    final_url = f"{_public_url}/{file_name.lstrip('/')}"
+    try:
+        s3.head_object(Bucket=_bucket_name, Key=file_name)
+        logging.info("vaulted image already exists key=%s", file_name)
+        return final_url
+    except Exception:
+        pass # Object does not exist, proceed to upload
+
     try:
         response = requests.get(image_url, timeout=20)
         response.raise_for_status()
@@ -67,8 +75,7 @@ def upload_image(image_url: str, file_name: str) -> str:
             Body=BytesIO(response.content),
             ContentType="image/jpeg",
         )
-        final_url = f"{_public_url}/{file_name.lstrip('/')}"
-        logging.info("vaulted image key=%s", file_name)
+        logging.info("vaulted image uploaded key=%s", file_name)
         return final_url
     except Exception as exc:
         logging.error("Failed to upload image %s: %s", file_name, exc)

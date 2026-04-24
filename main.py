@@ -159,7 +159,6 @@ async def job_status_batch(req: JobBatchRequest):
             if job:
                 results[rid] = {"request_id": rid, **job}
             continue
-        image_rows = await DB.get_generation_images(row["id"])
         results[rid] = {
             "request_id": rid,
             "status": row["status"],
@@ -172,7 +171,7 @@ async def job_status_batch(req: JobBatchRequest):
             "max_retries": row.get("max_retries"),
             "retry_payload": row.get("retry_payload"),
             "retryable": row.get("error_type") != "PERMANENT" if row.get("status") in ("failed", "error") else False,
-            "images": image_rows,
+            "images": row.get("images", []),
             "result": row.get("result"),
             "error": row.get("error")
         }
@@ -184,8 +183,6 @@ async def resume(request_id: str):
     row = await DB.get_generation(request_id)
     if not row:
         raise HTTPException(status_code=404, detail="job not found")
-    
-    image_rows = await DB.get_generation_images(row["id"])
     
     return {
         "request_id": row["request_id"],
@@ -208,7 +205,7 @@ async def resume(request_id: str):
         "retry_payload": row.get("retry_payload"),
         "retryable": row.get("error_type") != "PERMANENT" if row.get("status") in ("failed", "error") else False,
         "result": row["result"],
-        "images": image_rows,
+        "images": row.get("images", []),
         "created_at": row["created_at"].isoformat() if row["created_at"] else None,
         "updated_at": row["updated_at"].isoformat() if row["updated_at"] else None,
     }
@@ -226,7 +223,7 @@ async def vault_stats(realm: Optional[str] = None):
                 total_row = await cur.fetchone()
                 total = total_row["cnt"] if total_row else 0
                 
-                await cur.execute("SELECT COUNT(DISTINCT g.id) as cnt FROM generations g JOIN generation_images i ON g.id = i.generation_id WHERE (LOWER(g.realm) = 'day' OR g.realm IS NULL) AND g.is_hidden = false")
+                await cur.execute("SELECT COUNT(*) as cnt FROM generations WHERE (LOWER(realm) = 'day' OR realm IS NULL) AND is_hidden = false AND status = 'done'")
                 valid_row = await cur.fetchone()
                 valid = valid_row["cnt"] if valid_row else 0
             elif realm:
@@ -234,7 +231,7 @@ async def vault_stats(realm: Optional[str] = None):
                 total_row = await cur.fetchone()
                 total = total_row["cnt"] if total_row else 0
                 
-                await cur.execute("SELECT COUNT(DISTINCT g.id) as cnt FROM generations g JOIN generation_images i ON g.id = i.generation_id WHERE LOWER(g.realm) = LOWER(%s) AND g.is_hidden = false", (realm,))
+                await cur.execute("SELECT COUNT(*) as cnt FROM generations WHERE LOWER(realm) = LOWER(%s) AND is_hidden = false AND status = 'done'", (realm,))
                 valid_row = await cur.fetchone()
                 valid = valid_row["cnt"] if valid_row else 0
             else:
@@ -242,7 +239,7 @@ async def vault_stats(realm: Optional[str] = None):
                 total_row = await cur.fetchone()
                 total = total_row["cnt"] if total_row else 0
                 
-                await cur.execute("SELECT COUNT(DISTINCT g.id) as cnt FROM generations g JOIN generation_images i ON g.id = i.generation_id WHERE g.is_hidden = false")
+                await cur.execute("SELECT COUNT(*) as cnt FROM generations WHERE is_hidden = false AND status = 'done'")
                 valid_row = await cur.fetchone()
                 valid = valid_row["cnt"] if valid_row else 0
 
@@ -319,12 +316,6 @@ async def cancel_all_jobs():
                 job_store[rid]["error"] = "All jobs cancelled"
                 await DB.update_generation(rid, status="error")
     return {"status": "ok"}
-
-
-@app.delete("/history/image/{image_id}")
-async def delete_image(image_id: str):
-    await DB.delete_image(image_id)
-    return {"status": "ok", "deleted": image_id}
 
 
 @app.post("/generate")
