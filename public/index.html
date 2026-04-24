@@ -1200,7 +1200,7 @@
             const requestId = cell.dataset.requestId;
             if (requestId) {
               console.log("[Matrix] Waking up poll for:", requestId);
-              pollSingleMatrixCellBackground(requestId, cell, 100); // 100-attempt wake-up burst
+              pollSingleMatrixCellBackground(requestId, cell); 
             }
           });
         }
@@ -1289,8 +1289,14 @@
       return false;
     }
 
-    async function pollSingleMatrixCellBackground(requestId, cell, maxAttempts = 500) {
-      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    async function pollSingleMatrixCellBackground(requestId, cell) {
+      while (!state.matrixCancelled) {
+        // Pause Support: Wait here if matrix is paused
+        while (state.matrixPaused && !state.matrixCancelled) {
+          await sleep(1000);
+        }
+        if (state.matrixCancelled) break;
+
         try {
           const res = await apiFetch(`/job-status/${requestId}`);
           const urls = (res.images && res.images.length > 0)
@@ -1299,10 +1305,21 @@
 
           if (res.status === "done" && urls.length > 0) {
             updateMatrixCell(cell, urls, requestId);
-            return;
+            return; // Success, stop polling
           }
-          if (res.status === "error" || res.status === "failed") return;
-        } catch (e) { }
+          if (res.status === "failed") {
+            // Final failure (after retries)
+            if (cell) {
+              cell.querySelector(".loader")?.classList.add("hidden");
+              cell.style.boxShadow = "inset 0 0 40px rgba(239, 68, 68, 0.2)";
+            }
+            return; // Failed, stop polling
+          }
+        } catch (e) {
+          console.warn("[Matrix] Poll error (retrying):", e);
+        }
+        
+        // Wait 3 seconds before next check
         await sleep(3000);
       }
     }
