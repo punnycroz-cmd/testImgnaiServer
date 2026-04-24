@@ -336,7 +336,6 @@ async def generate(req: GenerateRequest):
         retry_payload = req.model_dump()
         
         await DB.create_generation(
-            generation_id=request_id,
             request_id=request_id,
             client_id=req.client_id,
             realm=realm,
