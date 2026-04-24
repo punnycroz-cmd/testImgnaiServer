@@ -1137,6 +1137,7 @@
               method: "POST",
               body: JSON.stringify(mPayload)
             });
+            if (cell) cell.dataset.requestId = res.request_id;
 
             // Poll until THIS one is done before moving to the next
             await pollSingleMatrixJob(res.request_id, model, cell);
@@ -1175,6 +1176,25 @@
       state.matrixPaused = false;
       updateMatrixStatusUI();
     }
+
+    // Wake-up handler for background tabs
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") {
+        const matrixGallery = document.getElementById("matrixGallery");
+        if (matrixGallery && !matrixGallery.classList.contains("hidden")) {
+          // Find all cells that are still loading and give them a nudge
+          const activeCells = matrixGallery.querySelectorAll(".art-frame.active-summon");
+          activeCells.forEach(cell => {
+            const requestId = cell.dataset.requestId;
+            if (requestId) {
+              console.log("[Matrix] Waking up poll for:", requestId);
+              pollSingleMatrixCellBackground(requestId, cell, 5); // Quick 5-attempt burst
+            }
+          });
+        }
+      }
+    });
+
 
     function updateMatrixStatusUI() {
       const btn = document.getElementById("matrixPauseBtn");
