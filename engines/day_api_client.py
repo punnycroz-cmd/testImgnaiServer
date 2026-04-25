@@ -344,6 +344,15 @@ def ensure_logged_in(page, context, load_saved_cookies=True):
         curr_url = page.url
         LOGGER.warning(f"Login timeout. Current URL: {curr_url}")
         
+        # Take Screenshot for debugging
+        debug_dir = os.path.join("public", "debug")
+        os.makedirs(debug_dir, exist_ok=True)
+        screenshot_path = os.path.join(debug_dir, "last_login_error.png")
+        try:
+            page.screenshot(path=screenshot_path)
+            LOGGER.info(f"📸 Debug screenshot saved to {screenshot_path}")
+        except: pass
+
         # One last check - did we land on the generate page?
         if "generate" in curr_url.lower():
             LOGGER.info("✅ Login detected via URL redirect")
