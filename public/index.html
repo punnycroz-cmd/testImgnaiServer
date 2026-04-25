@@ -979,17 +979,19 @@
           ...opts
         };
         
-        // Build URL natively to ensure no stripping
-        const baseUrl = state.serverUrl.startsWith("http") ? state.serverUrl : `${window.location.protocol}//${state.serverUrl}`;
-        const url = new URL(path, baseUrl);
+        // Safer string concatenation to avoid URL object quirks on Replit
+        const cleanServer = state.serverUrl.replace(/\/+$/, "");
+        const cleanPath = path.startsWith("/") ? path : `/${path}`;
+        const finalUrl = `${cleanServer}${cleanPath}`;
         
-        // Backup header in case query params are stripped by proxy
-        if (url.searchParams.has("before")) {
-          fetchOpts.headers["X-Debug-Cursor"] = url.searchParams.get("before");
+        // Backup header check
+        if (finalUrl.includes("before=")) {
+           const match = finalUrl.match(/[?&]before=([^&]+)/);
+           if (match) fetchOpts.headers["X-Debug-Cursor"] = match[1];
         }
         
-        console.log(`[Fetch] [V1.0.5] Target: ${url.toString()}`);
-        const resp = await fetch(url.toString(), fetchOpts);
+        console.log(`[Fetch] [V1.0.5] Target: ${finalUrl}`);
+        const resp = await fetch(finalUrl, fetchOpts);
         const text = await resp.text();
         let data = null;
         try { data = text ? JSON.parse(text) : null; } catch { data = { raw: text }; }
