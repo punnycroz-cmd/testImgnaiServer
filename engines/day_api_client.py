@@ -333,37 +333,46 @@ def ensure_logged_in(page, context, load_saved_cookies=True):
     LOGGER.info("Pressing Enter to login...")
     page.keyboard.press("Enter")
     
-    # Wait for success - looking for your exact profile name from the HTML
+    # Wait for success - Bulletproof detection
     try:
-        LOGGER.info("Waiting for @thechoosenone1 profile to appear...")
-        # Target the specific H2 tag we found in your HTML
-        page.wait_for_selector('h2:has-text("thechoosenone1"), a[href*="logout"], a[href="/generate"]', timeout=30000)
+        LOGGER.info("Verifying login status...")
         
-        # Check for error popups (like the 403 one) and dismiss them
-        try:
-            okay_btn = page.locator('button:has-text("OKAY"), .modal button').first
-            if okay_btn.is_visible(timeout=2000):
-                LOGGER.warning("⚠️ Error popup detected! Dismissing...")
-                okay_btn.click()
-                page.wait_for_timeout(1000)
-        except: pass
-
-        # Explicitly log the username found
-        try:
-            username = page.locator('h2').filter(has_text="thechoosenone1").first.inner_text(timeout=5000)
-            LOGGER.info(f"✅ [Login] Confirmed user: {username}")
-        except:
-            LOGGER.info("✅ [Login] Profile detected via UI")
-
-        LOGGER.info(f"✅ [Login] Dashboard/Home ready. URL: {page.url}")
+        # 1. Quick check: Are we already on the dashboard URL?
+        if "app.imgnai.com" in page.url and "login" not in page.url:
+            LOGGER.info(f"✅ [Login] URL confirmed: {page.url}")
+        else:
+            # 2. Wait for either the profile name OR the dashboard URL to land
+            page.wait_for_selector('h2:has-text("thechoosenone1"), a[href="/generate"], .nav-item', timeout=20000)
         
-        # Go to generate page to sniff the token
-        LOGGER.info(f"🚀 [Login] Navigating to Generate page: {URL_GENERATE}")
+        # 3. Aggressive Popup Clear
+        for _ in range(3):
+            try:
+                okay_btn = page.locator('button:has-text("OKAY"), button:has-text("Okay")').first
+                if okay_btn.is_visible(timeout=1000):
+                    LOGGER.warning("⚠️ Clearing error popup...")
+                    okay_btn.click()
+                    page.wait_for_timeout(500)
+            except: break
+
+        LOGGER.info(f"✅ [Login] Confirmed logged in. Current URL: {page.url}")
+        
+        # 4. Jump to Generate page immediately
+        LOGGER.info(f"🚀 [Login] Navigating to Generate: {URL_GENERATE}")
         page.goto(URL_GENERATE, wait_until="networkidle", timeout=30000)
-        LOGGER.info(f"🎯 [Login] Arrived at Generate page: {page.url}")
+        LOGGER.info(f"🎯 [Login] Arrived at Generate: {page.url}")
         
         save_cookies(context)
         return True
+    except PlaywrightTimeoutError:
+        curr_url = page.url
+        # Final fallback: If URL looks like dashboard, let it pass!
+        if "app.imgnai.com" in curr_url and "login" not in curr_url:
+            LOGGER.info("✅ [Login] Passing via URL fallback")
+            page.goto(URL_GENERATE, wait_until="networkidle", timeout=30000)
+            return True
+            
+        visible_text = page.evaluate("() => document.body.innerText.slice(0, 500)")
+        LOGGER.warning(f"Login timeout at {curr_url}. Visible text: {visible_text}")
     except PlaywrightTimeoutError:
         curr_url = page.url
         # Diagnostic: What DOES the browser see?
