@@ -182,6 +182,11 @@ async def get_generation(request_id: str) -> Optional[Dict]:
 async def list_generations(limit: int = 20, offset: int = 0, realm: Optional[str] = None, before_id: Optional[int] = None, uid: str = "uid_0") -> List[Dict]:
     pool = await get_pool()
     
+    # Ensure numeric types
+    if before_id is not None:
+        try: before_id = int(before_id)
+        except: before_id = None
+
     query = """
         SELECT 
             uid, image_id, request_id, client_id, realm, prompt, model, 
@@ -189,7 +194,7 @@ async def list_generations(limit: int = 20, offset: int = 0, realm: Optional[str
             created_at, updated_at
         FROM generations
         WHERE is_hidden = FALSE AND status = 'done' AND uid = $1
-    """
+    """.strip()
     
     async with pool.acquire() as conn:
         where_clauses = []
@@ -199,19 +204,20 @@ async def list_generations(limit: int = 20, offset: int = 0, realm: Optional[str
             params.append(realm)
             where_clauses.append(f"realm = ${len(params)}")
             
-        if before_id:
+        if before_id is not None:
             params.append(before_id)
             where_clauses.append(f"image_id < ${len(params)}")
             
         if where_clauses:
             query += " AND " + " AND ".join(where_clauses)
             
-        params.append(limit)
+        params.append(int(limit))
         limit_idx = len(params)
         
         query += f" ORDER BY image_id DESC LIMIT ${limit_idx}"
         
-        # We ignore 'offset' in keyset pagination as before_id handles the windowing
+        LOGGER.info(f"Vault Query: {query} | Params: {params}")
+        
         rows = await conn.fetch(query, *params)
             
         results = []
