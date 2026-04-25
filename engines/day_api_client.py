@@ -333,11 +333,17 @@ def ensure_logged_in(page, context, load_saved_cookies=True):
     LOGGER.info("Pressing Enter to login...")
     page.keyboard.press("Enter")
     
-    # Wait for success - looking for elements that ONLY appear after login
+    # Wait for success - looking for your profile name or the generate link
     try:
-        LOGGER.info("Waiting for dashboard/generate page...")
-        page.wait_for_selector('button:has-text("CREATE"), a[href="/generate"], .nav-item', timeout=30000)
-        LOGGER.info(f"✅ Login successful. Landed on: {page.url}")
+        LOGGER.info("Waiting for profile or dashboard...")
+        # Look for the username '@' or profile indicators
+        page.wait_for_selector('text=@, [class*="user"], [class*="profile"], a[href="/generate"]', timeout=30000)
+        LOGGER.info(f"✅ Login confirmed. Landed on: {page.url}")
+        
+        # FORCE go to generate page to sniff the token
+        LOGGER.info("Navigating to Generate page to capture token...")
+        page.goto(URL_GENERATE, wait_until="networkidle", timeout=30000)
+        
         save_cookies(context)
         return True
     except PlaywrightTimeoutError:
