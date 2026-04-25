@@ -182,7 +182,7 @@ async def get_generation(request_id: str) -> Optional[Dict]:
 
 
 async def list_generations(limit: int = 20, offset: int = 0, realm: Optional[str] = None, before_id: Optional[int] = None, uid: str = "uid_0") -> List[Dict]:
-    print(f"DEBUG: list_generations(uid={uid}, before_id={before_id}, realm={realm}, limit={limit})")
+    print(f"DEBUG [V1.0.5]: list_generations(uid={uid}, before={before_id}, realm={realm}, limit={limit})")
     pool = await get_pool()
     
     # Build where clauses explicitly
