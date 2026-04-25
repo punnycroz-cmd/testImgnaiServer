@@ -333,22 +333,22 @@ def ensure_logged_in(page, context, load_saved_cookies=True):
     LOGGER.info("Pressing Enter to login...")
     page.keyboard.press("Enter")
     
-    # Wait for success - looking for your profile name, the generate link, or a Sign Out button
+    # Wait for success - looking for your exact profile name from the HTML
     try:
-        LOGGER.info("Waiting for profile, username, or logout indicators...")
-        # Broad selector: Look for your name, @ symbol, sign out button, or generate link
-        page.wait_for_selector('text=THECHOOSENONE1, text=@, button:has-text("Sign Out"), a[href*="logout"], a[href="/generate"]', timeout=30000)
+        LOGGER.info("Waiting for @thechoosenone1 profile to appear...")
+        # Target the specific H2 tag we found in your HTML
+        page.wait_for_selector('h2:has-text("thechoosenone1"), a[href*="logout"], a[href="/generate"]', timeout=30000)
         
-        # Explicitly find and log the username
+        # Explicitly log the username found
         try:
-            username = page.locator('text=THECHOOSENONE1, text=@').first.inner_text(timeout=5000)
-            LOGGER.info(f"✅ [Login] Found active session for: {username}")
+            username = page.locator('h2').filter(has_text="thechoosenone1").first.inner_text(timeout=5000)
+            LOGGER.info(f"✅ [Login] Confirmed user: {username}")
         except:
-            LOGGER.info("✅ [Login] Active session detected via UI elements")
+            LOGGER.info("✅ [Login] Profile detected via UI")
 
-        LOGGER.info(f"✅ [Login] Dashboard/Home confirmed. Current URL: {page.url}")
+        LOGGER.info(f"✅ [Login] Dashboard/Home ready. URL: {page.url}")
         
-        # FORCE go to generate page to sniff the token
+        # Go to generate page to sniff the token
         LOGGER.info(f"🚀 [Login] Navigating to Generate page: {URL_GENERATE}")
         page.goto(URL_GENERATE, wait_until="networkidle", timeout=30000)
         LOGGER.info(f"🎯 [Login] Arrived at Generate page: {page.url}")
@@ -359,7 +359,7 @@ def ensure_logged_in(page, context, load_saved_cookies=True):
         curr_url = page.url
         # Diagnostic: What DOES the browser see?
         visible_text = page.evaluate("() => document.body.innerText.slice(0, 500)")
-        LOGGER.warning(f"Login timeout at {curr_url}. Visible page text starts with: {visible_text}")
+        LOGGER.warning(f"Login timeout at {curr_url}. Page text: {visible_text}")
         
         # Take Screenshot for debugging
         debug_dir = os.path.join("public", "debug")
