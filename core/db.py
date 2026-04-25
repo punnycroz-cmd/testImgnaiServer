@@ -284,7 +284,8 @@ class DatabaseProxy:
     async def get_generation(self, rid): return await get_generation(rid)
     async def update_generation(self, rid, **kwargs): await update_generation(rid, **kwargs)
     async def create_generation(self, **data): return await create_generation(data)
-    async def list_generations(self, limit=20, offset=0, realm=None, before=None): return await list_generations(limit, offset, realm, before)
+    async def list_generations(self, limit=20, offset=0, realm=None, before_id=None, uid="uid_0"): 
+        return await list_generations(limit, offset, realm, before_id, uid)
     async def hide_generation(self, rid): await hide_generation(rid)
     async def delete_generation(self, rid): await delete_generation(rid)
 
