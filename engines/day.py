@@ -40,6 +40,8 @@ class DayManager:
         ]
         if req.negative_prompt:
             cmd.extend(["--negative-prompt", str(req.negative_prompt)])
+        if req.seed is not None:
+            cmd.extend(["--seed", str(req.seed)])
             
         # We only lock the PROCESS START to prevent login collisions
         async with self._lock:
