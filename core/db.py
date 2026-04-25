@@ -179,11 +179,8 @@ async def get_generation(request_id: str) -> Optional[Dict]:
 
 
 
-async def list_generations(limit: int = 20, offset: int = 0, realm: Optional[str] = None, before: Optional[str] = None) -> List[Dict]:
+async def list_generations(limit: int = 20, offset: int = 0, realm: Optional[str] = None, before_id: Optional[int] = None, uid: str = "uid_0") -> List[Dict]:
     pool = await get_pool()
-    
-    # If a cursor (before) is used, we reset offset to 0 to avoid skipping items incorrectly
-    actual_offset = 0 if before else offset
     
     query = """
         SELECT 
@@ -191,30 +188,30 @@ async def list_generations(limit: int = 20, offset: int = 0, realm: Optional[str
             quality, aspect, count, session_uuid, result, error, 
             created_at, updated_at
         FROM generations
-        WHERE is_hidden = FALSE AND status = 'done'
+        WHERE is_hidden = FALSE AND status = 'done' AND uid = $1
     """
     
     async with pool.acquire() as conn:
         where_clauses = []
-        params = []
+        params = [uid] # $1
         
         if realm:
             params.append(realm)
             where_clauses.append(f"realm = ${len(params)}")
             
-        if before:
-            params.append(before)
-            where_clauses.append(f"created_at < ${len(params)}::TIMESTAMPTZ")
+        if before_id:
+            params.append(before_id)
+            where_clauses.append(f"image_id < ${len(params)}")
             
         if where_clauses:
             query += " AND " + " AND ".join(where_clauses)
             
         params.append(limit)
         limit_idx = len(params)
-        params.append(actual_offset)
-        offset_idx = len(params)
         
-        query += f" ORDER BY created_at DESC LIMIT ${limit_idx} OFFSET ${offset_idx}"
+        query += f" ORDER BY image_id DESC LIMIT ${limit_idx}"
+        
+        # We ignore 'offset' in keyset pagination as before_id handles the windowing
         rows = await conn.fetch(query, *params)
             
         results = []

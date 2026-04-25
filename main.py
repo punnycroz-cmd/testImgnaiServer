@@ -266,17 +266,15 @@ async def vault_stats(realm: Optional[str] = None):
 
 
 @app.get("/history")
-async def history(page: int = 1, limit: int = 20, realm: Optional[str] = None, before: Optional[str] = None):
-    offset = max(0, (page - 1) * limit)
-    # Use before (cursor) if provided, otherwise fallback to page-based offset
-    page_items = await DB.list_generations(limit=limit, offset=offset, realm=realm, before=before)
+async def history(limit: int = 20, realm: Optional[str] = None, before_id: Optional[int] = None, uid: str = "uid_0"):
+    # Keyset pagination doesn't strictly need 'page', we use before_id
+    page_items = await DB.list_generations(limit=limit, realm=realm, before_id=before_id, uid=uid)
     
     return {
         "items": page_items,
-        "page": page,
         "limit": limit,
         "has_more": len(page_items) == limit,
-        "next_cursor": page_items[-1]["created_at"] if page_items else None
+        "next_cursor": page_items[-1]["image_id"] if page_items else None
     }
 
 
@@ -284,7 +282,7 @@ async def history(page: int = 1, limit: int = 20, realm: Optional[str] = None, b
 async def diag_db():
     pool = await DB.get_pool()
     async with pool.acquire() as conn:
-        rows = await conn.fetch("SELECT request_id, status, realm, is_hidden, created_at FROM generations ORDER BY created_at DESC LIMIT 50")
+        rows = await conn.fetch("SELECT uid, image_id, request_id, status, realm, is_hidden, created_at FROM generations ORDER BY image_id DESC LIMIT 50")
         return [dict(r) for r in rows]
 
 @app.post("/history/batch/{request_id}/hide")

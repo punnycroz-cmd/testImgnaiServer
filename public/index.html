@@ -1962,41 +1962,36 @@
       console.group("Vault Load Operation");
 
       try {
-        while (renderedInThisPass < state.historyLimit && state.historyHasMore) {
-          const cacheBuster = `&_t=${Date.now()}`;
-          const cursorParam = state.historyCursor ? `&before=${encodeURIComponent(state.historyCursor)}` : "";
-          const fetchUrl = `/history?limit=${state.historyLimit}${cursorParam}${cacheBuster}`;
-          console.log(`[Vault] Fetching with cursor ${state.historyCursor}:`, fetchUrl);
+        const cacheBuster = `&_t=${Date.now()}`;
+        const cursorParam = state.historyCursor ? `&before_id=${state.historyCursor}` : "";
+        const fetchUrl = `/history?limit=${state.historyLimit}${cursorParam}&uid=uid_0${cacheBuster}`;
+        console.log(`[Vault] Fetching with cursor ${state.historyCursor}:`, fetchUrl);
 
-          const res = await apiFetch(fetchUrl);
-          const items = res.items || [];
-          console.log(`[Vault] Received ${items.length} items from backend`, items);
+        const res = await apiFetch(fetchUrl);
+        const items = res.items || [];
+        console.log(`[Vault] Received ${items.length} items from backend`, items);
 
-          state.historyHasMore = !!res.has_more;
-          state.historyCursor = res.next_cursor;
+        state.historyHasMore = !!res.has_more;
+        state.historyCursor = res.next_cursor;
 
-          let validInBatch = 0;
-          let duplicates = 0;
-          let ghostCount = 0;
+        let validInBatch = 0;
+        let ghostCount = 0;
 
-          for (const entry of items) {
-            if (!entry.images || entry.images.length === 0) {
-              ghostCount++;
-              continue;
-            }
-
-            if (document.getElementById(`batch-${entry.request_id}`)) {
-              duplicates++;
-              continue;
-            }
-
-            dom.historyList.appendChild(createBatchCard(entry));
-            renderedInThisPass++;
-            validInBatch++;
+        for (const entry of items) {
+          if (!entry.images || entry.images.length === 0) {
+            ghostCount++;
+            continue;
           }
 
-          console.log(`[Vault] Batch Summary -> Valid: ${validInBatch}, Ghosts: ${ghostCount}, Duplicates: ${duplicates}`);
+          // Even with stable IDs, we check for DOM collision as a precaution
+          if (document.getElementById(`batch-${entry.request_id}`)) continue;
+
+          dom.historyList.appendChild(createBatchCard(entry));
+          renderedInThisPass++;
+          validInBatch++;
         }
+
+        console.log(`[Vault] Batch Summary -> Valid: ${validInBatch}, Ghosts: ${ghostCount}`);
       } catch (err) {
         console.error("Vault load error:", err);
         if (dom.loadMoreBtn) dom.loadMoreBtn.textContent = "Error (Retry)";
