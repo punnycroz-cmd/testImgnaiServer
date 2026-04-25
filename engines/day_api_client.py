@@ -333,20 +333,20 @@ def ensure_logged_in(page, context, load_saved_cookies=True):
     LOGGER.info("Pressing Enter to login...")
     page.keyboard.press("Enter")
     
-    # Wait for success - looking for your profile name or the generate link
+    # Wait for success - looking for your profile name, the generate link, or a Sign Out button
     try:
-        LOGGER.info("Waiting for profile or dashboard...")
-        # Look for the username '@' or profile indicators
-        profile_el = page.wait_for_selector('text=@, [class*="user"], [class*="profile"], a[href="/generate"]', timeout=30000)
+        LOGGER.info("Waiting for profile, username, or logout indicators...")
+        # Broad selector: Look for your name, @ symbol, sign out button, or generate link
+        page.wait_for_selector('text=THECHOOSENONE1, text=@, button:has-text("Sign Out"), a[href*="logout"], a[href="/generate"]', timeout=30000)
         
         # Explicitly find and log the username
         try:
-            username = page.locator('text=@').first.inner_text(timeout=2000)
-            LOGGER.info(f"✅ [Login] Found profile name: {username}")
+            username = page.locator('text=THECHOOSENONE1, text=@').first.inner_text(timeout=5000)
+            LOGGER.info(f"✅ [Login] Found active session for: {username}")
         except:
-            LOGGER.info("✅ [Login] Profile detected (username text not immediately found)")
+            LOGGER.info("✅ [Login] Active session detected via UI elements")
 
-        LOGGER.info(f"✅ [Login] Home page confirmed. Current URL: {page.url}")
+        LOGGER.info(f"✅ [Login] Dashboard/Home confirmed. Current URL: {page.url}")
         
         # FORCE go to generate page to sniff the token
         LOGGER.info(f"🚀 [Login] Navigating to Generate page: {URL_GENERATE}")
@@ -357,7 +357,9 @@ def ensure_logged_in(page, context, load_saved_cookies=True):
         return True
     except PlaywrightTimeoutError:
         curr_url = page.url
-        LOGGER.warning(f"Login timeout. Current URL: {curr_url}")
+        # Diagnostic: What DOES the browser see?
+        visible_text = page.evaluate("() => document.body.innerText.slice(0, 500)")
+        LOGGER.warning(f"Login timeout at {curr_url}. Visible page text starts with: {visible_text}")
         
         # Take Screenshot for debugging
         debug_dir = os.path.join("public", "debug")
