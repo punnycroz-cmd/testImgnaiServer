@@ -310,35 +310,54 @@ def ensure_logged_in(page, context, load_saved_cookies=True):
         raise SystemExit("Set IMGNAI_USERNAME and IMGNAI_PASSWORD before running.")
 
     LOGGER.info("Performing fresh day login")
-    page.goto(URL_LOGIN, wait_until="networkidle", timeout=60000)
+    try:
+        page.goto(URL_LOGIN, wait_until="networkidle", timeout=60000)
+        LOGGER.info(f"Reached login page. Current URL: {page.url}")
+    except Exception as e:
+        LOGGER.error(f"Failed to load login page: {e}")
+        fatal("page_load_failed", f"Could not load login page: {e}")
     
     # Human-like typing
-    page.wait_for_selector('input[name="username"]', timeout=30000)
-    page.locator('input[name="username"]').fill(USERNAME)
-    page.wait_for_timeout(300)
-    page.locator('input[type="password"]').fill(PASSWORD)
-    page.wait_for_timeout(800)
+    try:
+        page.wait_for_selector('input[name="username"]', timeout=20000)
+        page.locator('input[name="username"]').fill(USERNAME)
+        LOGGER.info("Filled username")
+        page.wait_for_timeout(300)
+        page.locator('input[type="password"]').fill(PASSWORD)
+        LOGGER.info("Filled password")
+        page.wait_for_timeout(800)
+    except Exception as e:
+        LOGGER.error(f"Login fields not found. URL: {page.url}")
+        fatal("selectors_missing", "Login inputs not found. The site layout might have changed.")
     
+    LOGGER.info("Pressing Enter to login...")
     page.keyboard.press("Enter")
     
     # Wait for success - looking for elements that ONLY appear after login
     try:
+        LOGGER.info("Waiting for dashboard/generate page...")
         page.wait_for_selector('button:has-text("CREATE"), a[href="/generate"], .nav-item', timeout=30000)
-        LOGGER.info("✅ Login successful")
+        LOGGER.info(f"✅ Login successful. Landed on: {page.url}")
         save_cookies(context)
         return True
     except PlaywrightTimeoutError:
+        curr_url = page.url
+        LOGGER.warning(f"Login timeout. Current URL: {curr_url}")
+        
         # One last check - did we land on the generate page?
-        if "generate" in page.url.lower():
-            LOGGER.info("✅ Login detected via URL")
+        if "generate" in curr_url.lower():
+            LOGGER.info("✅ Login detected via URL redirect")
             save_cookies(context)
             return True
         
         # If we are still on login, we failed
-        if "login" in page.url.lower():
-            fatal("login_failed", "Stuck on login page. Possible bot detection or wrong credentials.")
+        if "login" in curr_url.lower():
+            # Check for error messages on page
+            error_msg = page.evaluate("() => document.querySelector('.error, [class*=\"error\"], .alert')?.innerText")
+            LOGGER.error(f"Failed: Still on login page. Site says: {error_msg}")
+            fatal("login_failed", f"Stuck on login page. Site error: {error_msg or 'None visible'}")
         
-        fatal("login_timeout", "Timed out waiting for dashboard. Site might be slow.")
+        fatal("login_timeout", f"Timed out at {curr_url}. Site might be slow or blocking.")
     
     return False
 
