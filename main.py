@@ -267,6 +267,7 @@ async def vault_stats(realm: Optional[str] = None):
 
 @app.get("/history")
 async def history(limit: int = 20, realm: Optional[str] = None, before_id: Optional[int] = None, uid: str = "uid_0"):
+    print(f"DEBUG: /history called with uid={uid}, before_id={before_id}, realm={realm}")
     # Keyset pagination doesn't strictly need 'page', we use before_id
     page_items = await DB.list_generations(limit=limit, realm=realm, before_id=before_id, uid=uid)
     

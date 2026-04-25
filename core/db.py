@@ -182,37 +182,40 @@ async def get_generation(request_id: str) -> Optional[Dict]:
 
 
 async def list_generations(limit: int = 20, offset: int = 0, realm: Optional[str] = None, before_id: Optional[int] = None, uid: str = "uid_0") -> List[Dict]:
+    print(f"DEBUG: list_generations(uid={uid}, before_id={before_id}, realm={realm}, limit={limit})")
     pool = await get_pool()
     
-    # Ensure numeric types
-    if before_id is not None:
-        try: before_id = int(before_id)
-        except: before_id = None
-
-    # Base Query
-    base_query = "SELECT uid, image_id, request_id, client_id, realm, prompt, model, quality, aspect, count, session_uuid, result, error, created_at, updated_at FROM generations"
-    
-    where_clauses = ["is_hidden = FALSE", "status = 'done'", "uid = $1"]
+    # Build where clauses explicitly
+    clauses = ["is_hidden = FALSE", "status = 'done'", "uid = $1"]
     params = [uid] # $1
     
     if realm:
         params.append(realm)
-        where_clauses.append(f"realm = ${len(params)}")
+        clauses.append(f"realm = ${len(params)}")
         
     if before_id is not None:
-        params.append(before_id)
-        where_clauses.append(f"image_id < ${len(params)}")
+        try:
+            params.append(int(before_id))
+            clauses.append(f"image_id < ${len(params)}")
+        except: pass
         
-    # Join where clauses
-    final_query = f"{base_query} WHERE {' AND '.join(where_clauses)}"
+    where_stmt = " WHERE " + " AND ".join(clauses)
     
-    # Add ordering and limit
+    # Final Query
     params.append(int(limit))
-    final_query += f" ORDER BY image_id DESC LIMIT ${len(params)}"
+    sql = f"""
+        SELECT uid, image_id, request_id, client_id, realm, prompt, model, 
+               quality, aspect, count, session_uuid, result, error, 
+               created_at, updated_at 
+        FROM generations 
+        {where_stmt}
+        ORDER BY image_id DESC 
+        LIMIT ${len(params)}
+    """
     
     async with pool.acquire() as conn:
-        LOGGER.info(f"Vault Query: {final_query} | Params: {params}")
-        rows = await conn.fetch(final_query, *params)
+        LOGGER.info(f"VAULT FETCH | UID: {uid} | BEFORE: {before_id} | LIMIT: {limit}")
+        rows = await conn.fetch(sql, *params)
             
         results = []
         for r in rows:
@@ -285,7 +288,7 @@ class DatabaseProxy:
     async def update_generation(self, rid, **kwargs): await update_generation(rid, **kwargs)
     async def create_generation(self, **data): return await create_generation(data)
     async def list_generations(self, limit=20, offset=0, realm=None, before_id=None, uid="uid_0"): 
-        return await list_generations(limit, offset, realm, before_id, uid)
+        return await list_generations(limit=limit, offset=offset, realm=realm, before_id=before_id, uid=uid)
     async def hide_generation(self, rid): await hide_generation(rid)
     async def delete_generation(self, rid): await delete_generation(rid)
 
