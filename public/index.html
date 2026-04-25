@@ -1168,8 +1168,8 @@
           } finally {
             if (cell) cell.classList.remove("active-summon");
           }
-          // Ultra-safe delay: 40 seconds between each request
-          await sleep(40000);
+          // Balanced safe delay: 13 seconds between each request
+          await sleep(13000);
         }
 
         while (completedCount < totalModels && !state.matrixCancelled) {
