@@ -10,6 +10,8 @@ from uuid import uuid4
 
 load_dotenv()
 
+LOGGER = logging.getLogger("db")
+
 _pool = None
 
 async def get_pool():
