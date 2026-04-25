@@ -247,78 +247,100 @@ def response_looks_like_no_credits(text):
 
 
 def acquire_auth_token(page, context):
+    # 1. Try Cookies (Look for 'authentication', 'auth', or 'token')
     try:
         for cookie in context.cookies():
-            if cookie["name"] in ("authentication", "auth"):
+            if cookie["name"].lower() in ("authentication", "auth", "token", "access_token"):
                 val = urllib.parse.unquote(cookie["value"])
-                token = json.loads(val).get("state", {}).get("token")
-                if token:
-                    return token
-    except Exception:
-        pass
+                # Handle JSON-wrapped state tokens
+                try:
+                    state = json.loads(val).get("state", {})
+                    token = state.get("token") or state.get("access_token")
+                    if token: return token
+                except:
+                    # Raw token
+                    if len(val) > 50: return val 
+    except Exception: pass
 
+    # 2. Try LocalStorage
     try:
-        ls_auth = page.evaluate("window.localStorage.getItem('authentication')")
-        if ls_auth:
-            token = json.loads(ls_auth).get("state", {}).get("token")
-            if token:
-                return token
-    except Exception:
-        pass
+        for key in ["authentication", "auth_token", "token"]:
+            ls_val = page.evaluate(f"window.localStorage.getItem('{key}')")
+            if ls_val:
+                try:
+                    state = json.loads(ls_val).get("state", {})
+                    token = state.get("token") or state.get("access_token")
+                    if token: return token
+                except:
+                    if len(ls_val) > 50: return ls_val
+    except Exception: pass
 
+    # 3. Active Sniffing
     auth_tokens = []
-
     def sniff_token(request):
         auth_header = request.headers.get("authorization")
         if auth_header and "Bearer " in auth_header:
             auth_tokens.append(auth_header.split("Bearer ")[1].strip())
 
     page.on("request", sniff_token)
-    if "generate" not in page.url.lower():
-        page.goto(URL_GENERATE, wait_until="domcontentloaded", timeout=60000)
-    page.wait_for_timeout(1500)
+    try:
+        if "generate" not in page.url.lower():
+            page.goto(URL_GENERATE, wait_until="networkidle", timeout=30000)
+        else:
+            page.reload(wait_until="networkidle", timeout=30000)
+        page.wait_for_timeout(3000)
+    except: pass
     page.remove_listener("request", sniff_token)
 
-    if auth_tokens:
-        return auth_tokens[0]
+    if auth_tokens: return auth_tokens[0]
     return None
 
 
 def ensure_logged_in(page, context, load_saved_cookies=True):
     if load_saved_cookies and load_cookies(context):
         LOGGER.info("Loaded saved day cookies")
-        page.goto(URL_GENERATE, wait_until="domcontentloaded", timeout=60000)
-        if "login" not in page.url.lower():
-            LOGGER.info("Reused saved session")
-            return True
+        try:
+            page.goto(URL_GENERATE, wait_until="domcontentloaded", timeout=30000)
+            if "login" not in page.url.lower():
+                LOGGER.info("Reused saved session")
+                return True
+        except: pass
 
     if not USERNAME or not PASSWORD:
         raise SystemExit("Set IMGNAI_USERNAME and IMGNAI_PASSWORD before running.")
 
     LOGGER.info("Performing fresh day login")
-    page.goto(URL_LOGIN, wait_until="domcontentloaded", timeout=60000)
-    page.wait_for_selector('input[name="username"]')
-    page.locator('input[name="username"]').type(USERNAME, delay=100)
-    page.locator('input[type="password"]').type(PASSWORD, delay=100)
-    page.wait_for_timeout(500)
+    page.goto(URL_LOGIN, wait_until="networkidle", timeout=60000)
+    
+    # Human-like typing
+    page.wait_for_selector('input[name="username"]', timeout=30000)
+    page.locator('input[name="username"]').fill(USERNAME)
+    page.wait_for_timeout(300)
+    page.locator('input[type="password"]').fill(PASSWORD)
+    page.wait_for_timeout(800)
+    
     page.keyboard.press("Enter")
+    
+    # Wait for success - looking for elements that ONLY appear after login
     try:
-        page.locator('button:has-text("Log in"), button[type="submit"]').first.click(timeout=2000)
-    except Exception:
-        pass
-
-    try:
-        print("Waiting for dashboard to load...")
-        page.wait_for_selector('button:has-text("CREATE"), a[href="/generate"]', timeout=30000)
-        print("✅ Dashboard detected.")
+        page.wait_for_selector('button:has-text("CREATE"), a[href="/generate"], .nav-item', timeout=30000)
+        LOGGER.info("✅ Login successful")
+        save_cookies(context)
+        return True
     except PlaywrightTimeoutError:
-        print("⚠️ Direct UI check failed, checking URL...")
-        if "generate" not in page.url.lower():
-            page.goto(URL_GENERATE, wait_until="domcontentloaded", timeout=30000)
-
-    page.wait_for_timeout(2000)
-    save_cookies(context)
-    return True
+        # One last check - did we land on the generate page?
+        if "generate" in page.url.lower():
+            LOGGER.info("✅ Login detected via URL")
+            save_cookies(context)
+            return True
+        
+        # If we are still on login, we failed
+        if "login" in page.url.lower():
+            fatal("login_failed", "Stuck on login page. Possible bot detection or wrong credentials.")
+        
+        fatal("login_timeout", "Timed out waiting for dashboard. Site might be slow.")
+    
+    return False
 
 
 def run():

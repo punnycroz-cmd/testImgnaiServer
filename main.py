@@ -119,6 +119,7 @@ async def _run_generation(job_id: str, req: GenerateRequest):
             
         except Exception as exc:
             logger.warning("[?] Job Attempt %d failed for %s: %s", attempt + 1, job_id[:8], exc)
+            await asyncio.sleep(5) # Cooldown before next attempt
             if attempt == max_retries - 1:
                 # Final failure
                 logger.exception("job totally failed request_id=%s", job_id)
