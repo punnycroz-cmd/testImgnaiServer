@@ -1168,7 +1168,9 @@
           } finally {
             if (cell) cell.classList.remove("active-summon");
           }
-          await sleep(1000);
+          // Dynamic delay: 1.5s for Day, 3s for Star/NSFW to be safer against bot detection
+          const matrixDelay = state.activeMode === "nsfw" ? 3000 : 1500;
+          await sleep(matrixDelay);
         }
 
         while (completedCount < totalModels && !state.matrixCancelled) {
