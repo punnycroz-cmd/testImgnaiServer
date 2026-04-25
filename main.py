@@ -267,20 +267,13 @@ async def vault_stats(realm: Optional[str] = None):
 
 @app.get("/history")
 async def history(request: Request, limit: int = 20, realm: Optional[str] = None, before: Optional[str] = None, uid: str = "uid_0"):
-    print(f"DEBUG [V1.0.5]: RAW URL: {request.url}")
-    
-    # Try header fallback if query param is missing
+    # Fallback for proxies that strip query params
     cursor = before or request.headers.get("X-Debug-Cursor")
-    if before != cursor:
-        print(f"DEBUG [V1.0.5]: Using Header Fallback Cursor: {cursor}")
-
-    # Manual cast to avoid FastAPI parsing quirks
     b_id = None
     if cursor and cursor != "null" and cursor != "undefined":
         try: b_id = int(float(cursor))
         except: pass
 
-    print(f"DEBUG [V1.0.5]: /history called | uid={uid} | before_final={b_id} | realm={realm}")
     page_items = await DB.list_generations(limit=limit, realm=realm, before_id=b_id, uid=uid)
     
     return {

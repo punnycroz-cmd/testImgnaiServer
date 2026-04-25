@@ -990,7 +990,6 @@
            if (match) fetchOpts.headers["X-Debug-Cursor"] = match[1];
         }
         
-        console.log(`[Fetch] [V1.0.5] Target: ${finalUrl}`);
         const resp = await fetch(finalUrl, fetchOpts);
         const text = await resp.text();
         let data = null;
@@ -1979,7 +1978,6 @@
         const cacheBuster = `&_t=${Date.now()}`;
         const cursorParam = state.historyCursor ? `&before=${state.historyCursor}` : "";
         const fetchUrl = `/history?limit=${state.historyLimit}${cursorParam}&uid=${state.activeUid}${cacheBuster}`;
-        console.log(`[Vault] [V1.0.5] Fetching for ${state.activeUid} with cursor ${state.historyCursor}:`, fetchUrl);
 
         const res = await apiFetch(fetchUrl);
         const items = res.items || [];
