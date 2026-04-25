@@ -337,12 +337,21 @@ def ensure_logged_in(page, context, load_saved_cookies=True):
     try:
         LOGGER.info("Waiting for profile or dashboard...")
         # Look for the username '@' or profile indicators
-        page.wait_for_selector('text=@, [class*="user"], [class*="profile"], a[href="/generate"]', timeout=30000)
-        LOGGER.info(f"✅ Login confirmed. Landed on: {page.url}")
+        profile_el = page.wait_for_selector('text=@, [class*="user"], [class*="profile"], a[href="/generate"]', timeout=30000)
+        
+        # Explicitly find and log the username
+        try:
+            username = page.locator('text=@').first.inner_text(timeout=2000)
+            LOGGER.info(f"✅ [Login] Found profile name: {username}")
+        except:
+            LOGGER.info("✅ [Login] Profile detected (username text not immediately found)")
+
+        LOGGER.info(f"✅ [Login] Home page confirmed. Current URL: {page.url}")
         
         # FORCE go to generate page to sniff the token
-        LOGGER.info("Navigating to Generate page to capture token...")
+        LOGGER.info(f"🚀 [Login] Navigating to Generate page: {URL_GENERATE}")
         page.goto(URL_GENERATE, wait_until="networkidle", timeout=30000)
+        LOGGER.info(f"🎯 [Login] Arrived at Generate page: {page.url}")
         
         save_cookies(context)
         return True
