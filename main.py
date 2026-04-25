@@ -8,7 +8,7 @@ import json
 from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from config.schemas import GenerateRequest
@@ -266,10 +266,17 @@ async def vault_stats(realm: Optional[str] = None):
 
 
 @app.get("/history")
-async def history(limit: int = 20, realm: Optional[str] = None, before: Optional[int] = None, uid: str = "uid_0"):
-    print(f"DEBUG [V1.0.5]: /history called with uid={uid}, before={before}, realm={realm}")
-    # Keyset pagination doesn't strictly need 'page', we use before
-    page_items = await DB.list_generations(limit=limit, realm=realm, before_id=before, uid=uid)
+async def history(request: Request, limit: int = 20, realm: Optional[str] = None, before: Optional[str] = None, uid: str = "uid_0"):
+    print(f"DEBUG [V1.0.5]: RAW URL: {request.url}")
+    
+    # Manual cast to avoid FastAPI parsing quirks
+    b_id = None
+    if before and before != "null" and before != "undefined":
+        try: b_id = int(float(before))
+        except: pass
+
+    print(f"DEBUG [V1.0.5]: /history called | uid={uid} | before_parsed={b_id} | realm={realm}")
+    page_items = await DB.list_generations(limit=limit, realm=realm, before_id=b_id, uid=uid)
     
     return {
         "items": page_items,
