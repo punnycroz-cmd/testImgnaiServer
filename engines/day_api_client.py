@@ -391,8 +391,16 @@ def run():
         LOGGER.info("Day generation request start model=%s quality=%s aspect=%s prompt=%s", model_name, quality, aspect, prompt[:60])
         ensure_logged_in(page, context, load_saved_cookies=load_saved)
         auth_token = acquire_auth_token(page, context)
+        
+        # Force login fallback if token is missing
+        if not auth_token and load_saved:
+            LOGGER.info("Token missing from saved session. Forcing fresh login...")
+            context.clear_cookies()
+            ensure_logged_in(page, context, load_saved_cookies=False)
+            auth_token = acquire_auth_token(page, context)
+
         if not auth_token:
-            LOGGER.error("Could not locate an authorization token")
+            LOGGER.error("Could not locate an authorization token after fresh login")
             fatal("token_missing", "Could not locate an authorization token")
 
         api_headers = {
