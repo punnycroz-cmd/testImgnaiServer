@@ -851,7 +851,8 @@
       selectionMode: false,
       selectedIds: new Set(),
       matrixPaused: false,
-      matrixCancelled: false
+      matrixCancelled: false,
+      activeUid: "uid_0"
     };
 
     const dom = {
@@ -1964,8 +1965,8 @@
       try {
         const cacheBuster = `&_t=${Date.now()}`;
         const cursorParam = state.historyCursor ? `&before_id=${state.historyCursor}` : "";
-        const fetchUrl = `/history?limit=${state.historyLimit}${cursorParam}&uid=uid_0${cacheBuster}`;
-        console.log(`[Vault] Fetching with cursor ${state.historyCursor}:`, fetchUrl);
+        const fetchUrl = `/history?limit=${state.historyLimit}${cursorParam}&uid=${state.activeUid}${cacheBuster}`;
+        console.log(`[Vault] Fetching for ${state.activeUid} with cursor ${state.historyCursor}:`, fetchUrl);
 
         const res = await apiFetch(fetchUrl);
         const items = res.items || [];

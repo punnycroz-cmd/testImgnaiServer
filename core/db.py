@@ -187,38 +187,30 @@ async def list_generations(limit: int = 20, offset: int = 0, realm: Optional[str
         try: before_id = int(before_id)
         except: before_id = None
 
-    query = """
-        SELECT 
-            uid, image_id, request_id, client_id, realm, prompt, model, 
-            quality, aspect, count, session_uuid, result, error, 
-            created_at, updated_at
-        FROM generations
-        WHERE is_hidden = FALSE AND status = 'done' AND uid = $1
-    """.strip()
+    # Base Query
+    base_query = "SELECT uid, image_id, request_id, client_id, realm, prompt, model, quality, aspect, count, session_uuid, result, error, created_at, updated_at FROM generations"
+    
+    where_clauses = ["is_hidden = FALSE", "status = 'done'", "uid = $1"]
+    params = [uid] # $1
+    
+    if realm:
+        params.append(realm)
+        where_clauses.append(f"realm = ${len(params)}")
+        
+    if before_id is not None:
+        params.append(before_id)
+        where_clauses.append(f"image_id < ${len(params)}")
+        
+    # Join where clauses
+    final_query = f"{base_query} WHERE {' AND '.join(where_clauses)}"
+    
+    # Add ordering and limit
+    params.append(int(limit))
+    final_query += f" ORDER BY image_id DESC LIMIT ${len(params)}"
     
     async with pool.acquire() as conn:
-        where_clauses = []
-        params = [uid] # $1
-        
-        if realm:
-            params.append(realm)
-            where_clauses.append(f"realm = ${len(params)}")
-            
-        if before_id is not None:
-            params.append(before_id)
-            where_clauses.append(f"image_id < ${len(params)}")
-            
-        if where_clauses:
-            query += " AND " + " AND ".join(where_clauses)
-            
-        params.append(int(limit))
-        limit_idx = len(params)
-        
-        query += f" ORDER BY image_id DESC LIMIT ${limit_idx}"
-        
-        LOGGER.info(f"Vault Query: {query} | Params: {params}")
-        
-        rows = await conn.fetch(query, *params)
+        LOGGER.info(f"Vault Query: {final_query} | Params: {params}")
+        rows = await conn.fetch(final_query, *params)
             
         results = []
         for r in rows:
