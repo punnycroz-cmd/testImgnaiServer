@@ -44,6 +44,8 @@ async def init_db(force: bool = False):
         # Create Master History Table with requested constraints
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS generations (
+                uid TEXT DEFAULT 'uid_0',
+                image_id BIGINT,
                 id UUID PRIMARY KEY,
                 
                 -- Request Identifiers
@@ -75,14 +77,41 @@ async def init_db(force: bool = False):
                 updated_at TIMESTAMPTZ DEFAULT NOW()
             );
         """)
+
+        # Self-healing: Ensure columns exist for existing tables
+        await conn.execute("ALTER TABLE generations ADD COLUMN IF NOT EXISTS uid TEXT DEFAULT 'uid_0';")
+        await conn.execute("ALTER TABLE generations ADD COLUMN IF NOT EXISTS image_id BIGINT;")
+        
+        # Backfill: Assign image_id to existing rows that don't have one
+        null_rows = await conn.fetch("SELECT id FROM generations WHERE image_id IS NULL ORDER BY created_at ASC")
+        if null_rows:
+            logging.info(f"Backfilling image_id for {len(null_rows)} existing rows...")
+            for i, row in enumerate(null_rows):
+                await conn.execute("UPDATE generations SET image_id = $1, uid = 'uid_0' WHERE id = $2", i + 1, row['id'])
+            logging.info("Backfill complete!")
         
         # CRITICAL INDEXES (Prevents 502 errors & sorts correctly)
         await conn.execute("CREATE INDEX IF NOT EXISTS idx_generations_realm_created ON generations (realm, created_at DESC);")
         await conn.execute("CREATE INDEX IF NOT EXISTS idx_generations_status ON generations (status);")
+        await conn.execute("CREATE INDEX IF NOT EXISTS idx_generations_uid_image ON generations (uid, image_id DESC);")
+
+
+async def get_next_image_id(uid: str) -> int:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        val = await conn.fetchval("SELECT MAX(image_id) FROM generations WHERE uid = $1", uid)
+        return (val or 0) + 1
 
 
 async def create_generation(data: Dict[str, Any]) -> str:
     pool = await get_pool()
+    
+    # User and Image ID logic
+    if "uid" not in data:
+        data["uid"] = "uid_0"
+    
+    if "image_id" not in data:
+        data["image_id"] = await get_next_image_id(data["uid"])
     
     # Generate ID in Python to avoid DB extension issues
     if "id" not in data:
@@ -158,7 +187,7 @@ async def list_generations(limit: int = 20, offset: int = 0, realm: Optional[str
     
     query = """
         SELECT 
-            request_id, client_id, realm, prompt, model, 
+            uid, image_id, request_id, client_id, realm, prompt, model, 
             quality, aspect, count, session_uuid, result, error, 
             created_at, updated_at
         FROM generations

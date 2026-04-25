@@ -1680,7 +1680,11 @@
       wrap.innerHTML = `
           <div class="flex items-center justify-between gap-2 mb-3">
             <div class="min-w-0">
-              <div class="text-[9px] uppercase tracking-widest text-[var(--accent)] font-black">${entry.realm || "day"}</div>
+              <div class="flex items-center gap-2 mb-1">
+                <div class="text-[9px] uppercase tracking-widest text-[var(--accent)] font-black">${entry.realm || "day"}</div>
+                <div class="text-[9px] font-bold opacity-40 bg-white/5 px-1 rounded">ID #${entry.image_id || "..."}</div>
+                <div class="text-[9px] font-bold opacity-40 bg-white/5 px-1 rounded">${entry.uid || "uid_0"}</div>
+              </div>
               <div class="text-xs font-bold truncate opacity-80">${escapeHtml(entry.prompt || "No Inscription")}</div>
             </div>
             <div class="selection-indicator ${state.selectionMode ? 'flex' : 'hidden'} w-5 h-5 rounded-full border-2 border-white/20 items-center justify-center ${isSelected ? 'bg-[var(--accent)] border-[var(--accent)]' : ''}">
