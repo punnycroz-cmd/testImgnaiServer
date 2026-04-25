@@ -339,6 +339,15 @@ def ensure_logged_in(page, context, load_saved_cookies=True):
         # Target the specific H2 tag we found in your HTML
         page.wait_for_selector('h2:has-text("thechoosenone1"), a[href*="logout"], a[href="/generate"]', timeout=30000)
         
+        # Check for error popups (like the 403 one) and dismiss them
+        try:
+            okay_btn = page.locator('button:has-text("OKAY"), .modal button').first
+            if okay_btn.is_visible(timeout=2000):
+                LOGGER.warning("⚠️ Error popup detected! Dismissing...")
+                okay_btn.click()
+                page.wait_for_timeout(1000)
+        except: pass
+
         # Explicitly log the username found
         try:
             username = page.locator('h2').filter(has_text="thechoosenone1").first.inner_text(timeout=5000)
@@ -428,8 +437,23 @@ def run():
 
     with sync_playwright() as p:
         LOGGER.info("Starting day browser session")
-        browser = p.chromium.launch(headless=False, args=["--headless=new", "--no-sandbox", "--disable-dev-shm-usage", "--disable-blink-features=AutomationControlled"])
-        context = browser.new_context(viewport={"width": 1440, "height": 1000}, user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
+        browser = p.chromium.launch(headless=False, args=[
+            "--headless=new", 
+            "--no-sandbox", 
+            "--disable-dev-shm-usage", 
+            "--disable-blink-features=AutomationControlled",
+            "--disable-infobars",
+            "--window-position=0,0",
+            "--ignore-certificate-errors",
+            "--ignore-certificate-errors-spki-list",
+            "--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+        ])
+        context = browser.new_context(
+            viewport={"width": 1440, "height": 1000}, 
+            user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+            locale="en-US",
+            timezone_id="America/New_York"
+        )
         page = context.new_page()
         Stealth().apply_stealth_sync(page)
 
