@@ -978,7 +978,18 @@
           cache: "no-store",
           ...opts
         };
-        const resp = await fetch(`${state.serverUrl}${path}`, fetchOpts);
+        
+        // Build URL natively to ensure no stripping
+        const baseUrl = state.serverUrl.startsWith("http") ? state.serverUrl : `${window.location.protocol}//${state.serverUrl}`;
+        const url = new URL(path, baseUrl);
+        
+        // Backup header in case query params are stripped by proxy
+        if (url.searchParams.has("before")) {
+          fetchOpts.headers["X-Debug-Cursor"] = url.searchParams.get("before");
+        }
+        
+        console.log(`[Fetch] [V1.0.5] Target: ${url.toString()}`);
+        const resp = await fetch(url.toString(), fetchOpts);
         const text = await resp.text();
         let data = null;
         try { data = text ? JSON.parse(text) : null; } catch { data = { raw: text }; }
