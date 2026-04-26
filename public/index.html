@@ -669,6 +669,10 @@
             class="nav-pill active w-1/2 h-full rounded-lg text-[9px] font-bold uppercase">Day</button>
           <button data-mode="nsfw" class="nav-pill w-1/2 h-full rounded-lg text-[9px] font-bold uppercase">Star</button>
         </div>
+        <div id="starTestToggleContainer" class="hidden flex items-center gap-2 ml-1">
+          <input type="checkbox" id="useStarTest" class="rounded border-white/10 bg-black/20 text-[var(--accent)] focus:ring-[var(--accent)] focus:ring-offset-black">
+          <label for="useStarTest" class="text-[9px] font-bold uppercase opacity-70">Use Safe Engine (Subprocess)</label>
+        </div>
         <div class="space-y-1">
           <label class="text-[9px] font-bold uppercase opacity-50 ml-1">Engine</label>
           <select id="model" class="w-full h-9 px-3 font-bold text-xs"></select>
@@ -933,6 +937,13 @@
 
     function applyMode(mode) {
       state.activeMode = mode;
+      
+      const starTestContainer = document.getElementById("starTestToggleContainer");
+      if (mode === "nsfw") {
+        starTestContainer.classList.remove("hidden");
+      } else {
+        starTestContainer.classList.add("hidden");
+      }
       document.body.dataset.mode = mode;
       state.serverUrl = resolveServerUrl(mode);
       const previousModel = dom.model.value || localStorage.getItem("a_model") || "";
@@ -957,7 +968,10 @@
     }
 
     function getPayload() {
-      const realm = state.activeMode === "nsfw" ? "star" : "day";
+      let realm = state.activeMode === "nsfw" ? "star" : "day";
+      if (realm === "star" && document.getElementById("useStarTest").checked) {
+        realm = "star_test";
+      }
       return {
         prompt: dom.prompt.value.trim(),
         model: dom.model.value,

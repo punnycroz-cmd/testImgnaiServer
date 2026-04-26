@@ -17,6 +17,7 @@ from core.vault import R2Vault
 from engines.day import DayManager
 from engines.star import GenerateRequest as StarGenerateRequest
 from engines.star import StarManager
+from engines.star_test import StarTestManager
 
 # --- Logging Cleanup ---
 class EndpointFilter(logging.Filter):
@@ -56,6 +57,7 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 cancelled_jobs = set()
 day_mgr = DayManager(COOKIE_DIR, "", R2_VAULT, db=DB, cancelled_jobs=cancelled_jobs)
 star_mgr = StarManager(COOKIE_DIR, "", R2_VAULT, db=DB, cancelled_jobs=cancelled_jobs)
+star_test_mgr = StarTestManager(COOKIE_DIR, "", R2_VAULT, db=DB, cancelled_jobs=cancelled_jobs)
 job_store = {}
 job_lock = asyncio.Lock()
 
@@ -102,9 +104,13 @@ async def _run_generation(job_id: str, req: GenerateRequest):
         try:
             logger.info("[>] Job Start: %s (Attempt %d/%d)", job_id[:8], attempt + 1, max_retries)
             is_star = (req.realm or "").lower() == "star" or req.nsfw
+            is_star_test = (req.realm or "").lower() == "star_test"
             await DB.update_generation(job_id, status="processing")
             
-            if is_star:
+            if is_star_test:
+                star_req = StarGenerateRequest(**req.model_dump())
+                result = await star_test_mgr.generate(star_req, request_id=job_id)
+            elif is_star:
                 star_req = StarGenerateRequest(**req.model_dump())
                 result = await star_mgr.generate(star_req, request_id=job_id)
             else:
