@@ -55,7 +55,7 @@ async def init_db(force: bool = False):
                 client_id TEXT,
                 
                 -- Configuration
-                realm TEXT CHECK (realm IN ('star', 'day')),
+                realm TEXT CHECK (realm IN ('star', 'day', 'star_test')),
                 prompt TEXT,
                 negative_prompt TEXT,
                 model TEXT,
@@ -96,6 +96,17 @@ async def init_db(force: bool = False):
         await conn.execute("CREATE INDEX IF NOT EXISTS idx_generations_realm_created ON generations (realm, created_at DESC);")
         await conn.execute("CREATE INDEX IF NOT EXISTS idx_generations_status ON generations (status);")
         await conn.execute("CREATE INDEX IF NOT EXISTS idx_generations_uid_image ON generations (uid, image_id DESC);")
+        
+        # Self-healing: Update realm CHECK constraint to include 'star_test'
+        await conn.execute("""
+            DO $$ 
+            BEGIN 
+                IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'generations_realm_check') THEN
+                    ALTER TABLE generations DROP CONSTRAINT generations_realm_check;
+                END IF;
+                ALTER TABLE generations ADD CONSTRAINT generations_realm_check CHECK (realm IN ('star', 'day', 'star_test'));
+            END $$;
+        """)
 
 
 async def get_next_image_id(uid: str) -> int:
