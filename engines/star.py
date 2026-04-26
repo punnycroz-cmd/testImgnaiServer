@@ -55,6 +55,13 @@ class StarManager:
     def get_user_agent(self):
         return "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
 
+    async def _capture_debug(self, label: str):
+        try:
+            if self.page:
+                await star_api.capture_star_step(self.page, logger=self.logger, label=label)
+        except Exception as exc:
+            self.logger.warning("star debug capture failed at %s: %s", label, exc)
+
     async def _get_json(self, client: httpx.AsyncClient, url: str, headers: dict):
         try:
             resp = await client.get(url, headers=headers)
@@ -105,12 +112,15 @@ class StarManager:
                 self.logger.info("star generate cancelled before start: %s", request_id)
                 return None
             await self.start()
+            await self._capture_debug(f"generate_start_{request_id or 'noid'}")
             # self.logger.info("[>] Star Pulse: %s", req.prompt[:30] + "...")
             token = await star_api.acquire_auth_token_async(self.page, self.context, logger=self.logger)
             if not token:
                 await star_api.ensure_logged_in_async(self.page, self.context, force_login=True, logger=self.logger)
+                await self._capture_debug(f"after_forced_login_{request_id or 'noid'}")
                 token = await star_api.acquire_auth_token_async(self.page, self.context, logger=self.logger)
             if not token: raise RuntimeError("Auth failed")
+            await self._capture_debug(f"auth_ready_{request_id or 'noid'}")
 
             payload = star_api.build_payload(req.model, req.quality, req.aspect, req.prompt, req.count, req.seed, True, negative_prompt=req.negative_prompt)
             async with httpx.AsyncClient(timeout=90.0) as client:
@@ -118,6 +128,7 @@ class StarManager:
                 session_resp = await client.post(star_api.URL_GENERATE_SESSION, headers=headers)
                 session_resp.raise_for_status()
                 session_uuid = star_api.parse_session_uuid(session_resp.text)
+                await self._capture_debug(f"session_created_{request_id or 'noid'}")
                 if self.db and request_id: await self.db.update_generation(request_id, session_uuid=session_uuid)
 
                 payload["session_uuid"] = session_uuid
@@ -126,15 +137,19 @@ class StarManager:
                 batch_data = batch_resp.json()
                 task_uuids = batch_data if isinstance(batch_data, list) else batch_data.get("response", [])
                 if not task_uuids and isinstance(batch_data, dict): task_uuids = batch_data.get("task_uuids", [])
-                
+                await self._capture_debug(f"batch_submitted_{request_id or 'noid'}")
+                self.logger.info("star task uuids for %s: %s", request_id, task_uuids)
+
 
 
                 # Released Engine Lock: Next job can now start its "nap" or generate phase
                 batch_prefix = self.vault.build_batch_prefix_with_name("star", session_uuid or "session", ts=datetime.now())
+                await self._capture_debug(f"before_poll_{request_id or 'noid'}")
                 poll_results = await asyncio.gather(*[
                     self._poll_task(client, tuid, headers, batch_prefix, i, request_id)
                     for i, tuid in enumerate(task_uuids)
                 ])
+                await self._capture_debug(f"after_poll_{request_id or 'noid'}")
 
                 async def safe_upload(url, idx):
                     if not url: return None
@@ -149,5 +164,6 @@ class StarManager:
                 vault_tasks = [safe_upload(url, i) for i, url in enumerate(poll_results)]
                 final_results = await asyncio.gather(*vault_tasks)
                 vaulted_urls = [u for u in final_results if u]
+                await self._capture_debug(f"vault_complete_{request_id or 'noid'}")
 
                 return {"image_urls": vaulted_urls, "client_id": req.client_id, "model": req.model, "prompt": req.prompt}
