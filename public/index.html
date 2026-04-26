@@ -290,12 +290,22 @@
       gap: 2rem;
     }
 
+    /* Mobile First - Viewer Styles */
+    #bubbleReveal img {
+      max-height: 55vh;
+      width: auto;
+      max-width: 100%;
+      object-fit: contain;
+      border-radius: 1.25rem;
+    }
+
     @media (min-width: 1024px) {
       #bubbleReveal {
         flex-direction: row;
         padding: 4rem;
         gap: 4rem;
         align-items: center;
+        justify-content: center;
       }
 
       #bubbleReveal .image-viewer-container {
@@ -318,15 +328,6 @@
         max-height: 85vh;
         overflow-y: auto;
       }
-
-    }
-
-    #bubbleReveal img {
-      max-height: 65vh;
-      width: auto;
-      max-width: 100%;
-      object-fit: contain;
-      border-radius: 1.25rem;
     }
 
 
@@ -1659,6 +1660,7 @@
       const urls = (entry.images || []).map(img => img.r2_url).filter(Boolean);
       if (!urls.length) return;
       const reveal = document.getElementById("bubbleReveal");
+      reveal.scrollTop = 0;
       const img = document.getElementById("bubbleRevealImg");
       const thumbsSection = document.getElementById("thumbsSection");
       const thumbsGrid = document.getElementById("bubbleRevealThumbs");
