@@ -319,11 +319,14 @@
         overflow-y: auto;
       }
 
-      #bubbleReveal img {
-        max-height: 70vh;
-        width: auto;
-        object-fit: contain;
-      }
+    }
+
+    #bubbleReveal img {
+      max-height: 65vh;
+      width: auto;
+      max-width: 100%;
+      object-fit: contain;
+      border-radius: 1.25rem;
     }
 
 
@@ -518,13 +521,13 @@
   </header>
 
   <div id="bubbleReveal"
-    class="fixed inset-0 z-[2000] hidden flex-col items-center justify-center p-4 sm:p-12 bg-black/80 backdrop-blur-md overflow-y-auto"
+    class="fixed inset-0 z-[2000] hidden flex-col items-center justify-start p-4 pt-12 sm:p-12 bg-black/80 backdrop-blur-md overflow-y-auto"
     onclick="closeBubbleReveal(event)">
     <!-- Floating Image Container -->
-    <div class="image-viewer-container w-full relative flex items-center justify-center my-auto pb-4"
+    <div class="image-viewer-container w-full relative flex items-center justify-center my-4 pb-4"
       onclick="event.stopPropagation()">
       <img id="bubbleRevealImg" src="" alt="Manifestation"
-        class="max-w-full rounded-2xl shadow-[0_20px_80px_rgba(0,0,0,0.9)] border border-white/10 transition-all duration-500 hover:scale-[1.01]">
+        class="shadow-[0_20px_80px_rgba(0,0,0,0.9)] border border-white/10 transition-all duration-500 hover:scale-[1.01]">
     </div>
 
     <!-- Floating Glass Info Panel -->
