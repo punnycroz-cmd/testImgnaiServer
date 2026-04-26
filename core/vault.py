@@ -6,6 +6,7 @@ from uuid import uuid4
 from zoneinfo import ZoneInfo
 from typing import Optional, List, Dict
 
+import time
 import boto3
 import requests
 
@@ -66,20 +67,29 @@ def upload_image(image_url: str, file_name: str) -> str:
     except Exception:
         pass # Object does not exist, proceed to upload
 
-    try:
-        response = requests.get(image_url, timeout=20)
-        response.raise_for_status()
-        s3.put_object(
-            Bucket=_bucket_name,
-            Key=file_name,
-            Body=BytesIO(response.content),
-            ContentType="image/jpeg",
-        )
-        logging.info("vaulted image uploaded key=%s", file_name)
-        return final_url
-    except Exception as exc:
-        logging.error("Failed to upload image %s: %s", file_name, exc)
-        raise
+    max_retries = 3
+    last_exc = None
+    
+    for attempt in range(max_retries):
+        try:
+            response = requests.get(image_url, timeout=25)
+            response.raise_for_status()
+            s3.put_object(
+                Bucket=_bucket_name,
+                Key=file_name,
+                Body=BytesIO(response.content),
+                ContentType="image/jpeg",
+            )
+            logging.info("vaulted image uploaded key=%s", file_name)
+            return final_url
+        except Exception as exc:
+            last_exc = exc
+            logging.warning("Vault upload failed for %s (attempt %d/%d): %s", file_name, attempt + 1, max_retries, exc)
+            if attempt < max_retries - 1:
+                time.sleep(2 * (1.5 ** attempt))
+                
+    logging.error("Failed to upload image %s after %d retries: %s", file_name, max_retries, last_exc)
+    raise last_exc
 
 def list_images(prefix: str = "vault/") -> List[Dict]:
     s3 = get_s3_client()
