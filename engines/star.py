@@ -63,8 +63,8 @@ class StarManager:
         except:
             return None
 
-    async def _sleep_backoff(self, attempt: int, base: float = 1.5, cap: float = 10.0):
-        await asyncio.sleep(min(cap, base * (1.4 ** attempt)))
+    async def _sleep_backoff(self, attempt: int, base: float = 40.0, cap: float = 40.0):
+        await asyncio.sleep(min(cap, base * (1.0 ** attempt)))
 
     async def start(self):
         if self.page: return

@@ -1132,6 +1132,8 @@
 
         let completedCount = 0;
         const totalModels = models.length;
+        const isStarRealm = state.activeMode === "nsfw";
+        const requestDelayMs = isStarRealm ? 40000 : 13000;
         const updateMatrixProgress = () => {
           const statusText = document.getElementById("matrixStatusText");
           if (statusText) statusText.textContent = `Manifesting: ${completedCount} / ${totalModels} complete`;
@@ -1160,6 +1162,7 @@
             });
             console.log(`[Matrix] Received ID for ${model}:`, res.request_id);
             if (cell) cell.dataset.requestId = res.request_id;
+            if (cell) cell.dataset.realm = mPayload.realm;
 
             // Poll in background, update progress when done/failed
             pollSingleMatrixJob(res.request_id, model, cell).then((success) => {
@@ -1178,8 +1181,8 @@
           } finally {
             if (cell) cell.classList.remove("active-summon");
           }
-          // Balanced safe delay: 13 seconds between each request
-          await sleep(13000);
+          // Star runs on a slower 40 second cadence.
+          await sleep(requestDelayMs);
         }
 
         while (completedCount < totalModels && !state.matrixCancelled) {
@@ -1280,6 +1283,7 @@
 
     async function pollSingleMatrixJob(requestId, model, cell, maxAttempts = 100) {
       // Matrix should move on quickly: the backend owns the long poll.
+      const isStarRealm = cell?.dataset?.realm === "star";
       for (let attempt = 0; attempt < maxAttempts; attempt++) {
         if (state.matrixCancelled) return false;
         while (state.matrixPaused) { await sleep(1000); if (state.matrixCancelled) return false; }
@@ -1308,13 +1312,15 @@
             return false;
           }
         } catch (err) { }
-        await sleep(1000);
+        await sleep(isStarRealm ? 40000 : 1000);
       }
       pollSingleMatrixCellBackground(requestId, cell);
       return false;
     }
 
     async function pollSingleMatrixCellBackground(requestId, cell) {
+      const isStarRealm = cell?.dataset?.realm === "star";
+      const pollDelayMs = isStarRealm ? 40000 : 3000;
       while (!state.matrixCancelled) {
         // Pause Support: Wait here if matrix is paused
         while (state.matrixPaused && !state.matrixCancelled) {
@@ -1344,8 +1350,8 @@
           console.warn("[Matrix] Poll error (retrying):", e);
         }
         
-        // Wait 3 seconds before next check
-        await sleep(3000);
+        // Star uses a slower 40 second cadence.
+        await sleep(pollDelayMs);
       }
     }
 
@@ -1417,6 +1423,7 @@
 
     async function pollUntilDone(requestId, payload, maxAttempts = 120) {
       state.currentPoll = requestId;
+      const isStarRealm = (payload?.realm || "day") === "star";
 
       // 1. Initial quick poll
       try {
@@ -1425,9 +1432,10 @@
         updateTasksView(res);
       } catch (e) { }
 
-      // 2. Patience for 60s
-      setFooterMsg("Manifesting spirit... focus for 60s.", "info");
-      await sleep(60000);
+      // 2. Star uses a slower 40s cadence; Day keeps the faster wait.
+      const initialWaitMs = isStarRealm ? 40000 : 60000;
+      setFooterMsg(`Manifesting spirit... focus for ${Math.round(initialWaitMs / 1000)}s.`, "info");
+      await sleep(initialWaitMs);
       if (state.currentPoll !== requestId) return false;
 
       for (let attempt = 0; attempt < maxAttempts; attempt++) {
@@ -1460,12 +1468,13 @@
         } catch (err) {
           // console.warn("poll error", err);
         }
-        await sleep(backoffDelay(attempt));
+        await sleep(backoffDelay(attempt, isStarRealm));
       }
       return false;
     }
 
-    function backoffDelay(attempt) {
+    function backoffDelay(attempt, isStarRealm = false) {
+      if (isStarRealm) return 40000;
       return Math.min(8000, 2000 + (attempt * 300));
     }
 
