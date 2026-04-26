@@ -773,6 +773,7 @@
         state.historyHasMore = !!res.has_more; state.historyCursor = res.next_cursor;
         res.items.forEach((entry) => {
           if (!entry.images?.length) return;
+          if (document.getElementById(`batch-${entry.request_id}`)) return; // De-duplication fix
           dom.historyList.appendChild(createBatchCard(entry));
         });
       } catch (err) {} finally { state.loadingHistory = false; if (dom.loadMoreBtn) dom.loadMoreBtn.classList.toggle("hidden", !state.historyHasMore); }
