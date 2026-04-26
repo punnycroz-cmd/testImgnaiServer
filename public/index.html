@@ -4,14 +4,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Aether Studio | Elite Forge</title>
+  <title>Aether Studio</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800&display=swap');
 
     :root {
       --bg-base: #f1f7f4;
-      --panel-bg: rgba(255, 255, 255, 0.55);
+      --panel-bg: rgba(255, 255, 255, 0.5);
       --panel-border: rgba(255, 255, 255, 0.7);
       --panel-shadow: rgba(0, 50, 20, 0.1);
       --text-main: #10243a;
@@ -38,37 +38,33 @@
     body {
       font-family: 'Outfit', sans-serif;
       background:
-        radial-gradient(circle at top, rgba(16, 185, 129, 0.12), transparent 70%),
+        radial-gradient(circle at top, rgba(16, 185, 129, 0.12), transparent 30%),
         linear-gradient(180deg, var(--bg-base), var(--bg-base));
       color: var(--text-main);
       margin: 0;
       min-height: 100vh;
       overflow: hidden;
-      transition: background-color 0.8s cubic-bezier(0.4, 0, 0.2, 1), color 0.4s ease;
+      transition: background-color 0.6s ease, color 0.3s ease;
     }
 
-    body[data-mode="nsfw"] {
-        background:
-        radial-gradient(circle at top, rgba(139, 92, 246, 0.12), transparent 70%),
-        linear-gradient(180deg, var(--bg-base), var(--bg-base));
-    }
-
-    h1, h2, h3, .cinematic-text {
+    h1,
+    h2,
+    h3,
+    .cinematic-text {
       font-family: 'Cinzel', serif;
     }
 
     .glass-panel {
       background: var(--panel-bg);
-      backdrop-filter: blur(28px);
-      -webkit-backdrop-filter: blur(28px);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
       border: 1px solid var(--panel-border);
       box-shadow: 0 20px 40px var(--panel-shadow);
       border-radius: 2rem;
-      transition: border-color 0.3s ease, box-shadow 0.3s ease;
     }
 
     .nav-pill {
-      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: all 0.25s ease;
       color: var(--text-muted);
       cursor: pointer;
     }
@@ -77,18 +73,21 @@
       color: var(--accent-text);
       background: var(--accent);
       box-shadow: 0 10px 25px var(--accent-glow);
-      transform: translateY(-1px);
     }
 
-    textarea, select, input {
+    textarea,
+    select,
+    input {
       background: var(--panel-bg) !important;
       border: 1px solid var(--panel-border) !important;
       color: var(--text-main) !important;
       border-radius: 1rem !important;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+      transition: all 0.2s ease !important;
     }
 
-    textarea:focus, select:focus, input:focus {
+    textarea:focus,
+    select:focus,
+    input:focus {
       outline: none !important;
       box-shadow: 0 0 0 3px var(--accent-glow) !important;
       border-color: var(--accent) !important;
@@ -97,7 +96,7 @@
     .btn-magic {
       background: var(--accent);
       color: var(--accent-text);
-      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: all 0.25s ease;
       border-radius: 1.25rem;
       cursor: pointer;
     }
@@ -105,7 +104,7 @@
     .btn-magic:hover:not(:disabled) {
       background: var(--accent-hover);
       box-shadow: 0 14px 32px var(--accent-glow);
-      transform: translateY(-2px) scale(1.02);
+      transform: translateY(-2px);
     }
 
     .btn-magic:disabled {
@@ -115,126 +114,377 @@
     }
 
     .loader {
-      width: 18px; height: 18px; border: 2px solid white; border-top-color: transparent; border-radius: 999px;
-      animation: spin 0.8s cubic-bezier(0.6, 0.2, 0.4, 0.8) infinite;
+      width: 18px;
+      height: 18px;
+      border: 2px solid white;
+      border-top-color: transparent;
+      border-radius: 999px;
+      animation: spin 1s linear infinite;
     }
 
-    @keyframes spin { to { transform: rotate(360deg); } }
-    @keyframes float { from { transform: translateY(0px); } to { transform: translateY(-14px); } }
-    
-    @keyframes slideUpFade { 
-        from { opacity: 0; transform: translateY(20px) scale(0.98); } 
-        to { opacity: 1; transform: translateY(0) scale(1); } 
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @keyframes float {
+      from {
+        transform: translateY(0px);
+      }
+
+      to {
+        transform: translateY(-14px);
+      }
     }
 
     main {
-      padding-top: 8rem; padding-bottom: 22rem; overflow-y: auto; height: 100vh; scrollbar-width: none;
+      padding-top: 8rem;
+      padding-bottom: 22rem;
+      overflow-y: auto;
+      height: 100vh;
+      scrollbar-width: none;
     }
 
     @media (max-width: 768px) {
-      html { font-size: 14px; }
-      h2.cinematic-text { font-size: 1.75rem !important; }
-      main { padding-top: 7.5rem; padding-bottom: 38rem; }
-      .bottom-console { bottom: 5rem !important; }
+      html {
+        font-size: 14px;
+      }
+
+      h2.cinematic-text {
+        font-size: 1.75rem !important;
+      }
+
+      main {
+        padding-top: 7.5rem;
+        padding-bottom: 38rem;
+      }
+
+      .bottom-console {
+        bottom: 5rem !important;
+      }
+
+      .view {
+        padding-top: 1rem;
+      }
     }
 
-    .mobile-nav-item svg { width: 20px; height: 20px; margin-bottom: 4px; }
-    .mobile-nav-item.active { color: var(--accent); }
-    main::-webkit-scrollbar { width: 0; }
+    .mobile-nav-item svg {
+      width: 20px;
+      height: 20px;
+      margin-bottom: 4px;
+    }
+
+    .mobile-nav-item.active {
+      color: var(--accent);
+    }
+
+
+    main::-webkit-scrollbar {
+      width: 0;
+    }
 
     .bubble-container {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; padding: 1.5rem; max-width: 1200px; margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.5rem;
+      padding: 1.5rem;
+      max-width: 1200px;
+      margin: 0 auto;
     }
 
     .bubble {
-      width: 100%; aspect-ratio: 1 / 1; border-radius: 50%; position: relative; cursor: pointer;
-      animation: float 4s infinite alternate ease-in-out, slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) backwards;
-      overflow: hidden; isolation: isolate;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      border-radius: 50%;
+      position: relative;
+      cursor: pointer;
+      animation: float 4s infinite alternate ease-in-out;
+      overflow: hidden;
+      isolation: isolate;
     }
 
-    .bubble-img-overlay { position: absolute; inset: 0; border-radius: 50%; overflow: hidden; z-index: 1; transition: transform 0.4s ease; }
-    .bubble:hover .bubble-img-overlay { transform: scale(1.05); }
-    .bubble-img-overlay img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+    .bubble-img-overlay {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      overflow: hidden;
+      z-index: 1;
+    }
+
+    .bubble-img-overlay img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+    }
 
     .bubble-sphere {
-      width: 100%; height: 100%; border-radius: 50%; position: absolute; inset: 0; z-index: 2;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      position: absolute;
+      inset: 0;
+      z-index: 2;
       background: radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.42) 0%, transparent 60%);
-      border: 1px solid rgba(255, 255, 255, 0.18); transition: box-shadow 0.3s ease; pointer-events: none;
+      border: 1px solid rgba(255, 255, 255, 0.18);
     }
-    .bubble:hover .bubble-sphere { box-shadow: inset -10px -10px 30px rgba(0,0,0,0.1), 0 20px 45px var(--accent-glow); border: 2px solid var(--accent); }
 
-    .bubble-canvas { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; border-radius: 50%; z-index: 50; width: 260px; height: 260px; }
+    .bubble-canvas {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      border-radius: 50%;
+      z-index: 50;
+      width: 260px;
+      height: 260px;
+    }
 
     .vault-badge {
-      position: absolute; top: 12px; right: 12px; background: var(--accent); color: white; font-size: 8px; font-weight: 800; padding: 2px 8px; border-radius: 999px;
-      z-index: 10; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 4px 10px var(--accent-glow);
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: var(--accent);
+      color: white;
+      font-size: 8px;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 999px;
+      z-index: 10;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      box-shadow: 0 4px 10px var(--accent-glow);
     }
 
     .art-frame {
-      border-radius: 1.25rem; overflow: hidden; position: relative; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-      background: var(--panel-bg); cursor: pointer; border: 2px solid transparent;
-      animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+      border-radius: 1.25rem;
+      overflow: hidden;
+      position: relative;
+      transition: all 0.3s ease;
+      background: var(--panel-bg);
+      cursor: pointer;
+      border: 2px solid transparent;
     }
 
-    .art-frame:hover { transform: translateY(-4px); border-color: var(--accent); box-shadow: 0 15px 35px var(--accent-glow); }
-    .art-frame img { transition: transform 0.6s ease; }
-    .art-frame:hover img { transform: scale(1.05); }
+    .art-frame:hover {
+      transform: translateY(-4px);
+      border-color: var(--accent);
+    }
 
+    /* Modern Lightbox Redesign */
     #bubbleReveal {
-      position: fixed; inset: 0; z-index: 9999; display: none; opacity: 0; flex-direction: column; align-items: center; justify-content: flex-start;
-      background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(0px); padding: 1rem; gap: 2rem;
-      transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), backdrop-filter 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      transition: opacity 0.4s ease, backdrop-filter 0.4s ease;
+      display: none;
+      opacity: 0;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(12px);
+      padding: 1rem;
+      gap: 2rem;
     }
 
-    #bubbleReveal.active { display: flex !important; opacity: 1; backdrop-filter: blur(20px); }
-
-    #bubbleReveal img { max-height: 55vh; width: auto; max-width: 100%; object-fit: contain; border-radius: 1.25rem; transform: scale(0.92); transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1); }
-    #bubbleReveal.active img { transform: scale(1); }
+    /* Mobile First - Viewer Styles */
+    #bubbleReveal img {
+      max-height: 55vh;
+      width: auto;
+      max-width: 100%;
+      object-fit: contain;
+      border-radius: 1.25rem;
+    }
 
     @media (min-width: 1024px) {
-      #bubbleReveal { flex-direction: row; padding: 4rem; gap: 4rem; justify-content: center; }
-      #bubbleReveal .image-viewer-container { flex: 7; display: flex; justify-content: center; align-items: center; max-height: 85vh; }
-      #bubbleReveal img { max-height: 85vh; }
-      .glass-reveal-panel { flex: 3; max-width: 450px; min-width: 350px; height: min-content; max-height: 85vh; overflow-y: auto; }
+      #bubbleReveal {
+        flex-direction: row;
+        padding: 4rem;
+        gap: 4rem;
+        align-items: center;
+        justify-content: center;
+      }
+
+      #bubbleReveal .image-viewer-container {
+        flex: 7;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        max-height: 85vh;
+      }
+
+      #bubbleReveal img {
+        max-height: 85vh;
+      }
+
+      .glass-reveal-panel {
+        flex: 3;
+        max-width: 450px;
+        min-width: 350px;
+        height: min-content;
+        max-height: 85vh;
+        overflow-y: auto;
+      }
+    }
+
+
+
+
+    #bubbleReveal.active {
+      display: flex !important;
+      opacity: 1;
     }
 
     .glass-reveal-panel {
-      background: rgba(10, 10, 10, 0.85); backdrop-filter: blur(30px); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 28px;
-      transform: translateY(40px) scale(0.95); opacity: 0; transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.8s ease; color: white;
+      background: rgba(10, 10, 10, 0.85);
+      backdrop-filter: blur(30px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 28px;
+      transform: translateY(30px);
+      transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+      color: white;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
     }
-    #bubbleReveal.active .glass-reveal-panel { transform: translateY(0) scale(1); opacity: 1; }
+
+    #bubbleReveal.active .glass-reveal-panel {
+      transform: translateY(0);
+    }
+
+    #bubbleReveal.active img {
+      transform: scale(1);
+    }
+
+    #bubbleReveal img {
+      transform: scale(0.95);
+      transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
 
     .status-pill {
-      display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0.7rem; border-radius: 999px;
-      background: rgba(255, 255, 255, 0.08); color: var(--text-muted); font-size: 11px; font-weight: 700; letter-spacing: 0.03em; border: 1px solid var(--panel-border);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.35rem 0.7rem;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
     }
 
     .bottom-console {
-      position: fixed; bottom: 1.25rem; left: 50%; transform: translateX(-50%); width: calc(100% - 1.5rem); max-width: 1100px; z-index: 100;
-      transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease; will-change: transform, opacity;
+      position: fixed;
+      bottom: 1.25rem;
+      left: 50%;
+      transform: translateX(-50%);
+      width: calc(100% - 1.5rem);
+      max-width: 1100px;
+      z-index: 100;
+      transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+      will-change: transform, opacity;
     }
 
-    .bottom-console.minimized { transform: translate(-50%, calc(100%)); opacity: 0; pointer-events: none; }
+    .bottom-console.minimized {
+      transform: translate(-50%, calc(100%));
+      opacity: 0;
+      pointer-events: none;
+    }
 
     @media (min-width: 1024px) {
-      .bottom-console.minimized { transform: translate(-50%, calc(100% - 1rem)); opacity: 0.9; pointer-events: auto; }
-      .bottom-console.minimized #consoleToggleBtn { top: -45px; opacity: 1; }
+      .bottom-console.minimized {
+        transform: translate(-50%, calc(100% - 1rem));
+        opacity: 0.9;
+        pointer-events: auto;
+      }
+
+      .bottom-console.minimized #consoleToggleBtn {
+        top: -45px;
+        opacity: 1;
+      }
     }
 
-    /* Progress Matrix Refined Animation */
-    .progress-matrix { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; margin-top: 1rem; opacity: 0; transition: opacity 0.4s ease; }
-    .progress-matrix.active { opacity: 1; }
-    .progress-step { height: 4px; background: var(--panel-border); border-radius: 999px; position: relative; overflow: hidden; }
-    .progress-step.done { background: var(--accent); }
+
+    #mobileToggleStub {
+      display: none;
+      position: absolute;
+      top: -38px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1001;
+    }
+
+
+    @media (max-width: 768px) {
+      .bottom-console.minimized+.mobile-nav .console-toggle-btn-overlay {
+        display: block;
+      }
+    }
+
+
+    /* Progress Matrix */
+    .progress-matrix {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.5rem;
+      margin-top: 1rem;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .progress-matrix.active {
+      opacity: 1;
+    }
+
+    .progress-step {
+      height: 4px;
+      background: var(--panel-border);
+      border-radius: 999px;
+      position: relative;
+    }
+
+    .progress-step.done {
+      background: var(--accent);
+    }
+
     .progress-step.active::after {
-      content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-      animation: pulse-sweep 1.5s infinite linear;
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--accent);
+      border-radius: 999px;
+      animation: pulse-width 1.5s infinite;
     }
 
-    @keyframes pulse-sweep {
-      0% { transform: translateX(-100%); }
-      100% { transform: translateX(100%); }
+    @keyframes pulse-width {
+      0% {
+        width: 0%;
+        opacity: 0.5;
+      }
+
+      100% {
+        width: 100%;
+        opacity: 0;
+      }
     }
+
+    .progress-label {
+      font-size: 8px;
+      text-transform: uppercase;
+      font-weight: 800;
+      letter-spacing: 1px;
+      margin-top: 4px;
+      color: var(--text-muted);
+    }
+
+    .progress-step.done+.progress-label {
+      color: var(--accent);
+    }
+
+    /* Removed old meta-inspector css since it is explicitly rewritten using tailwind */
   </style>
 </head>
 
@@ -242,60 +492,90 @@
   <canvas id="aetherCanvas" class="fixed inset-0 pointer-events-none z-[-1]"></canvas>
 
   <header class="fixed top-5 left-0 right-0 z-[110] px-4 sm:px-8">
-    <div class="max-w-7xl mx-auto glass-panel p-4 border-t-4 border-t-[var(--accent)] flex items-center justify-between gap-4 shadow-2xl">
+    <div
+      class="max-w-7xl mx-auto glass-panel p-4 border-t-4 border-t-[var(--accent)] flex items-center justify-between gap-4 shadow-2xl">
       <div class="flex items-center gap-4 min-w-0">
-        <div class="w-10 h-10 rounded-xl bg-[var(--accent)] text-white flex items-center justify-center shadow-lg transform -rotate-3 shrink-0">
-          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+        <div
+          class="w-10 h-10 rounded-xl bg-[var(--accent)] text-white flex items-center justify-center shadow-lg transform -rotate-3 shrink-0">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2.5">
+            <path
+              d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
           </svg>
         </div>
         <div class="min-w-0">
-          <h1 class="text-2xl sm:text-3xl font-black cinematic-text tracking-[0.3em] truncate text-[var(--accent)]">AETHER WORLD</h1>
+          <h1 class="text-2xl sm:text-3xl font-black cinematic-text tracking-[0.3em] truncate text-[var(--accent)]">
+            AETHER WORLD</h1>
         </div>
       </div>
 
       <nav class="hidden sm:flex items-center gap-2 bg-black/5 p-1 rounded-2xl shrink-0">
-        <button data-view="generate" class="nav-pill active px-4 sm:px-5 py-2 rounded-xl font-bold uppercase text-[10px] tracking-widest">Forge</button>
-        <button data-view="history" class="nav-pill px-4 sm:px-5 py-2 rounded-xl font-bold uppercase text-[10px] tracking-widest">Vault</button>
+        <button data-view="generate"
+          class="nav-pill active px-4 sm:px-5 py-2 rounded-xl font-bold uppercase text-[10px] tracking-widest">Forge</button>
+        <!-- Queue Disabled -->
+        <button data-view="history"
+          class="nav-pill px-4 sm:px-5 py-2 rounded-xl font-bold uppercase text-[10px] tracking-widest">Vault</button>
       </nav>
 
-      <div class="hidden sm:flex items-center gap-2">
-         <span id="activeRequestBadge" class="status-pill hidden font-bold text-[var(--accent)]"></span>
-         <div class="status-pill" id="backendStatus">Checking backend...</div>
-      </div>
+      <div class="status-pill hidden sm:inline-flex" id="backendStatus">Checking backend...</div>
     </div>
   </header>
 
-  <div id="bubbleReveal" class="fixed inset-0 z-[2000] hidden flex-col items-center justify-start p-4 pt-12 sm:p-12 bg-black/80 backdrop-blur-md overflow-y-auto" onclick="closeBubbleReveal(event)">
-    <div class="image-viewer-container w-full relative flex items-center justify-center my-4 pb-4" onclick="event.stopPropagation()">
-      <img id="bubbleRevealImg" src="" alt="Manifestation" class="shadow-[0_20px_80px_rgba(0,0,0,0.9)] border border-white/10 hover:scale-[1.01]">
+  <div id="bubbleReveal"
+    class="fixed inset-0 z-[2000] hidden flex-col items-center justify-start p-4 pt-12 sm:p-12 bg-black/80 backdrop-blur-md overflow-y-auto"
+    onclick="closeBubbleReveal(event)">
+    <!-- Floating Image Container -->
+    <div class="image-viewer-container w-full relative flex items-center justify-center my-4 pb-4"
+      onclick="event.stopPropagation()">
+      <img id="bubbleRevealImg" src="" alt="Manifestation"
+        class="shadow-[0_20px_80px_rgba(0,0,0,0.9)] border border-white/10 transition-all duration-500 hover:scale-[1.01]">
     </div>
 
-    <div class="glass-reveal-panel w-full p-8 sm:p-10 flex flex-col gap-6 shadow-2xl mb-24 sm:mb-0" onclick="event.stopPropagation()">
+    <!-- Floating Glass Info Panel -->
+    <div class="glass-reveal-panel w-full p-8 sm:p-10 flex flex-col gap-6 shadow-2xl mb-24 sm:mb-0"
+      onclick="event.stopPropagation()">
       <div id="thumbsSection" class="hidden flex-col gap-3">
-        <span class="opacity-60 uppercase font-black text-[9px] tracking-[0.2em] mb-1 text-[var(--accent)]">The Batch</span>
+        <span class="opacity-60 uppercase font-black text-[9px] tracking-[0.2em] mb-1 text-[var(--accent)]">The
+          Batch</span>
         <div id="bubbleRevealThumbs" class="grid grid-cols-4 gap-2"></div>
       </div>
 
       <div id="metaInspector" class="grid grid-cols-2 gap-8 border-t border-white/10 pt-6">
-        <div class="flex flex-col"><span class="opacity-60 uppercase font-black text-[10px] tracking-[0.2em] mb-2 text-[var(--accent)]">Casting Engine</span><span class="font-bold text-lg tracking-tight" id="metaModel">-</span></div>
-        <div class="flex flex-col items-end"><span class="opacity-60 uppercase font-black text-[10px] tracking-[0.2em] mb-2 text-[var(--accent)]">Celestial Realm</span><span class="font-bold text-white text-lg uppercase tracking-wide" id="metaRealm">-</span></div>
+        <div class="flex flex-col"><span
+            class="opacity-60 uppercase font-black text-[10px] tracking-[0.2em] mb-2 text-[var(--accent)]">Casting
+            Engine</span><span class="font-bold text-lg tracking-tight" id="metaModel">-</span></div>
+        <div class="flex flex-col items-end"><span
+            class="opacity-60 uppercase font-black text-[10px] tracking-[0.2em] mb-2 text-[var(--accent)]">Celestial
+            Realm</span><span class="font-bold text-white text-lg uppercase tracking-wide" id="metaRealm">-</span></div>
         <div class="col-span-2 pt-6 border-t border-white/10">
-          <span class="opacity-60 uppercase font-black text-[10px] tracking-[0.2em] mb-3 block text-[var(--accent)]">Inscription</span>
-          <p id="metaPrompt" class="text-base sm:text-lg leading-relaxed text-white font-medium italic tracking-tight">-</p>
+          <span
+            class="opacity-60 uppercase font-black text-[10px] tracking-[0.2em] mb-3 block text-[var(--accent)]">Inscription</span>
+          <p id="metaPrompt" class="text-base sm:text-lg leading-relaxed text-white font-medium italic tracking-tight">-
+          </p>
         </div>
       </div>
 
       <div class="grid grid-cols-2 lg:grid-cols-3 gap-3 pt-6 border-t border-white/5">
-        <a id="bubbleRevealDownload" href="#" download class="btn-magic h-12 flex items-center justify-center rounded-xl text-[10px] font-black uppercase tracking-[0.15em] shadow-2xl">Collect</a>
-        <button onclick="cloneActiveManifestation()" class="h-12 rounded-xl border-2 border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white transition-all text-[10px] font-black uppercase tracking-[0.15em]">Invoke</button>
-        <button onclick="closeBubbleReveal()" class="h-12 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-[10px] font-black uppercase tracking-[0.15em] hidden lg:block">Close</button>
+        <a id="bubbleRevealDownload" href="#" download
+          class="btn-magic h-12 flex items-center justify-center rounded-xl text-[10px] font-black uppercase tracking-[0.15em] shadow-2xl">Collect</a>
+        <button onclick="cloneActiveManifestation()"
+          class="h-12 rounded-xl border-2 border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white transition-all text-[10px] font-black uppercase tracking-[0.15em]">Invoke</button>
+        <button onclick="closeBubbleReveal()"
+          class="h-12 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-[10px] font-black uppercase tracking-[0.15em] hidden lg:block">Close</button>
 
         <div class="col-span-2 lg:col-span-3 grid grid-cols-2 gap-3 mt-1">
-          <button onclick="banishCurrentItem()" class="h-12 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all text-[10px] font-black uppercase tracking-[0.15em]">Banish Batch</button>
-          <button onclick="closeBubbleReveal()" class="h-12 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-[10px] font-black uppercase tracking-[0.15em] lg:hidden col-span-2">Close</button>
+          <button onclick="banishCurrentItem()"
+            class="h-12 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all text-[10px] font-black uppercase tracking-[0.15em]">Banish
+            One</button>
+          <button onclick="banishBatch()"
+            class="h-12 rounded-xl bg-red-900/20 border border-red-500/30 text-red-400 hover:bg-red-600 hover:text-white transition-all text-[10px] font-black uppercase tracking-[0.15em]">Banish
+            Batch</button>
         </div>
+        <button onclick="closeBubbleReveal()"
+          class="h-12 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-[10px] font-black uppercase tracking-[0.15em] lg:hidden col-span-2">Close</button>
       </div>
+
+
     </div>
   </div>
 
@@ -303,21 +583,40 @@
     <section id="view-generate" class="view">
       <div class="max-w-7xl mx-auto px-4 sm:px-8">
 
+
         <div id="gallery" class="bubble-container">
-          <div id="galleryEmpty" class="col-span-full py-20 text-center opacity-15 text-3xl font-light cinematic-text tracking-[0.3em] uppercase">Void Awaiting Light</div>
+          <div id="galleryEmpty"
+            class="col-span-full py-20 text-center opacity-15 text-3xl font-light cinematic-text tracking-[0.3em] uppercase">
+            Void Awaiting Light</div>
         </div>
 
-        <div id="matrixControls" class="hidden flex items-center justify-between gap-4 py-4 px-2 bg-white/5 rounded-2xl border border-white/10 mb-4 animate-in fade-in slide-in-from-top-4 duration-500">
+        <!-- The Matrix Grid -->
+        <div id="matrixControls"
+          class="hidden flex items-center justify-between gap-4 py-4 px-2 bg-white/5 rounded-2xl border border-white/10 mb-4 animate-in fade-in slide-in-from-top-4 duration-500">
           <div class="flex items-center gap-3">
             <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" id="matrixStatusPulse"></span>
             <span class="text-[10px] font-black uppercase tracking-widest" id="matrixStatusText">Matrix Active</span>
           </div>
           <div class="flex items-center gap-2">
-            <button onclick="toggleMatrixPause()" id="matrixPauseBtn" class="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-[9px] font-black uppercase tracking-widest transition-all">Pause</button>
-            <button onclick="cancelMatrix()" class="px-4 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-500 text-[9px] font-black uppercase tracking-widest transition-all border border-red-500/20">Cancel</button>
+            <button onclick="toggleMatrixPause()" id="matrixPauseBtn"
+              class="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-[9px] font-black uppercase tracking-widest transition-all">Pause</button>
+            <button onclick="cancelMatrix()"
+              class="px-4 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-500 text-[9px] font-black uppercase tracking-widest transition-all border border-red-500/20">Cancel</button>
           </div>
         </div>
         <div id="matrixGallery" class="hidden grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 py-8"></div>
+      </div>
+    </section>
+
+    <section id="view-tasks" class="view hidden px-4 sm:px-8">
+      <div class="max-w-7xl mx-auto glass-panel p-6 sm:p-10 min-h-[400px]">
+        <div class="flex items-center justify-between gap-4 mb-8">
+          <h2 class="text-xl font-bold uppercase tracking-widest text-[var(--text-muted)]">Active Queue</h2>
+          <button onclick="cancelAllJobs()"
+            class="px-4 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-500 text-[10px] font-black uppercase tracking-widest transition-all border border-red-500/20">Halt
+            All</button>
+        </div>
+        <div id="taskList" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
       </div>
     </section>
 
@@ -325,33 +624,49 @@
       <div class="max-w-7xl mx-auto min-h-[400px] relative">
         <div class="flex flex-col sm:flex-row items-center justify-between gap-6 mb-10">
           <div class="flex items-center gap-2 bg-black/10 p-1.5 rounded-2xl border border-white/5">
-            <div class="px-6 py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all bg-[var(--accent)] text-white shadow-lg">All Batches</div>
+            <div
+              class="px-6 py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all bg-[var(--accent)] text-white shadow-lg">
+              All Batches
+            </div>
           </div>
+
           <div class="flex items-center gap-4">
-            <button onclick="toggleSelectionMode()" id="toggleSelectBtn" class="text-[10px] font-bold uppercase tracking-widest opacity-60 hover:opacity-100">Select Mode</button>
+            <button onclick="toggleSelectionMode()" id="toggleSelectBtn"
+              class="text-[10px] font-bold uppercase tracking-widest opacity-60 hover:opacity-100">Select Mode</button>
             <div class="w-px h-4 bg-white/10"></div>
-            <button onclick="reloadHistory()" class="text-[10px] font-bold uppercase tracking-widest text-[var(--accent)]">Reload</button>
-            <button onclick="clearVault()" class="text-[10px] font-bold uppercase text-red-500 hover:opacity-70">Purge Cache</button>
+            <button onclick="reloadHistory()"
+              class="text-[10px] font-bold uppercase tracking-widest text-[var(--accent)]">Reload</button>
+            <button onclick="clearVault()" class="text-[10px] font-bold uppercase text-red-500 hover:opacity-70">Purge
+              Cache</button>
           </div>
         </div>
 
-        <div id="historyList" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 transition-all" data-select-mode="false"></div>
+
+
+
+
+        <div id="historyList" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 transition-all"
+          data-select-mode="false"></div>
         <div class="mt-8 flex justify-center">
-          <button id="loadMoreBtn" onclick="loadHistoryPage()" class="btn-magic px-6 py-4 text-[10px] font-bold uppercase tracking-widest shadow-xl hidden">Load More</button>
+          <button id="loadMoreBtn" onclick="loadHistoryPage()"
+            class="btn-magic px-5 py-3 text-[10px] font-bold uppercase tracking-widest">Load More</button>
         </div>
       </div>
     </section>
+
   </main>
 
   <div id="desktopConsole" class="bottom-console glass-panel p-4 border-2 border-[var(--accent)]">
-    <button onclick="toggleConsole()" id="consoleToggleBtn" class="absolute -top-10 left-1/2 -translate-x-1/2 bg-[var(--accent)] text-white px-6 py-2 rounded-t-xl font-bold text-[10px] uppercase tracking-widest shadow-lg">
+    <button onclick="toggleConsole()" id="consoleToggleBtn"
+      class="absolute -top-10 left-1/2 -translate-x-1/2 bg-[var(--accent)] text-white px-6 py-2 rounded-t-xl font-bold text-[10px] uppercase tracking-widest shadow-lg">
       <span id="consoleToggleText">Minimize</span>
     </button>
 
     <div class="grid grid-cols-12 gap-4 items-stretch">
       <div class="col-span-12 lg:col-span-4 flex flex-col gap-3">
         <div class="flex items-center gap-1 bg-black/5 p-1 rounded-xl h-9">
-          <button data-mode="standard" class="nav-pill active w-1/2 h-full rounded-lg text-[9px] font-bold uppercase">Day</button>
+          <button data-mode="standard"
+            class="nav-pill active w-1/2 h-full rounded-lg text-[9px] font-bold uppercase">Day</button>
           <button data-mode="nsfw" class="nav-pill w-1/2 h-full rounded-lg text-[9px] font-bold uppercase">Star</button>
         </div>
         <div id="starTestToggleContainer" class="hidden flex items-center gap-2 ml-1">
@@ -360,22 +675,22 @@
         </div>
         <div class="space-y-1">
           <label class="text-[9px] font-bold uppercase opacity-50 ml-1">Engine</label>
-          <select id="model" class="w-full h-9 px-3 font-bold text-xs cursor-pointer"></select>
+          <select id="model" class="w-full h-9 px-3 font-bold text-xs"></select>
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div class="space-y-1">
             <label class="text-[9px] font-bold uppercase opacity-50 ml-1">Quality</label>
-            <select id="quality" class="w-full h-9 px-3 font-bold text-xs cursor-pointer"></select>
+            <select id="quality" class="w-full h-9 px-3 font-bold text-xs"></select>
           </div>
           <div class="space-y-1">
             <label class="text-[9px] font-bold uppercase opacity-50 ml-1">Size</label>
-            <select id="aspect" class="w-full h-9 px-3 font-bold text-xs cursor-pointer"></select>
+            <select id="aspect" class="w-full h-9 px-3 font-bold text-xs"></select>
           </div>
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div class="space-y-1">
             <label class="text-[9px] font-bold uppercase opacity-50 ml-1">Images</label>
-            <select id="count" class="w-full h-9 px-3 font-bold text-xs cursor-pointer">
+            <select id="count" class="w-full h-9 px-3 font-bold text-xs">
               <option value="1">1 Spirit</option>
               <option value="4" selected>4 Spirits</option>
             </select>
@@ -392,129 +707,195 @@
           <div class="flex justify-between px-1">
             <label class="text-[9px] font-bold uppercase opacity-50">The Vision</label>
             <div class="flex gap-4 items-center">
-              <button onclick="clearPrompt()" class="px-2 py-1 text-[10px] font-bold text-red-500 uppercase">Clear</button>
-              <button onclick="pastePrompt()" class="px-2 py-1 text-[10px] font-bold text-[var(--text-main)] uppercase">Paste</button>
-              <button onclick="rollOracle()" class="px-3 py-1.5 text-[10px] font-bold text-[var(--accent)] uppercase flex items-center gap-1.5 hover:bg-[var(--accent)] hover:text-white transition-all border border-[var(--accent)] rounded-lg">
+              <button onclick="clearPrompt()"
+                class="px-2 py-1 text-xs font-bold text-red-500 uppercase hover:text-red-400 transition-colors">Clear</button>
+              <button onclick="pastePrompt()"
+                class="px-2 py-1 text-xs font-bold text-[var(--text-main)] uppercase hover:opacity-70 transition-colors">Paste</button>
+              <button onclick="rollOracle()"
+                class="px-3 py-2 text-xs font-bold text-[var(--accent)] uppercase flex items-center gap-1.5 hover:brightness-125 transition-all border border-[var(--panel-border)] rounded-lg">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                  <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+                  <path
+                    d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
                 </svg> Oracle
               </button>
             </div>
           </div>
-          <textarea id="prompt" placeholder="What do you seek to manifest?" class="w-full flex-1 p-3 resize-none text-sm leading-relaxed font-medium"></textarea>
+          <textarea id="prompt" placeholder="What do you seek to manifest?"
+            class="w-full flex-1 p-3 resize-none text-sm leading-relaxed"></textarea>
         </div>
         <div class="grid grid-cols-6 gap-3">
           <div class="col-span-3">
-            <textarea id="negativePrompt" placeholder="Wards (Banish artifacts...)" class="w-full h-11 px-3 py-2 text-xs resize-none font-medium"></textarea>
+            <textarea id="negativePrompt" placeholder="Wards (Banish artifacts...)"
+              class="w-full h-11 px-3 py-2 text-xs resize-none"></textarea>
           </div>
-          <button id="matrixBtn" onclick="runMatrixCast()" class="col-span-1 rounded-xl border-2 border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white transition-colors flex items-center justify-center font-bold uppercase text-[10px] tracking-widest shadow-lg min-h-[44px]">
+          <button id="matrixBtn" onclick="runMatrixCast()"
+            class="col-span-1 rounded-xl border-2 border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white transition-colors flex items-center justify-center font-bold uppercase text-[10px] sm:text-[11px] tracking-widest shadow-lg min-h-[44px]">
             <span id="btnMatrixText">Matrix</span>
-            <div id="btnMatrixLoader" class="hidden ml-2"><div class="loader" style="width:12px;height:12px;border-width:2px;animation-duration:2s"></div></div>
+            <div id="btnMatrixLoader" class="hidden ml-2">
+              <div class="loader" style="width:12px;height:12px;border-width:2px;animation-duration:2s"></div>
+            </div>
           </button>
-          <button id="generateBtn" class="col-span-2 btn-magic flex items-center justify-center gap-2 font-bold uppercase text-[11px] tracking-widest shadow-lg min-h-[44px]">
+          <button id="generateBtn"
+            class="col-span-2 btn-magic flex items-center justify-center gap-2 font-bold uppercase text-[11px] sm:text-xs tracking-widest shadow-lg min-h-[44px]">
             <span id="btnText">Manifest</span>
-            <div id="btnLoader" class="hidden"><div class="loader"></div></div>
+            <div id="btnLoader" class="hidden">
+              <div class="loader"></div>
+            </div>
           </button>
         </div>
       </div>
     </div>
   </div>
 
-  <div id="footerStatus" class="fixed bottom-8 left-1/2 -translate-x-1/2 glass-panel py-3 px-8 text-xs font-bold transition-all translate-y-32 opacity-0 pointer-events-none z-[150] shadow-2xl border-white/20"></div>
+  <div id="footerStatus"
+    class="fixed bottom-8 left-1/2 -translate-x-1/2 glass-panel py-3 px-8 text-xs font-bold transition-all translate-y-32 opacity-0 pointer-events-none z-[150]">
+  </div>
 
   <!-- Mobile Nav -->
-  <nav class="sm:hidden fixed bottom-0 left-0 right-0 z-[200] glass-panel p-4 rounded-b-none border-t border-[var(--panel-border)] flex items-center justify-around">
-    <div id="mobileToggleStub" style="display: none; position: absolute; top: -42px; left: 50%; transform: translateX(-50%); z-1001;">
-      <button onclick="toggleConsole()" class="bg-[var(--accent)] text-white px-8 py-2.5 rounded-t-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-2xl">Expand</button>
+  <nav
+    class="sm:hidden fixed bottom-0 left-0 right-0 z-[200] glass-panel p-4 rounded-b-none border-t border-[var(--panel-border)] flex items-center justify-around shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
+    <!-- Pinned Toggle Button for Mobile -->
+    <div id="mobileToggleStub"
+      style="display: none; position: absolute; top: -42px; left: 50%; transform: translateX(-50%); z-index: 1001;">
+      <button onclick="toggleConsole()"
+        class="bg-[var(--accent)] text-white px-8 py-2.5 rounded-t-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-2xl">
+        Expand
+      </button>
     </div>
-    <button data-view="generate" class="mobile-nav-item flex flex-col items-center p-2 transition-all opacity-60 active">
-      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <button data-view="generate"
+      class="mobile-nav-item flex flex-col items-center p-2 transition-all opacity-60 active">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
       </svg>
-      <span class="text-[9px] font-black uppercase">Forge</span>
+      <span class="text-[9px] font-black uppercase tracking-tighter">Forge</span>
     </button>
+    <!-- Mobile Queue Disabled -->
     <button data-view="history" class="mobile-nav-item flex flex-col items-center p-2 transition-all opacity-60">
-      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
       </svg>
-      <span class="text-[9px] font-black uppercase">Vault</span>
+      <span class="text-[9px] font-black uppercase tracking-tighter">Vault</span>
     </button>
   </nav>
 
-  <!-- Confirm Modal -->
-  <div id="confirmModal" class="fixed inset-0 z-[10000] hidden flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl">
-    <div class="glass-panel max-w-sm w-full p-8 flex flex-col gap-6 text-center animate-in zoom-in duration-300">
+  <!-- Custom Confirm Modal -->
+  <div id="confirmModal"
+    class="fixed inset-0 z-[10000] hidden flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl">
+    <div
+      class="glass-panel max-w-sm w-full p-8 flex flex-col gap-6 text-center animate-in zoom-in duration-300 border-2 border-white/5">
       <div class="flex justify-center">
         <div class="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center border border-red-500/20">
-          <svg class="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+          <svg class="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
         </div>
       </div>
       <div>
-        <h3 id="confirmTitle" class="text-xl font-black uppercase tracking-[0.1em] text-white">Banish?</h3>
-        <p id="confirmMsg" class="opacity-60 text-xs leading-relaxed mt-2 uppercase tracking-widest font-bold"></p>
+        <h3 id="confirmTitle" class="text-xl font-black uppercase tracking-[0.1em] text-white">Banish Manifestation?
+        </h3>
+        <p id="confirmMsg" class="opacity-60 text-xs leading-relaxed mt-2 uppercase tracking-widest font-bold">This
+          action will return the spirit to the void forever.</p>
       </div>
       <div class="grid grid-cols-2 gap-4 mt-2">
-        <button id="confirmYes" class="bg-red-600 text-white py-4 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-red-500 transition-colors">Banish</button>
-        <button onclick="closeConfirm()" class="bg-white/5 py-4 rounded-xl border border-white/10 font-black text-[10px] uppercase tracking-[0.2em] hover:bg-white/10 transition-colors">Cancel</button>
+        <button id="confirmYes"
+          class="bg-red-600 text-white py-4 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl hover:bg-red-500 transition-colors">Banish</button>
+        <button onclick="closeConfirm()"
+          class="bg-white/5 py-4 rounded-xl border border-white/10 font-black text-[10px] uppercase tracking-[0.2em] hover:bg-white/10 transition-colors">Cancel</button>
       </div>
     </div>
   </div>
 
-  <!-- Multi-Select Action Bar -->
-  <div id="selectionBar" class="hidden fixed bottom-10 left-1/2 -translate-x-1/2 z-[10000] glass-panel p-5 px-10 border-2 border-[var(--accent)] flex flex-col sm:flex-row items-center gap-8 shadow-[0_50px_120px_rgba(0,0,0,1)] rounded-[2.5rem]">
+  <!-- Multi-Select Action Bar: True Viewport Fixed -->
+  <div id="selectionBar"
+    class="hidden fixed bottom-10 left-1/2 -translate-x-1/2 z-[10000] glass-panel p-5 px-10 border-2 border-[var(--accent)] flex flex-col sm:flex-row items-center gap-8 shadow-[0_50px_120px_rgba(0,0,0,1)] animate-in slide-in-from-bottom-12 duration-500 rounded-[2.5rem]">
     <div class="flex items-center gap-8">
       <div class="flex flex-col">
         <span id="selectCount" class="text-3xl font-black tracking-tighter text-[var(--accent)]">0</span>
         <span class="text-[10px] uppercase tracking-[0.2em] opacity-60 font-black">Spirits</span>
       </div>
       <div class="w-px h-12 bg-white/10"></div>
-      <button onclick="executeBulkAction('delete')" class="bg-red-600 text-white px-8 py-4 rounded-3xl font-black text-[10px] uppercase tracking-[0.2em] shadow-2xl hover:bg-red-500 transition-all">Banish</button>
+      <div class="flex items-center gap-4">
+        <button onclick="executeBulkAction('hide')"
+          class="bg-white/5 border border-white/10 text-white px-8 py-4 rounded-3xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-white/15 transition-all">Hide</button>
+        <button onclick="executeBulkAction('delete')"
+          class="bg-red-600 text-white px-8 py-4 rounded-3xl font-black text-[10px] uppercase tracking-[0.2em] shadow-2xl hover:bg-red-500 hover:scale-105 transition-all">Banish</button>
+      </div>
     </div>
-    <button onclick="toggleSelectionMode(false)" class="text-[10px] font-black uppercase tracking-[0.2em] opacity-40 hover:opacity-100 transition-all">Cancel</button>
+    <div class="flex items-center gap-8 mt-4 sm:mt-0 sm:border-l sm:border-white/10 sm:pl-10 w-full sm:w-auto">
+      <button onclick="toggleSelectionMode(false)"
+        class="w-full sm:w-auto text-[10px] font-black uppercase tracking-[0.2em] opacity-40 hover:opacity-100 transition-all">Cancel</button>
+    </div>
   </div>
 
-  <div id="progressMatrix" class="fixed top-0 left-0 right-0 h-1 z-[10000] pointer-events-none opacity-0 transition-opacity duration-500 flex gap-1">
-    <div class="progress-step flex-1 h-full"></div><div class="progress-step flex-1 h-full"></div><div class="progress-step flex-1 h-full"></div><div class="progress-step flex-1 h-full"></div>
-  </div>
+
 
   <script>
     window.__SERVER_URL__ = "__SERVER_URL__";
     window.__SERVER_URL_NSFW__ = "__SERVER_URL_NSFW__";
 
-    const DAY_MODELS = ["Ani", "Aura", "Evo", "Flux1 D", "Fur", "FurXL Classic", "Gen", "Glitch", "Gothic", "Hyper CGI", "HyperX", "Muse", "Nai", "Neo", "Noob", "Pixel", "Pony", "Rend", "Retro", "Supra", "Synth", "Toon", "Volt", "Wassie"];
-    const STAR_MODELS = ["Gen", "Ani", "Synth", "Fur", "Noob", "Aura", "Pixel", "Hyper CGI", "Volt", "Muse", "Rend", "Pony", "Neo", "Nai", "Retro", "Supra", "Evo", "Toon", "HyperX", "FurXL Classic", "Illustrious", "Real Amateurs", "RealX", "Real Classic"];
+    const DAY_MODELS = [
+      "Ani", "Aura", "Evo", "Flux1 D", "Fur", "FurXL Classic", "Gen", "Glitch", "Gothic",
+      "Hyper CGI", "HyperX", "Muse", "Nai", "Neo", "Noob", "Pixel", "Pony", "Rend",
+      "Retro", "Supra", "Synth", "Toon", "Volt", "Wassie"
+    ];
+    const STAR_MODELS = [
+      "Gen", "Ani", "Synth", "Fur", "Noob", "Aura", "Pixel", "Hyper CGI",
+      "Volt", "Muse", "Rend", "Pony", "Neo", "Nai", "Retro", "Supra",
+      "Evo", "Toon", "HyperX", "FurXL Classic", "Illustrious", "Real Amateurs",
+      "RealX", "Real Classic"
+    ];
     const ASPECT_CHOICES = ["1:1", "16:9", "5:2", "4:5", "4:7"];
     const QUALITY_CHOICES = ["Fast", "High Quality"];
-    const ORACLE_PROMPTS = [
-        "(masterpiece, best quality:1.2), an ethereal glass cathedral floating in a nebula, hyper-detailed, incredibly beautiful, cinematic lighting, 8k",
-        "A cyberpunk neo-tokyo street vendor selling glowing mechanical cyber-pets, neon rim lighting, dynamic angle, rain, unreal engine 5",
-        "Macro photography of a tiny bioluminescent forest growing inside a cracked glowing crystal ball, hyper-realistic, depth of field",
-        "A dark fantasy warrior king made entirely of living shadow and smoke, holding a sword of starlight, dramatic stormy background, greg rutkowski style",
-        "(intricate details:1.1), portrait of a cybernetic angel with wings made of fiber optic cables, glowing datastreams, trending on artstation"
-    ];
 
     const state = {
       serverUrl: "",
       activeMode: localStorage.getItem("a_mode") || "standard",
-      activeView: "generate",
       activeRequestId: localStorage.getItem("a_active_request_id") || "",
       activeRequest: null,
-      historyPage: 1, historyCursor: null, historyLimit: 20, historyHasMore: true, historyLoaded: false, loadingHistory: false,
-      currentPoll: null, selectionMode: false, selectedIds: new Set(),
-      matrixPaused: false, matrixCancelled: false, activeUid: "uid_0", isGenerating: false
+      historyPage: 1,
+      historyCursor: null,
+      historyLimit: 20,
+      historyHasMore: true,
+      historyLoaded: false,
+      loadingHistory: false,
+      currentPoll: null,
+      vaultRealm: null,
+      selectionMode: false,
+      selectedIds: new Set(),
+      matrixPaused: false,
+      matrixCancelled: false,
+      activeUid: "uid_0"
     };
 
     const dom = {
-      model: document.getElementById("model"), prompt: document.getElementById("prompt"), negativePrompt: document.getElementById("negativePrompt"),
-      generateBtn: document.getElementById("generateBtn"), btnText: document.getElementById("btnText"), btnLoader: document.getElementById("btnLoader"),
-      gallery: document.getElementById("gallery"), historyList: document.getElementById("historyList"),
-      count: document.getElementById("count"), aspect: document.getElementById("aspect"), quality: document.getElementById("quality"), seed: document.getElementById("seed"),
-      footerStatus: document.getElementById("footerStatus"), loadMoreBtn: document.getElementById("loadMoreBtn"),
-      activeRequestBadge: document.getElementById("activeRequestBadge"), backendStatus: document.getElementById("backendStatus"),
-      matrixBtn: document.getElementById("matrixBtn"), btnMatrixText: document.getElementById("btnMatrixText"), btnMatrixLoader: document.getElementById("btnMatrixLoader")
+      model: document.getElementById("model"),
+      prompt: document.getElementById("prompt"),
+      negativePrompt: document.getElementById("negativePrompt"),
+      generateBtn: document.getElementById("generateBtn"),
+      btnText: document.getElementById("btnText"),
+      btnLoader: document.getElementById("btnLoader"),
+      gallery: document.getElementById("gallery"),
+      historyList: document.getElementById("historyList"),
+      taskList: document.getElementById("taskList"),
+      count: document.getElementById("count"),
+      aspect: document.getElementById("aspect"),
+      quality: document.getElementById("quality"),
+      seed: document.getElementById("seed"),
+      footerStatus: document.getElementById("footerStatus"),
+      loadMoreBtn: document.getElementById("loadMoreBtn"),
+      activeRequestBadge: document.getElementById("activeRequestBadge"),
+      backendStatus: document.getElementById("backendStatus"),
+      matrixBtn: document.getElementById("matrixBtn"),
+      btnMatrixText: document.getElementById("btnMatrixText"),
+      btnMatrixLoader: document.getElementById("btnMatrixLoader")
     };
 
-    function isUnresolved(v) { return !v || v.startsWith("__") || v.includes("REPLACE"); }
+    function isUnresolved(v) {
+      return !v || v.startsWith("__") || v.includes("REPLACE");
+    }
+
     function resolveServerUrl(mode) {
       const std = isUnresolved(window.__SERVER_URL__) ? window.location.origin : window.__SERVER_URL__;
       const nsfw = isUnresolved(window.__SERVER_URL_NSFW__) ? std : window.__SERVER_URL_NSFW__;
@@ -523,10 +904,9 @@
 
     function setFooterMsg(msg, kind = "info") {
       dom.footerStatus.textContent = msg;
-      dom.footerStatus.style.borderColor = kind === "error" ? "rgba(239,68,68,0.35)" : "rgba(255,255,255,0.2)";
-      dom.footerStatus.style.color = kind === "error" ? "#ef4444" : "var(--text-main)";
+      dom.footerStatus.style.borderColor = kind === "error" ? "rgba(239,68,68,0.35)" : "var(--panel-border)";
       dom.footerStatus.classList.remove("translate-y-32", "opacity-0");
-      setTimeout(() => dom.footerStatus.classList.add("translate-y-32", "opacity-0"), 3500);
+      setTimeout(() => dom.footerStatus.classList.add("translate-y-32", "opacity-0"), 3200);
     }
 
     function setLoading(loading) {
@@ -541,75 +921,207 @@
       else localStorage.removeItem("a_active_request_id");
       renderActiveRequest();
     }
+
     function renderActiveRequest() {
-      if (!dom.activeRequestBadge) return;
+      const badge = document.getElementById("activeRequestBadge");
+      const retry = document.getElementById("retryBtn");
       if (!state.activeRequestId) {
-        dom.activeRequestBadge.classList.add('hidden');
+        if (badge) badge.textContent = "No active request";
+        if (retry) retry.disabled = true;
       } else {
-        dom.activeRequestBadge.classList.remove('hidden');
-        dom.activeRequestBadge.textContent = `JOB: ${state.activeRequestId.slice(0, 8)}`;
+        if (badge) badge.textContent = `Active request: ${state.activeRequestId.slice(0, 8)}...`;
+        if (retry) retry.disabled = false;
       }
     }
 
+
     function applyMode(mode) {
       state.activeMode = mode;
-      const starTestContainer = document.getElementById("starTestToggleContainer");
-      if (mode === "nsfw") starTestContainer.classList.remove("hidden");
-      else starTestContainer.classList.add("hidden");
       
+      const starTestContainer = document.getElementById("starTestToggleContainer");
+      if (mode === "nsfw") {
+        starTestContainer.classList.remove("hidden");
+      } else {
+        starTestContainer.classList.add("hidden");
+      }
       document.body.dataset.mode = mode;
       state.serverUrl = resolveServerUrl(mode);
-      
       const previousModel = dom.model.value || localStorage.getItem("a_model") || "";
+      const previousQuality = dom.quality.value || localStorage.getItem("a_quality") || "";
+      const previousAspect = dom.aspect.value || localStorage.getItem("a_aspect") || "";
       const models = mode === "nsfw" ? STAR_MODELS : DAY_MODELS;
-      
       dom.model.innerHTML = models.map(name => `<option value="${name}">${name}</option>`).join("");
-      dom.quality.innerHTML = QUALITY_CHOICES.map(q => `<option value="${q}">${q}</option>`).join("");
-      dom.aspect.innerHTML = ASPECT_CHOICES.map(a => `<option value="${a}">${a}</option>`).join("");
-      
+      dom.quality.innerHTML = QUALITY_CHOICES
+        .map(q => `<option value="${q}">${q}</option>`).join("");
+      dom.aspect.innerHTML = ASPECT_CHOICES
+        .map(a => `<option value="${a}">${a}</option>`).join("");
       document.querySelectorAll("[data-mode]").forEach(btn => btn.classList.toggle("active", btn.dataset.mode === mode));
       localStorage.setItem("a_mode", mode);
-      
       dom.model.value = models.includes(previousModel) ? previousModel : (models[0] || "Gen");
+      dom.quality.value = QUALITY_CHOICES.includes(previousQuality) ? previousQuality : QUALITY_CHOICES[0];
+      dom.aspect.value = ASPECT_CHOICES.includes(previousAspect) ? previousAspect : ASPECT_CHOICES[0];
       localStorage.setItem("a_model", dom.model.value);
+      localStorage.setItem("a_quality", dom.quality.value);
+      localStorage.setItem("a_aspect", dom.aspect.value);
+
+      refreshCurrentJob();
     }
 
     function getPayload() {
       let realm = state.activeMode === "nsfw" ? "star" : "day";
-      if (realm === "star" && document.getElementById("useStarTest").checked) realm = "star_test";
+      if (realm === "star" && document.getElementById("useStarTest").checked) {
+        realm = "star_test";
+      }
       return {
-        prompt: dom.prompt.value.trim(), model: dom.model.value, nsfw: state.activeMode === "nsfw",
-        count: parseInt(dom.count.value, 10), aspect: dom.aspect.value, quality: dom.quality.value,
-        negative_prompt: dom.negativePrompt.value.trim(), seed: dom.seed.value ? parseInt(dom.seed.value, 10) : null,
-        client_id: `client-${Date.now()}`, realm
+        prompt: dom.prompt.value.trim(),
+        model: dom.model.value,
+        nsfw: state.activeMode === "nsfw",
+        count: parseInt(dom.count.value, 10),
+        aspect: dom.aspect.value,
+        quality: dom.quality.value,
+        negative_prompt: dom.negativePrompt.value.trim(),
+        seed: dom.seed.value ? parseInt(dom.seed.value, 10) : null,
+        client_id: `client-${Date.now()}`,
+        realm
       };
     }
 
     async function apiFetch(path, opts = {}) {
+      if (!state.serverUrl || state.serverUrl.startsWith("file://")) {
+        console.warn("Invalid server URL or file:// protocol. Skipping fetch:", path);
+        throw new Error("Local File Protocol detected. Please run via a web server.");
+      }
       try {
-        const fetchOpts = { headers: { "Content-Type": "application/json" }, ...opts };
-        const finalUrl = `${state.serverUrl.replace(/\/+$/, "")}${path.startsWith("/") ? path : `/${path}`}`;
+        const fetchOpts = {
+          headers: {
+            "Content-Type": "application/json",
+            "Cache-Control": "no-cache",
+            "Pragma": "no-cache",
+            ...opts.headers
+          },
+          cache: "no-store",
+          ...opts
+        };
+        
+        // Safer string concatenation to avoid URL object quirks on Replit
+        const cleanServer = state.serverUrl.replace(/\/+$/, "");
+        const cleanPath = path.startsWith("/") ? path : `/${path}`;
+        const finalUrl = `${cleanServer}${cleanPath}`;
+        
+        // Backup header check
+        if (finalUrl.includes("before=")) {
+           const match = finalUrl.match(/[?&]before=([^&]+)/);
+           if (match) fetchOpts.headers["X-Debug-Cursor"] = match[1];
+        }
+        
         const resp = await fetch(finalUrl, fetchOpts);
-        const data = await resp.json();
-        if (!resp.ok) throw new Error(data.detail || data.error || `HTTP ${resp.status}`);
+        const text = await resp.text();
+        let data = null;
+        try { data = text ? JSON.parse(text) : null; } catch { data = { raw: text }; }
+        if (!resp.ok) {
+          const err = new Error(data?.detail || data?.error || `HTTP ${resp.status}`);
+          err.status = resp.status;
+          err.data = data;
+          throw err;
+        }
         return data;
       } catch (e) {
         if (dom.backendStatus) dom.backendStatus.textContent = "Backend Offline";
+        console.error("apiFetch error:", e);
         throw e;
       }
     }
 
-    /* THE MATRIX ENGINE */
+    function currentJobCard(job) {
+      const created = job?.created_at ? new Date(job.created_at).toLocaleTimeString() : "Pending";
+      const promptEscaped = escapeHtml(job?.prompt || "Inspiration being woven...");
+      const isDone = job?.status === "done";
+      const isError = job?.status === "error" || job?.status === "failed";
+      const isRetryable = isError && job?.error_type !== "PERMANENT";
+      const isMatrix = job?.request_id && job.request_id.startsWith("matrix-");
+
+      return `
+        <div class="glass-panel p-5 relative overflow-hidden transition-all hover:border-[var(--accent)]" data-request-id="${job?.request_id}">
+          ${isDone ? '<div class="absolute top-0 right-0 p-2"><svg class="text-[var(--accent)] w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg></div>' : ''}
+          <div class="flex items-start justify-between gap-4">
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2 mb-2">
+                <span class="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter bg-[var(--accent)] text-white shadow-sm">${job?.realm || "day"}</span>
+                <span class="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">${isDone ? "Manifested" : (isError ? "Fractured" : (job?.status === "processing" ? "Processing" : "Pending"))}</span>
+              </div>
+              <div class="font-bold text-sm tracking-tight leading-snug line-clamp-2" title="${promptEscaped}">${promptEscaped}</div>
+            </div>
+          </div>
+          
+          <div class="mt-4 grid grid-cols-2 gap-y-2 gap-x-4 text-[11px]">
+            <div class="flex flex-col">
+              <span class="text-[9px] uppercase font-bold text-[var(--text-muted)] opacity-50">Model</span>
+              <span class="font-bold truncate">${job?.model || "Casting..."}</span>
+            </div>
+            <div class="flex flex-col">
+              <span class="text-[9px] uppercase font-bold text-[var(--text-muted)] opacity-50">Time</span>
+              <span class="font-bold text-[var(--text-muted)]">${created}</span>
+            </div>
+          </div>
+
+          <div class="mt-5 flex items-center gap-2">
+            ${isDone ?
+          `<button class="btn-magic flex-1 py-2.5 text-[10px] font-bold uppercase tracking-widest shadow-md" onclick="resumeRequest('${job?.request_id}')">View Result</button>` :
+          (isError ?
+            `<button class="flex-1 py-2.5 rounded-xl bg-red-500/10 text-red-500 text-[10px] font-bold uppercase tracking-widest border border-red-500/20" disabled>Failed</button>` :
+            `<button class="flex-1 py-2.5 rounded-xl bg-black/5 text-[var(--text-muted)] text-[10px] font-bold uppercase tracking-widest border border-[var(--panel-border)] flex items-center justify-center gap-2 cursor-wait" disabled>
+                   <div class="loader" style="width:10px;height:10px;border-width:1.5px;border-color:var(--text-muted);border-top-color:transparent"></div>
+                   Wandering...
+                 </button>`)
+        }
+            ${isRetryable ? `<button class="px-3 py-2.5 rounded-xl border border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent)]/10 transition-colors" onclick="retryFailedJob('${job?.request_id}')" title="Retry">Retry</button>` : ''}
+            <button class="px-3 py-2.5 rounded-xl border border-[var(--panel-border)] hover:bg-black/5 transition-colors" onclick="copyRequestId('${job?.request_id}')" title="Copy ID">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+            </button>
+            ${!isDone && !isError ? `
+            <button class="px-3 py-2.5 rounded-xl border border-red-500/20 text-red-500 hover:bg-red-500/10 transition-colors" onclick="cancelJob('${job?.request_id}')" title="Cancel">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>` : ''}
+          </div>
+        </div>
+      `;
+    }
+
+    function setProgress(step) {
+      const matrix = document.getElementById("progressMatrix");
+      if (!matrix) return;
+
+      if (step === -1) {
+        matrix.classList.remove("active");
+        document.querySelectorAll(".progress-step").forEach(s => s.classList.remove("done", "active"));
+        return;
+      }
+      matrix.classList.add("active");
+      document.querySelectorAll(".progress-step").forEach((s, idx) => {
+        s.classList.toggle("done", idx < step);
+        s.classList.toggle("active", idx === step);
+      });
+    }
+
     async function runMatrixCast() {
       const payload = getPayload();
       if (!payload.prompt) return setFooterMsg("Inspiration required.", "error");
 
       const models = state.activeMode === "nsfw" ? STAR_MODELS : DAY_MODELS;
+
       dom.gallery.style.display = "none";
       const mGallery = document.getElementById("matrixGallery");
-      mGallery.classList.remove("hidden"); mGallery.classList.add("grid");
+      mGallery.classList.remove("hidden");
+      mGallery.classList.add("grid");
 
-      mGallery.innerHTML = models.map((m) => `
+      // Build placeholders
+      mGallery.innerHTML = models.map(m => `
         <div id="matrix-cell-${m.replace(/\s+/g, '-')}" class="art-frame aspect-square flex flex-col items-center justify-center bg-black/40 border border-white/10 relative group overflow-hidden">
           <span class="text-[10px] font-bold uppercase text-[var(--text-muted)] tracking-widest absolute bottom-3 z-20 group-hover:opacity-0 transition-opacity bg-black/50 px-2 py-0.5 rounded-lg border border-white/5">${m}</span>
           <div class="loader opacity-40 hidden z-20" style="width:20px;height:20px;"></div>
@@ -617,18 +1129,26 @@
         </div>
       `).join("");
 
-      dom.generateBtn.disabled = true; dom.matrixBtn.disabled = true;
-      dom.btnMatrixText.textContent = "Casting..."; dom.btnMatrixLoader.classList.remove("hidden");
+      dom.generateBtn.disabled = true;
+      dom.matrixBtn.disabled = true;
+      dom.btnMatrixText.textContent = "Casting...";
+      dom.btnMatrixLoader.classList.remove("hidden");
       document.getElementById("matrixControls").classList.remove("hidden");
+      document.getElementById("matrixGallery").classList.remove("hidden");
 
-      state.matrixPaused = false; state.matrixCancelled = false;
+      state.matrixPaused = false;
+      state.matrixCancelled = false;
       updateMatrixStatusUI();
 
       try {
         setView("generate");
-        let completedCount = 0; const totalModels = models.length;
+        toggleConsole("expand");
+
+        let completedCount = 0;
+        const totalModels = models.length;
         const updateMatrixProgress = () => {
-          document.getElementById("matrixStatusText").textContent = `Manifesting: ${completedCount} / ${totalModels} complete`;
+          const statusText = document.getElementById("matrixStatusText");
+          if (statusText) statusText.textContent = `Manifesting: ${completedCount} / ${totalModels} complete`;
         };
         updateMatrixProgress();
 
@@ -641,118 +1161,429 @@
           const cellId = `matrix-cell-${model.replace(/\s+/g, '-')}`;
           const cell = document.getElementById(cellId);
 
-          if (cell) { cell.querySelector(".loader").classList.remove("hidden"); cell.dataset.requestId = `job-${Date.now()}`; }
+          if (cell) {
+            cell.querySelector(".loader").classList.remove("hidden");
+            cell.classList.add("active-summon");
+          }
 
+          console.log(`[Matrix] Starting model ${i + 1}/${totalModels}: ${model}`);
           try {
-            const res = await apiFetch("/generate", { method: "POST", body: JSON.stringify(mPayload) });
-            cell.dataset.requestId = res.request_id;
-            pollSingleMatrixCellBackground(res.request_id, cell).then(() => {
-              completedCount++; updateMatrixProgress();
+            const res = await apiFetch("/generate", {
+              method: "POST",
+              body: JSON.stringify(mPayload)
+            });
+            console.log(`[Matrix] Received ID for ${model}:`, res.request_id);
+            if (cell) cell.dataset.requestId = res.request_id;
+
+            // Poll in background, update progress when done/failed
+            pollSingleMatrixJob(res.request_id, model, cell).then((success) => {
+              completedCount++;
+              updateMatrixProgress();
+              console.log(`[Matrix] Job ${model} finalized. Success: ${success}. Total: ${completedCount}/${totalModels}`);
             });
           } catch (e) {
-            completedCount++; updateMatrixProgress();
-            if (cell) { cell.querySelector(".loader")?.classList.add("hidden"); cell.style.boxShadow = "inset 0 0 40px rgba(239, 68, 68, 0.2)"; }
+            console.error(`[Matrix] FAILED to start ${model}:`, e);
+            completedCount++;
+            updateMatrixProgress();
+            if (cell) {
+              cell.querySelector(".loader")?.classList.add("hidden");
+              cell.style.boxShadow = "inset 0 0 40px rgba(239, 68, 68, 0.2)";
+            }
+          } finally {
+            if (cell) cell.classList.remove("active-summon");
           }
+          // Balanced safe delay: 13 seconds between each request
           await sleep(13000);
         }
+
+        while (completedCount < totalModels && !state.matrixCancelled) {
+          await sleep(2000);
+        }
+
         setFooterMsg("Celestial Matrix Complete.", "success");
-      } catch (err) { setFooterMsg("Matrix Error: " + err.message, "error"); } 
-      finally {
-        dom.generateBtn.disabled = false; dom.matrixBtn.disabled = false;
-        dom.btnMatrixText.textContent = "Matrix"; dom.btnMatrixLoader.classList.add("hidden");
+        const finalStatusText = document.getElementById("matrixStatusText");
+        if (finalStatusText) finalStatusText.textContent = `Matrix Complete: ${completedCount} Manifested`;
+
+      } catch (err) {
+        setFooterMsg("Matrix Error: " + err.message, "error");
+      } finally {
+        dom.generateBtn.disabled = false;
+        dom.matrixBtn.disabled = false;
+        dom.btnMatrixText.textContent = "Matrix";
+        dom.btnMatrixLoader.classList.add("hidden");
+        if (!state.matrixCancelled && !state.matrixPaused) {
+          document.getElementById("matrixControls").classList.add("hidden");
+        }
       }
     }
 
-    function toggleMatrixPause() { state.matrixPaused = !state.matrixPaused; updateMatrixStatusUI(); }
-    function cancelMatrix() { state.matrixCancelled = true; state.matrixPaused = false; updateMatrixStatusUI(); }
+    function toggleMatrixPause() {
+      state.matrixPaused = !state.matrixPaused;
+      updateMatrixStatusUI();
+    }
+
+    function cancelMatrix() {
+      state.matrixCancelled = true;
+      state.matrixPaused = false;
+      updateMatrixStatusUI();
+    }
+
+    // Wake-up handler for background tabs
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") {
+        const matrixGallery = document.getElementById("matrixGallery");
+        if (matrixGallery && !matrixGallery.classList.contains("hidden")) {
+          // Find all cells that are still loading and give them a nudge
+          const activeCells = matrixGallery.querySelectorAll(".art-frame.active-summon");
+          activeCells.forEach(cell => {
+            const requestId = cell.dataset.requestId;
+            if (requestId) {
+              console.log("[Matrix] Waking up poll for:", requestId);
+              pollSingleMatrixCellBackground(requestId, cell); 
+            }
+          });
+        }
+      }
+    });
+
+
     function updateMatrixStatusUI() {
-      const btn = document.getElementById("matrixPauseBtn"), text = document.getElementById("matrixStatusText"), pulse = document.getElementById("matrixStatusPulse");
-      if (state.matrixCancelled) { text.textContent = "Matrix Cancelled"; pulse.className = "w-2 h-2 rounded-full bg-red-500"; btn.disabled = true; return; }
-      if (state.matrixPaused) { text.textContent = "Matrix Paused"; pulse.className = "w-2 h-2 rounded-full bg-amber-500 animate-pulse"; btn.textContent = "Resume"; } 
-      else { text.textContent = "Matrix Active"; pulse.className = "w-2 h-2 rounded-full bg-emerald-500 animate-pulse"; btn.textContent = "Pause"; }
+      const btn = document.getElementById("matrixPauseBtn");
+      const text = document.getElementById("matrixStatusText");
+      const pulse = document.getElementById("matrixStatusPulse");
+
+      if (state.matrixCancelled) {
+        text.textContent = "Matrix Cancelled";
+        pulse.className = "w-2 h-2 rounded-full bg-red-500";
+        btn.disabled = true;
+        return;
+      }
+
+      if (state.matrixPaused) {
+        text.textContent = "Matrix Paused";
+        pulse.className = "w-2 h-2 rounded-full bg-amber-500 animate-pulse";
+        btn.textContent = "Resume";
+      } else {
+        text.textContent = "Matrix Active";
+        pulse.className = "w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
+        btn.textContent = "Pause";
+      }
+    }
+
+    async function cancelJob(id) {
+      try {
+        await apiFetch(`/cancel-job/${id}`, { method: 'POST' });
+        setFooterMsg("Job Cancellation Protocol Initiated.", "info");
+        // Re-fetch queue to update UI
+        if (state.activeView === 'tasks') reloadQueue();
+      } catch (err) {
+        setFooterMsg("Cancellation Error: " + err.message, "error");
+      }
+    }
+
+    async function cancelAllJobs() {
+      if (!confirm("Are you sure you want to halt all active manifestations?")) return;
+      try {
+        await apiFetch('/cancel-all-jobs', { method: 'POST' });
+        setFooterMsg("All Jobs Halted.", "success");
+        if (state.activeView === 'tasks') reloadQueue();
+      } catch (err) {
+        setFooterMsg("Global Halt Error: " + err.message, "error");
+      }
+    }
+
+    async function pollSingleMatrixJob(requestId, model, cell, maxAttempts = 100) {
+      // Matrix should move on quickly: the backend owns the long poll.
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        if (state.matrixCancelled) return false;
+        while (state.matrixPaused) { await sleep(1000); if (state.matrixCancelled) return false; }
+        try {
+          const res = await apiFetch(`/job-status/${requestId}`);
+
+          if (res.status === "done" && ((res.images && res.images.length > 0) || (res.result?.image_urls && res.result.image_urls.length > 0))) {
+            pollSingleMatrixCellBackground(requestId, cell);
+            return true;
+          }
+
+          if (res.task_uuids && res.task_uuids.length > 0) {
+            pollSingleMatrixCellBackground(requestId, cell);
+            return true;
+          }
+          if (res.status === "processing" || res.status === "pending" || res.status === "running" || res.status === "queued") {
+            // The job is alive; hand off and let the background poll finish it.
+            pollSingleMatrixCellBackground(requestId, cell);
+            return true;
+          }
+          if (res.status === "error" || res.status === "failed") {
+            if (cell) {
+              cell.querySelector(".loader").classList.add("hidden");
+              cell.style.boxShadow = "inset 0 0 40px rgba(239, 68, 68, 0.2)";
+            }
+            return false;
+          }
+        } catch (err) { }
+        await sleep(1000);
+      }
+      pollSingleMatrixCellBackground(requestId, cell);
+      return false;
     }
 
     async function pollSingleMatrixCellBackground(requestId, cell) {
       while (!state.matrixCancelled) {
-        if (cell && cell.dataset.requestId !== requestId) break; 
-        while (state.matrixPaused && !state.matrixCancelled) await sleep(1000);
+        // Pause Support: Wait here if matrix is paused
+        while (state.matrixPaused && !state.matrixCancelled) {
+          await sleep(1000);
+        }
         if (state.matrixCancelled) break;
 
         try {
           const res = await apiFetch(`/job-status/${requestId}`);
-          const urls = (res.images?.length > 0) ? res.images.map(img => img.r2_url).filter(Boolean) : (res.result?.image_urls || []).filter(Boolean);
-          if (res.status === "done" && urls.length > 0) { updateMatrixCell(cell, urls, requestId); return; }
-          if (res.status === "failed") {
-            if (cell) { cell.querySelector(".loader")?.classList.add("hidden"); cell.style.boxShadow = "inset 0 0 40px rgba(239, 68, 68, 0.2)"; }
-            return;
+          const urls = (res.images && res.images.length > 0)
+            ? res.images.map(img => img.r2_url).filter(Boolean)
+            : (res.result?.image_urls || []).filter(Boolean);
+
+          if (res.status === "done" && urls.length > 0) {
+            updateMatrixCell(cell, urls, requestId);
+            return; // Success, stop polling
           }
-        } catch (e) {}
+          if (res.status === "failed") {
+            // Final failure (after retries)
+            if (cell) {
+              cell.querySelector(".loader")?.classList.add("hidden");
+              cell.style.boxShadow = "inset 0 0 40px rgba(239, 68, 68, 0.2)";
+            }
+            return; // Failed, stop polling
+          }
+        } catch (e) {
+          console.warn("[Matrix] Poll error (retrying):", e);
+        }
+        
+        // Wait 3 seconds before next check
         await sleep(3000);
       }
     }
 
     function updateMatrixCell(cell, urls, requestId) {
-      if (!cell || !urls?.length) return;
-      const img = cell.querySelector("img"), loader = cell.querySelector(".loader"), label = cell.querySelector("span");
+      if (!cell || !urls || !urls.length) return;
+      const img = cell.querySelector("img");
+      const loader = cell.querySelector(".loader");
+      const label = cell.querySelector("span");
+
       if (loader) loader.classList.add("hidden");
-      if (img) { img.src = urls[0]; img.classList.remove("hidden", "opacity-0", "scale-110"); img.classList.add("opacity-100"); }
+      if (img) {
+        img.src = urls[0];
+        img.classList.remove("hidden", "opacity-0", "scale-110");
+        img.classList.add("opacity-100");
+      }
       if (label) label.classList.add("opacity-0");
-      cell.onclick = () => openHistoryGroup({ request_id: requestId, images: urls.map((u, idx) => ({ r2_url: u, image_index: idx })) });
+      cell.classList.remove("active-summon");
+      cell.dataset.requestId = requestId || "";
+      cell.onclick = () => openHistoryGroup({
+        request_id: requestId,
+        images: urls.map((u, idx) => ({ r2_url: u, image_index: idx }))
+      });
     }
 
-    /* STANDARD GENERATION */
+
+
+
     async function runGeneration() {
       setView("generate");
-      dom.gallery.style.display = ""; document.getElementById("matrixGallery").classList.add("hidden");
+      toggleConsole("expand");
+      dom.gallery.style.display = "";
+      document.getElementById("matrixGallery").classList.remove("grid");
+      document.getElementById("matrixGallery").classList.add("hidden");
+
       const payload = getPayload();
       if (!payload.prompt) return setFooterMsg("Inspiration required.", "error");
 
-      setLoading(true); state.isGenerating = true; setProgress(0);
+      setLoading(true);
+      state.isGenerating = true; // Lock internal updates
+      setProgress(0);
       dom.gallery.innerHTML = '<div class="col-span-full py-24 animate-pulse opacity-50 cinematic-text text-2xl uppercase tracking-widest text-center">Weaving Vision...</div>';
 
       try {
-        const res = await apiFetch("/generate", { method: "POST", body: JSON.stringify(payload) });
+        setProgress(1);
+        const res = await apiFetch("/generate", {
+          method: "POST",
+          body: JSON.stringify(payload)
+        });
         saveActiveRequest(res.request_id);
+        state.activeRequest = res;
+        updateTasksView(res);
+        setProgress(2);
+        if (res.status === "done" && res.result?.image_urls?.length) {
+          handleSuccess(res.result.image_urls, res.request_id, payload, res);
+          return;
+        }
+        setFooterMsg(`Request accepted: ${res.request_id.slice(0, 8)}...`, "info");
         await pollUntilDone(res.request_id, payload);
       } catch (err) {
-        setFooterMsg(`Generation failed: ${err.message}`, "error"); setProgress(-1);
-      } finally { setLoading(false); state.isGenerating = false; }
+        console.error(err);
+        setFooterMsg(`Generation failed to start: ${err.message}`, "error");
+        setProgress(-1);
+      } finally {
+        setLoading(false);
+        state.isGenerating = false; // Release internal updates
+        if (window.innerWidth < 1024) toggleConsole("minimize");
+      }
     }
 
     async function pollUntilDone(requestId, payload, maxAttempts = 120) {
       state.currentPoll = requestId;
+
+      // 1. Initial quick poll
+      try {
+        const res = await apiFetch(`/job-status/${requestId}`);
+        state.activeRequest = res;
+        updateTasksView(res);
+      } catch (e) { }
+
+      // 2. Patience for 60s
+      setFooterMsg("Manifesting spirit... focus for 60s.", "info");
+      await sleep(60000);
+      if (state.currentPoll !== requestId) return false;
+
       for (let attempt = 0; attempt < maxAttempts; attempt++) {
         if (state.currentPoll !== requestId) return false;
         try {
           const res = await apiFetch(`/job-status/${requestId}`);
-          if (res.images?.length > 0) {
+          if (state.currentPoll !== requestId) return false;
+          state.activeRequest = res;
+          updateTasksView(res);
+          if (res.images && res.images.length > 0) {
             const urls = res.images.map(img => img.r2_url);
-            renderGallery(urls, requestId, payload, res);
+            if (urls.length > (dom.gallery.querySelectorAll(".bubble").length)) {
+              renderGallery(urls, requestId, payload, res);
+            }
           }
-          if (res.status === "done") { setProgress(3); setTimeout(() => setProgress(-1), 3000); return true; }
-          if (res.status === "error" || res.status === "failed") { setFooterMsg(res.error || "Generation failed.", "error"); setProgress(-1); return false; }
-        } catch (err) {}
-        await sleep(3000);
+          if (res.status === "done") {
+            const finalUrls = res.images?.length ? res.images.map(img => img.r2_url) : res.result?.image_urls;
+            if (finalUrls) {
+              setProgress(3);
+              handleSuccess(finalUrls, requestId, payload, res);
+              setTimeout(() => setProgress(-1), 3000);
+              return true;
+            }
+          }
+          if (res.status === "error" || res.status === "failed") {
+            setFooterMsg(res.error || "Generation failed.", "error");
+            setProgress(-1);
+            return false;
+          }
+        } catch (err) {
+          // console.warn("poll error", err);
+        }
+        await sleep(backoffDelay(attempt));
       }
       return false;
     }
 
-    function setProgress(step) {
-      const p = document.getElementById("progressMatrix");
-      if (step === -1) { p.classList.add("opacity-0"); return; }
-      p.classList.remove("opacity-0");
-      document.querySelectorAll(".progress-step").forEach((s, idx) => {
-        s.classList.toggle("done", idx < step); s.classList.toggle("active", idx === step);
-      });
+    function backoffDelay(attempt) {
+      return Math.min(8000, 2000 + (attempt * 300));
     }
 
     function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
+    async function resumeLastRequest() {
+      if (!state.activeRequestId) return setFooterMsg("No saved request to resume.", "error");
+      try {
+        const res = await apiFetch(`/resume/${state.activeRequestId}`);
+        state.activeRequest = res;
+        updateTasksView(res);
+        if (res.status === "done") {
+          const urls = res.images?.length ? res.images.map(i => i.r2_url) : (res.result?.image_urls || []);
+          handleSuccess(urls, state.activeRequestId, res, res);
+          return;
+        }
+        await pollUntilDone(state.activeRequestId, res);
+      } catch (err) {
+        setFooterMsg(`Resume failed: ${err.message}`, "error");
+      }
+    }
+
+    async function resumeRequest(requestId) {
+      if (!requestId) return;
+      saveActiveRequest(requestId);
+      await resumeLastRequest();
+    }
+
+    async function retryFailedJob(requestId) {
+      if (!requestId) return;
+      try {
+        setFooterMsg("Retrying failed job...", "info");
+        const res = await apiFetch(`/api/retry-job/${requestId}`, { method: "POST" });
+        if (!res || !res.queued) throw new Error("Retry not queued");
+        saveActiveRequest(requestId);
+        await pollUntilDone(requestId, state.activeRequest || {});
+      } catch (err) {
+        setFooterMsg(err.message || "Retry failed", "error");
+      }
+    }
+
+    let queueInterval = null;
+    async function refreshCurrentJob() {
+      return; // Disabled
+      if (queueInterval) clearInterval(queueInterval);
+
+      const doRefresh = async () => {
+        try {
+          const res = await apiFetch(`/history?page=1&limit=10`);
+          // Show any job that isn't totally historical (Status = running or recently done)
+          const currentItems = (res.items || []).filter(it => it.status !== "done" || (new Date() - new Date(it.updated_at)) < 30000);
+
+          if (currentItems.length > 0) {
+            dom.taskList.innerHTML = currentItems.map(job => currentJobCard(job)).join("");
+          } else if (state.activeRequestId) {
+            try {
+              const job = await apiFetch(`/job-status/${state.activeRequestId}`);
+              dom.taskList.innerHTML = currentJobCard(job);
+            } catch {
+              dom.taskList.innerHTML = '<div class="col-span-full py-20 text-center opacity-20 cinematic-text text-xl uppercase tracking-widest font-thin">Temple of Silence</div>';
+            }
+          } else {
+            dom.taskList.innerHTML = '<div class="col-span-full py-20 text-center opacity-20 cinematic-text text-xl uppercase tracking-widest font-thin">Temple of Silence</div>';
+          }
+        } catch (err) {
+          // console.warn("Queue refresh error", err);
+        }
+      };
+
+      await doRefresh();
+      // Setup live polling while UI is on tasks tab
+      queueInterval = setInterval(() => {
+        // SILENCE: If we are currently generating, don't do background refreshes
+        if (state.isGenerating) return;
+
+        const tasksView = document.getElementById("view-tasks");
+        if (tasksView && !tasksView.classList.contains("hidden")) {
+          doRefresh();
+        } else {
+          clearInterval(queueInterval);
+          queueInterval = null;
+        }
+      }, 10000); // Increased to 10s for even more minimalism
+    }
+
+    function updateTasksView(job) {
+      if (!dom.taskList) return;
+      dom.taskList.innerHTML = job ? currentJobCard(job) : '<div class="col-span-full py-20 text-center opacity-20 cinematic-text text-xl uppercase tracking-widest">The queue is silent</div>';
+    }
+
+    function handleSuccess(urls, requestId, payload, meta = {}) {
+      saveActiveRequest(requestId);
+      state.activeRequest = meta || state.activeRequest;
+      renderGallery(urls, requestId, payload, meta);
+      updateTasksView({ ...payload, ...meta, request_id: requestId, status: "done" });
+      state.historyLoaded = false;
+      renderHistory();
+    }
+
     function renderGallery(urls, requestId, payload, meta = {}) {
       dom.gallery.innerHTML = urls.map((url, idx) => `
-        <div class="bubble" id="bubble-${requestId}-${idx}" style="animation-delay: ${idx * 0.15}s">
-          <span class="vault-badge">Vaulted</span>
-          <div class="bubble-img-overlay"><img src="${url}" loading="lazy"></div>
+        <div class="bubble" id="bubble-${requestId}-${idx}">
+          ${(url.includes(".r2.dev") || url.includes("cloudflare")) ? '<span class="vault-badge">Vaulted</span>' : ''}
+          <div class="bubble-img-overlay"><img src="${url}" alt="Image ${idx + 1}" loading="lazy"></div>
           <div class="bubble-sphere"></div>
           <canvas class="bubble-canvas" width="260" height="260"></canvas>
         </div>
@@ -763,206 +1594,624 @@
       });
     }
 
-    /* THE VAULT & HISTORY ENGINE */
-    async function loadHistoryPage() {
-      if (state.loadingHistory || !state.historyHasMore) return;
-      state.loadingHistory = true; if (dom.loadMoreBtn) dom.loadMoreBtn.textContent = "Summoning...";
-      try {
-        const cursorParam = state.historyCursor ? `&before=${state.historyCursor}` : "";
-        const res = await apiFetch(`/history?limit=${state.historyLimit}${cursorParam}&uid=${state.activeUid}`);
-        state.historyHasMore = !!res.has_more; state.historyCursor = res.next_cursor;
-        res.items.forEach((entry) => {
-          if (!entry.images?.length) return;
-          if (document.getElementById(`batch-${entry.request_id}`)) return; // De-duplication fix
-          dom.historyList.appendChild(createBatchCard(entry));
-        });
-      } catch (err) {} finally { state.loadingHistory = false; if (dom.loadMoreBtn) dom.loadMoreBtn.classList.toggle("hidden", !state.historyHasMore); }
+
+    function populateInspector(data) {
+      const panel = document.getElementById("metaInspector");
+      if (!data || !data.prompt) {
+        panel.classList.add("hidden");
+        return;
+      }
+      panel.classList.remove("hidden");
+      document.getElementById("metaRealm").textContent = data.realm || "day";
+      document.getElementById("metaModel").textContent = data.model || "Standard";
+      document.getElementById("metaPrompt").textContent = data.prompt;
+      state.__inspected_data = data;
     }
 
-    async function renderHistory() {
-      if (state.historyLoaded) return;
-      state.historyLoaded = true; state.historyCursor = null; state.historyHasMore = true;
-      dom.historyList.innerHTML = ""; await loadHistoryPage();
-    }
-
-    function createBatchCard(entry) {
-      const wrap = document.createElement("div"); wrap.id = `batch-${entry.request_id}`;
-      wrap.className = "glass-panel p-4 pb-5 cursor-pointer group relative border-white/5 hover:border-[var(--accent)]";
-      wrap.onclick = (e) => { if (state.selectionMode) toggleBatchSelection(entry.request_id); else openHistoryGroup(entry); };
-      wrap.innerHTML = `
-          <div class="flex items-center justify-between gap-2 mb-3">
-            <div class="text-[9px] uppercase tracking-widest text-[var(--accent)] font-black">${entry.realm || "day"}</div>
-            <div class="selection-indicator hidden w-5 h-5 rounded-full border-2 border-white/20"></div>
-          </div>
-          <div class="grid grid-cols-2 gap-2">
-            ${(entry.images || []).slice(0, 4).map((img) => `<img src="${img.r2_url}" class="w-full aspect-square object-cover rounded-lg" loading="lazy">`).join("")}
-          </div>
-          <div class="mt-3 text-[10px] font-bold truncate opacity-60 uppercase tracking-widest">${entry.prompt || "No Inscription"}</div>
-        `;
-      return wrap;
-    }
-
-    /* MODALS & REVEALS */
     function popBubble(el, url, data, batchUrls = []) {
-      const canvas = el.querySelector("canvas"); if (!canvas) return;
-      const ctx = canvas.getContext("2d"); const particles = [];
-      for (let i = 0; i < 30; i++) particles.push({ x: 130, y: 130, vx: (Math.random() - 0.5) * 10, vy: (Math.random() - 0.5) * 10, size: Math.random() * 3, alpha: 1 });
+      const canvas = el.querySelector("canvas");
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      const particles = [];
+      for (let i = 0; i < 30; i++) {
+        particles.push({ x: 130, y: 130, vx: (Math.random() - 0.5) * 10, vy: (Math.random() - 0.5) * 10, size: Math.random() * 3, alpha: 1 });
+      }
       const animate = () => {
         ctx.clearRect(0, 0, 260, 260);
         particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.alpha -= 0.03; ctx.fillStyle = `rgba(139, 92, 246, ${Math.max(0, p.alpha)})`; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill(); });
         if (particles[0].alpha > 0) requestAnimationFrame(animate);
       };
       animate();
-      setTimeout(() => openModalHelper(url, data, batchUrls), 150);
-    }
+      setTimeout(() => {
+        const reveal = document.getElementById("bubbleReveal");
+        document.getElementById("bubbleRevealImg").src = url;
+        document.getElementById("bubbleRevealDownload").href = url;
+        populateInspector(data);
 
-    function openHistoryGroup(entry) {
-      const urls = (entry.images || []).map(img => img.r2_url).filter(Boolean);
-      if (urls.length) openModalHelper(urls[0], entry, urls);
-    }
+        // Populate Thumbs if batch exists
+        const thumbsSection = document.getElementById("thumbsSection");
+        const thumbsGrid = document.getElementById("bubbleRevealThumbs");
+        if (batchUrls.length > 1) {
+          thumbsSection.style.display = "flex";
+          thumbsGrid.innerHTML = batchUrls.map(u => `
+             <button class="art-frame overflow-hidden border-2 border-transparent hover:border-[var(--accent)] transition-all ${u === url ? 'border-[var(--accent)]' : ''}" 
+                     onclick="event.stopPropagation(); document.getElementById('bubbleRevealImg').src='${u}'; document.getElementById('bubbleRevealDownload').href='${u}';">
+                <img src="${u}" class="w-full aspect-square object-cover" loading="lazy">
+             </button>
+           `).join("");
+        } else {
+          thumbsSection.style.display = "none";
+        }
 
-    function openModalHelper(url, data, batchUrls) {
-      const reveal = document.getElementById("bubbleReveal");
-      document.getElementById("bubbleRevealImg").src = url; document.getElementById("bubbleRevealDownload").href = url;
-      
-      document.getElementById("metaRealm").textContent = data.realm || "day";
-      document.getElementById("metaModel").textContent = data.model || "Standard";
-      document.getElementById("metaPrompt").textContent = data.prompt;
-      state.__inspected_data = data;
-
-      const thumbsGrid = document.getElementById("bubbleRevealThumbs");
-      document.getElementById("thumbsSection").classList.toggle("hidden", batchUrls.length <= 1);
-      thumbsGrid.innerHTML = batchUrls.map(u => `
-        <img src="${u}" class="w-full aspect-square object-cover rounded-lg cursor-pointer border-2 ${u===url?'border-[var(--accent)]':'border-transparent'}" onclick="event.stopPropagation(); document.getElementById('bubbleRevealImg').src='${u}'; document.getElementById('bubbleRevealDownload').href='${u}';">
-      `).join("");
-
-      reveal.style.display = "flex"; void reveal.offsetWidth; reveal.classList.add("active");
+        reveal.style.display = "flex";
+        setTimeout(() => reveal.classList.add("active"), 10);
+      }, 150);
     }
 
     function closeBubbleReveal(e) {
       if (e && e.target.tagName === "IMG") return;
       const reveal = document.getElementById("bubbleReveal");
-      reveal.classList.remove("active"); setTimeout(() => reveal.style.display = "none", 600);
-    }
-
-    function banishCurrentItem() {
-        const data = state.__inspected_data;
-        if (!data || !data.request_id) return;
-        openConfirm("Banish Batch?", "Return this entire batch to the void forever?", async () => {
-            await apiFetch(`/history/batch/${data.request_id}`, { method: 'DELETE' });
-            closeBubbleReveal();
-            document.getElementById(`batch-${data.request_id}`)?.remove();
-            setFooterMsg("Banishment successful.");
-        });
+      reveal.classList.remove("active");
+      setTimeout(() => reveal.style.display = "none", 350);
     }
 
     function cloneActiveManifestation() {
-      const data = state.__inspected_data; if (!data) return;
-      applyMode(data.realm === "star" ? "nsfw" : "standard");
-      dom.model.value = data.model || "Gen"; dom.prompt.value = data.prompt; dom.negativePrompt.value = data.negative_prompt || "";
-      closeBubbleReveal(); setView("generate");
+      const data = state.__inspected_data;
+      if (!data) return;
+      if (data.realm) applyMode(data.realm === "star" ? "nsfw" : "standard");
+      if (data.model) dom.model.value = data.model;
+      if (data.prompt) dom.prompt.value = data.prompt;
+      if (data.negative_prompt) dom.negativePrompt.value = data.negative_prompt;
+      if (data.aspect) dom.aspect.value = data.aspect;
+      if (data.quality) dom.quality.value = data.quality;
+      if (data.seed) dom.seed.value = data.seed;
+      closeBubbleReveal();
+      document.querySelector('[data-view="generate"]').click();
+      setFooterMsg("Visions cloned to Forge.", "info");
     }
 
-    function toggleSelectionMode(force) {
-      state.selectionMode = force !== undefined ? force : !state.selectionMode;
-      document.getElementById("toggleSelectBtn").textContent = state.selectionMode ? "Cancel" : "Select Mode";
-      document.querySelectorAll(".selection-indicator").forEach(i => i.classList.toggle("hidden", !state.selectionMode));
-      if (!state.selectionMode) state.selectedIds.clear(); updateSelectionUI();
+    function openHistoryGroup(entry) {
+      const urls = (entry.images || []).map(img => img.r2_url).filter(Boolean);
+      if (!urls.length) return;
+      const reveal = document.getElementById("bubbleReveal");
+      reveal.scrollTop = 0;
+      const img = document.getElementById("bubbleRevealImg");
+      const thumbsSection = document.getElementById("thumbsSection");
+      const thumbsGrid = document.getElementById("bubbleRevealThumbs");
+
+      img.src = urls[0];
+      document.getElementById("bubbleRevealDownload").href = urls[0];
+      populateInspector(entry);
+
+      if (urls.length > 1) {
+        thumbsSection.style.display = "flex";
+        thumbsGrid.innerHTML = urls.map(u => `
+           <button class="art-frame overflow-hidden border-2 border-transparent hover:border-[var(--accent)] transition-all ${u === urls[0] ? 'border-[var(--accent)]' : ''}" 
+                   onclick="event.stopPropagation(); document.getElementById('bubbleRevealImg').src='${u}'; document.getElementById('bubbleRevealDownload').href='${u}';">
+              <img src="${u}" class="w-full aspect-square object-cover" loading="lazy">
+           </button>
+         `).join("");
+      } else {
+        thumbsSection.style.display = "none";
+      }
+
+      reveal.style.display = "flex";
+      setTimeout(() => reveal.classList.add("active"), 10);
+    }
+
+    function createBatchCard(entry) {
+      const wrap = document.createElement("div");
+      wrap.id = `batch-${entry.request_id}`;
+      wrap.className = "glass-panel p-4 pb-5 cursor-pointer group relative transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_20px_50px_rgba(0,0,0,0.4)] border-white/5 hover:border-white/20";
+      if (state.selectedIds.has(entry.request_id)) wrap.classList.add("border-[var(--accent)]", "bg-[var(--accent)]/10");
+
+      wrap.onclick = (e) => {
+        if (e.target.closest("button")) return;
+        if (state.selectionMode) {
+          toggleBatchSelection(entry.request_id);
+        } else {
+          openHistoryGroup(entry);
+        }
+      };
+
+      const isSelected = state.selectedIds.has(entry.request_id);
+
+      wrap.innerHTML = `
+          <div class="flex items-center justify-between gap-2 mb-3">
+            <div class="min-w-0">
+              <div class="flex items-center gap-2 mb-1">
+                <div class="text-[9px] uppercase tracking-widest text-[var(--accent)] font-black">${entry.realm || "day"}</div>
+                <div class="text-[9px] font-bold opacity-40 bg-white/5 px-1 rounded">ID #${entry.image_id || "..."}</div>
+                <div class="text-[9px] font-bold opacity-40 bg-white/5 px-1 rounded">${entry.uid || "uid_0"}</div>
+              </div>
+              <div class="text-xs font-bold truncate opacity-80">${escapeHtml(entry.prompt || "No Inscription")}</div>
+            </div>
+            <div class="selection-indicator ${state.selectionMode ? 'flex' : 'hidden'} w-5 h-5 rounded-full border-2 border-white/20 items-center justify-center ${isSelected ? 'bg-[var(--accent)] border-[var(--accent)]' : ''}">
+               ${isSelected ? '<svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg>' : ''}
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            ${(entry.images || []).slice(0, 4).map(img => `<div class="art-frame"><img src="${img.r2_url}" class="w-full aspect-square object-cover" loading="lazy"></div>`).join("")}
+          </div>
+        `;
+      return wrap;
     }
 
     function toggleBatchSelection(id) {
-      if (state.selectedIds.has(id)) state.selectedIds.delete(id); else state.selectedIds.add(id);
+      if (state.selectedIds.has(id)) state.selectedIds.delete(id);
+      else state.selectedIds.add(id);
+
       const el = document.getElementById(`batch-${id}`);
-      el.classList.toggle("border-[var(--accent)]", state.selectedIds.has(id));
-      el.querySelector(".selection-indicator").classList.toggle("bg-[var(--accent)]", state.selectedIds.has(id));
+      if (el) {
+        const isSel = state.selectedIds.has(id);
+        el.classList.toggle("border-[var(--accent)]", isSel);
+        el.classList.toggle("bg-[var(--accent)]/10", isSel);
+        const indicator = el.querySelector(".selection-indicator");
+        if (indicator) {
+          indicator.classList.toggle("bg-[var(--accent)]", isSel);
+          indicator.classList.toggle("border-[var(--accent)]", isSel);
+          indicator.innerHTML = isSel ? '<svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg>' : '';
+        }
+      }
+
       updateSelectionUI();
     }
 
     function updateSelectionUI() {
-      document.getElementById("selectCount").textContent = state.selectedIds.size;
-      document.getElementById("selectionBar").classList.toggle("hidden", state.selectedIds.size === 0);
+      const bar = document.getElementById("selectionBar");
+      const countEl = document.getElementById("selectCount");
+      const total = state.selectedIds.size;
+
+      countEl.textContent = total;
+      if (total > 0 && state.selectionMode) {
+        bar.classList.remove("hidden");
+      } else {
+        bar.classList.add("hidden");
+      }
+    }
+
+    function toggleSelectionMode(forceValue) {
+      state.selectionMode = (forceValue !== undefined) ? forceValue : !state.selectionMode;
+      if (!state.selectionMode) state.selectedIds.clear();
+
+      document.getElementById("toggleSelectBtn").textContent = state.selectionMode ? "Cancel" : "Select Mode";
+      document.getElementById("historyList").dataset.selectMode = state.selectionMode;
+
+      // IN-PLACE UPDATE: Toggle indicators without full reload
+      const cards = document.querySelectorAll('#historyList > div');
+      cards.forEach(card => {
+        const indicator = card.querySelector('.selection-indicator');
+        if (indicator) indicator.classList.toggle('hidden', !state.selectionMode);
+        if (indicator) indicator.classList.toggle('flex', state.selectionMode);
+        if (!state.selectionMode) {
+          card.classList.remove("border-[var(--accent)]", "bg-[var(--accent)]/10");
+          if (indicator) {
+            indicator.classList.remove("bg-[var(--accent)]", "border-[var(--accent)]");
+            indicator.innerHTML = "";
+          }
+        }
+      });
+
+      updateSelectionUI();
+    }
+
+
+    function openConfirm(title, msg, onConfirm) {
+      const modal = document.getElementById("confirmModal");
+      document.getElementById("confirmTitle").textContent = title;
+      document.getElementById("confirmMsg").textContent = msg;
+
+      const yesBtn = document.getElementById("confirmYes");
+      const newYes = yesBtn.cloneNode(true);
+      yesBtn.parentNode.replaceChild(newYes, yesBtn);
+
+      newYes.onclick = () => {
+        onConfirm();
+        closeConfirm();
+      };
+
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+    }
+
+    function closeConfirm() {
+      const modal = document.getElementById("confirmModal");
+      modal.classList.add("hidden");
+      modal.classList.remove("flex");
     }
 
     async function executeBulkAction(action) {
-        if (action === 'delete') {
-            const ids = Array.from(state.selectedIds);
-            openConfirm("Banish Selection?", `Return ${ids.length} manifestations to the void?`, async () => {
-                for (const id of ids) {
-                    apiFetch(`/history/batch/${id}`, { method: 'DELETE' }).catch(()=>{});
-                    document.getElementById(`batch-${id}`)?.remove();
-                }
-                toggleSelectionMode(false);
-                setFooterMsg("Banishment complete.");
+      const ids = Array.from(state.selectedIds);
+      if (!ids.length) return;
+      const count = ids.length;
+
+      if (action === 'delete') {
+        openConfirm("Banish Selection?", `Return ${count} manifestations to the void forever?`, async () => {
+          ids.forEach(id => {
+            const el = document.getElementById(`batch-${id}`);
+            if (el) {
+              el.style.pointerEvents = "none";
+              el.style.transition = "all 0.8s cubic-bezier(0.4, 0, 0.2, 1)";
+              el.style.filter = "grayscale(1) blur(40px)";
+              el.style.opacity = "0";
+              el.style.transform = "scale(0.9) translateY(20px)";
+            }
+          });
+
+          for (const id of ids) {
+            apiFetch(`/history/batch/${id}`, { method: 'DELETE' }).catch(err => {
+              const el = document.getElementById(`batch-${id}`);
+              if (el) { el.style.filter = ""; el.style.opacity = "1"; el.style.transform = ""; el.style.pointerEvents = ""; }
             });
-        }
-    }
+          }
 
-    function openConfirm(title, msg, onConfirm) {
-      document.getElementById("confirmTitle").textContent = title; document.getElementById("confirmMsg").textContent = msg;
-      const yes = document.getElementById("confirmYes"); yes.onclick = () => { onConfirm(); closeConfirm(); };
-      document.getElementById("confirmModal").classList.remove("hidden");
-    }
-    function closeConfirm() { document.getElementById("confirmModal").classList.add("hidden"); }
+          setFooterMsg(`Banishing ${count} manifestations...`, "info");
+          setTimeout(() => {
+            ids.forEach(id => { const el = document.getElementById(`batch-${id}`); if (el) el.remove(); });
+            toggleSelectionMode(false);
+            updateVaultCache();
+          }, 850);
+        });
+      } else if (action === 'hide') {
+        ids.forEach(id => {
+          const el = document.getElementById(`batch-${id}`);
+          if (el) {
+            el.style.pointerEvents = "none";
+            el.style.transition = "all 0.6s ease";
+            el.style.filter = "blur(20px)";
+            el.style.opacity = "0";
+          }
+        });
 
-    function initAetherCanvas() {
-      const canvas = document.getElementById('aetherCanvas'), ctx = canvas.getContext('2d');
-      let w, h; const particles = [];
-      function resize() { w = window.innerWidth; h = window.innerHeight; canvas.width = w; canvas.height = h; }
-      window.addEventListener('resize', resize); resize();
-      for (let i = 0; i < 40; i++) particles.push({ x: Math.random() * w, y: Math.random() * h, vx: (Math.random()-0.5)*0.3, vy: (Math.random()-0.5)*0.3, size: Math.random()*2, shift: Math.random()*Math.PI*2 });
-      function animate() {
-        if (document.visibilityState === 'visible') {
-          ctx.clearRect(0, 0, w, h);
-          particles.forEach(p => {
-            p.x += p.vx; p.y += p.vy; p.shift += 0.01;
-            if (p.x<0) p.x=w; if (p.x>w) p.x=0; if (p.y<0) p.y=h; if (p.y>h) p.y=0;
-            const a = (Math.sin(p.shift)*0.3)+0.3;
-            ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
-            ctx.fillStyle = state.activeMode === "nsfw" ? `rgba(139, 92, 246, ${a})` : `rgba(16, 185, 129, ${a})`; ctx.fill();
+        for (const id of ids) {
+          apiFetch(`/history/batch/${id}/hide`, { method: 'POST' }).catch(err => {
+            const el = document.getElementById(`batch-${id}`);
+            if (el) { el.style.filter = ""; el.style.opacity = "1"; el.style.pointerEvents = ""; }
           });
         }
+
+        setFooterMsg(`Hiding ${count} manifestations...`, "info");
+        setTimeout(() => {
+          ids.forEach(id => { const el = document.getElementById(`batch-${id}`); if (el) el.remove(); });
+          toggleSelectionMode(false);
+          updateVaultCache();
+        }, 650);
+      }
+    }
+
+    function updateVaultCache() {
+      // Disabled cache for new architecture
+    }
+
+
+
+    async function banishCurrentItem() {
+      const img = document.getElementById("bubbleRevealImg");
+      const currentUrl = img.src;
+      const data = state.__inspected_data;
+      if (!data || !data.images) return;
+      const requestId = data.request_id;
+
+      const imgObj = data.images.find(i => i.r2_url === currentUrl);
+      if (!imgObj) return;
+
+      openConfirm("Banish Spirit?", "This single manifestation will fade into the void.", async () => {
+        img.style.transition = "all 0.8s cubic-bezier(0.4, 0, 0.2, 1)";
+        img.style.filter = "grayscale(1) blur(60px)";
+        img.style.opacity = "0";
+        img.style.transform = "scale(0.85) translateY(20px)";
+
+        apiFetch(`/history/image/${imgObj.id}`, { method: 'DELETE' })
+          .then(() => {
+            setFooterMsg("Spirit banished.", "info");
+
+            // Surgical Thumbnail removal
+            const thumb = Array.from(document.querySelectorAll('#bubbleRevealThumbs img')).find(t => t.src === currentUrl);
+            if (thumb) {
+              const btn = thumb.parentElement;
+              btn.style.transition = "all 0.4s ease";
+              btn.style.transform = "scale(0)";
+              setTimeout(() => btn.remove(), 400);
+            }
+
+            // Surgical Vault card update
+            const vaultCard = document.getElementById(`batch-${requestId}`);
+            if (vaultCard) {
+              const vImgs = vaultCard.querySelectorAll('.art-frame img');
+              vImgs.forEach(vImg => {
+                if (vImg.src === currentUrl) {
+                  const frame = vImg.parentElement;
+                  frame.style.opacity = "0";
+                  setTimeout(() => frame.remove(), 300);
+                }
+              });
+            }
+
+            data.images = data.images.filter(i => i.id !== imgObj.id);
+
+            setTimeout(() => {
+              if (data.images.length === 0) {
+                closeBubbleReveal();
+                if (vaultCard) vaultCard.remove();
+              } else {
+                const next = data.images[0].r2_url;
+                img.src = next;
+                document.getElementById('bubbleRevealDownload').href = next;
+                img.style.filter = ""; img.style.opacity = "1"; img.style.transform = "";
+              }
+              updateVaultCache();
+            }, 900);
+          })
+          .catch(e => {
+            setFooterMsg("Banishment fractured.", "error");
+            img.style.filter = ""; img.style.opacity = "1"; img.style.transform = "";
+          });
+      });
+    }
+
+    async function banishBatch() {
+      const data = state.__inspected_data;
+      if (!data || !data.request_id) return;
+      const requestId = data.request_id;
+
+      openConfirm("Banish Entire Batch?", "Return all 4 spirits in this manifestation to the void.", async () => {
+        const viewerContainer = document.querySelector('.image-viewer-container');
+        const revealPanel = document.querySelector('.glass-reveal-panel');
+
+        if (viewerContainer) {
+          viewerContainer.style.transition = "all 1s cubic-bezier(0.4, 0, 0.2, 1)";
+          viewerContainer.style.filter = "grayscale(1) blur(80px)";
+          viewerContainer.style.opacity = "0";
+          viewerContainer.style.transform = "scale(0.9)";
+        }
+        if (revealPanel) {
+          revealPanel.style.transition = "all 0.8s ease";
+          revealPanel.style.opacity = "0";
+          revealPanel.style.transform = "translateX(20px)";
+        }
+
+        apiFetch(`/history/batch/${requestId}`, { method: 'DELETE' })
+          .then(() => {
+            setFooterMsg("Batch banished.", "info");
+            const vaultCard = document.getElementById(`batch-${requestId}`);
+            if (vaultCard) {
+              vaultCard.style.transition = "all 0.8s cubic-bezier(0.4, 0, 0.2, 1)";
+              vaultCard.style.opacity = "0";
+              vaultCard.style.transform = "scale(0.8) translateY(30px)";
+              setTimeout(() => vaultCard.remove(), 800);
+            }
+            updateVaultCache();
+            setTimeout(() => { closeBubbleReveal(); }, 1000);
+          })
+          .catch(e => {
+            setFooterMsg("Banishment failed.", "error");
+            if (viewerContainer) { viewerContainer.style.filter = ""; viewerContainer.style.opacity = "1"; viewerContainer.style.transform = ""; }
+            if (revealPanel) { revealPanel.style.opacity = "1"; revealPanel.style.transform = ""; }
+          });
+      });
+    }
+
+
+    async function loadHistoryPage() {
+      if (state.loadingHistory || !state.historyHasMore) return;
+      state.loadingHistory = true;
+      if (dom.loadMoreBtn) dom.loadMoreBtn.textContent = "Summoning...";
+
+      let renderedInThisPass = 0;
+      console.group("Vault Load Operation");
+
+      try {
+        const cacheBuster = `&_t=${Date.now()}`;
+        const cursorParam = state.historyCursor ? `&before=${state.historyCursor}` : "";
+        const fetchUrl = `/history?limit=${state.historyLimit}${cursorParam}&uid=${state.activeUid}${cacheBuster}`;
+
+        const res = await apiFetch(fetchUrl);
+        const items = res.items || [];
+        console.log(`[Vault] Received ${items.length} items from backend`, items);
+
+        state.historyHasMore = !!res.has_more;
+        state.historyCursor = res.next_cursor;
+
+        let validInBatch = 0;
+        let ghostCount = 0;
+
+        for (const entry of items) {
+          if (!entry.images || entry.images.length === 0) {
+            ghostCount++;
+            continue;
+          }
+
+          // Even with stable IDs, we check for DOM collision as a precaution
+          if (document.getElementById(`batch-${entry.request_id}`)) continue;
+
+          dom.historyList.appendChild(createBatchCard(entry));
+          renderedInThisPass++;
+          validInBatch++;
+        }
+
+        console.log(`[Vault] Batch Summary -> Valid: ${validInBatch}, Ghosts: ${ghostCount}`);
+      } catch (err) {
+        console.error("Vault load error:", err);
+        if (dom.loadMoreBtn) dom.loadMoreBtn.textContent = "Error (Retry)";
+      } finally {
+        console.groupEnd();
+        state.loadingHistory = false;
+      }
+
+      // Finalize UI
+      const totalCardsVisible = dom.historyList.children.length;
+      if (dom.loadMoreBtn) {
+        if (!state.historyHasMore) {
+          dom.loadMoreBtn.classList.remove("hidden");
+          dom.loadMoreBtn.disabled = true;
+          dom.loadMoreBtn.textContent = `End of Vault (${totalCardsVisible} Total)`;
+          dom.loadMoreBtn.style.opacity = "0.5";
+          dom.loadMoreBtn.style.cursor = "default";
+        } else {
+          dom.loadMoreBtn.classList.remove("hidden");
+          dom.loadMoreBtn.disabled = false;
+          dom.loadMoreBtn.style.opacity = "1";
+          dom.loadMoreBtn.style.cursor = "pointer";
+          dom.loadMoreBtn.textContent = `Load More (${totalCardsVisible} shown)`;
+        }
+      }
+      setFooterMsg(`Loaded batches. Total visible: ${totalCardsVisible}`, "info");
+    }
+
+    async function renderHistory(reset = false) {
+      if (!dom.historyList || document.getElementById("view-history").classList.contains("hidden")) return;
+
+      if (state.historyLoaded && !reset && dom.historyList.innerHTML !== "") return;
+
+      state.historyLoaded = true;
+      state.historyPage = 1;
+      state.historyCursor = null;
+      state.historyHasMore = true;
+      dom.historyList.innerHTML = "";
+      dom.historyList.style.opacity = "1";
+      dom.historyList.style.pointerEvents = "auto";
+
+      await loadHistoryPage();
+    }
+
+    // The Oracle Module
+    const ORACLE_PROMPTS = [
+      "(masterpiece, best quality:1.2), an ethereal glass cathedral floating in a nebula, hyper-detailed, incredibly beautiful, cinematic lighting",
+      "A cyberpunk neo-tokyo street vendor selling glowing mechanical cyber-pets, neon rim lighting, dynamic angle, rain, 8k resolution",
+      "Macro photography of a tiny bioluminescent forest growing inside a cracked glowing crystal ball, unreal engine 5 render, highly detailed",
+      "A dark fantasy warrior king made entirely of living shadow and smoke, holding a sword of starlight, dramatic stormy background, greg rutkowski style",
+      "(intricate details:1.1), portrait of a cybernetic angel with wings made of fiber optic cables, glowing datastreams, trending on artstation",
+      "A lush, overgrown sci-fi greenhouse on a spaceship overlooking a black hole, volumetric fog, cinematic colors"
+    ];
+
+    function rollOracle() {
+      const idx = Math.floor(Math.random() * ORACLE_PROMPTS.length);
+      dom.prompt.value = ORACLE_PROMPTS[idx];
+      dom.negativePrompt.value = "worst quality, low quality, bad anatomy, deformed, watermark, signature";
+      dom.aspect.value = "16:9";
+      dom.quality.value = "High Quality";
+      setFooterMsg("The Oracle has spoken.", "info");
+    }
+
+    // Aether Particles Overlay
+    function initAetherCanvas() {
+      const canvas = document.getElementById('aetherCanvas');
+      const ctx = canvas.getContext('2d');
+      let width, height;
+      const particles = [];
+
+      function resize() {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = width;
+        canvas.height = height;
+      }
+      window.addEventListener('resize', resize);
+      resize();
+
+      for (let i = 0; i < 40; i++) {
+        particles.push({
+          x: Math.random() * width,
+          y: Math.random() * height,
+          vx: (Math.random() - 0.5) * 0.3,
+          vy: (Math.random() - 0.5) * 0.3,
+          size: Math.random() * 2 + 0.5,
+          shift: Math.random() * Math.PI * 2
+        });
+      }
+
+      function animate() {
+        ctx.clearRect(0, 0, width, height);
+        // Color shifts based on mode (Day = Emerald/White, Star = Violet)
+        const isNsfw = state.activeMode === "nsfw";
+
+        particles.forEach(p => {
+          p.x += p.vx;
+          p.y += p.vy;
+          p.shift += 0.01;
+
+          if (p.x < 0) p.x = width;
+          if (p.x > width) p.x = 0;
+          if (p.y < 0) p.y = height;
+          if (p.y > height) p.y = 0;
+
+          const alpha = (Math.sin(p.shift) * 0.3) + 0.3;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fillStyle = isNsfw ? `rgba(139, 92, 246, ${alpha})` : `rgba(16, 185, 129, ${alpha})`;
+          ctx.fill();
+        });
         requestAnimationFrame(animate);
       }
       animate();
     }
     initAetherCanvas();
 
+    function clearVault() { if (confirm("Clear local cache?")) { localStorage.removeItem("a_vault_cache"); dom.historyList.innerHTML = ""; reloadHistory(); } }
+    function clearPrompt() { dom.prompt.value = ""; dom.negativePrompt.value = ""; setFooterMsg("Vision cleared.", "info"); }
+    function pastePrompt() { navigator.clipboard.readText().then(text => dom.prompt.value = text); }
+    function toggleConsole(forceState) {
+      const el = document.getElementById("desktopConsole");
+      const stub = document.getElementById("mobileToggleStub");
+      let isMin = el.classList.contains("minimized");
+      if (forceState === "expand") isMin = false;
+      else if (forceState === "minimize") isMin = true;
+      else isMin = !isMin;
+
+      el.classList.toggle("minimized", isMin);
+      document.getElementById("consoleToggleText").textContent = isMin ? "Expand" : "Minimize";
+      if (stub) stub.style.display = isMin ? "block" : "none";
+    }
+    function reloadHistory() {
+      state.historyLoaded = false;
+      state.historyPage = 0;
+      dom.historyList.innerHTML = "";
+      renderHistory();
+    }
+    async function copyRequestId(id) { if (id) { await navigator.clipboard.writeText(id); setFooterMsg("Copied ID.", "info"); } }
+    function escapeHtml(v) { return String(v).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;"); }
+    async function checkBackend() { try { const res = await apiFetch("/health"); dom.backendStatus.textContent = res.status === "ok" ? "Backend Online" : "Backend Latency"; } catch { dom.backendStatus.textContent = "Backend Offline"; } }
+
     function setView(v) {
-      state.activeView = v;
       document.querySelectorAll(".view").forEach(el => el.classList.add("hidden"));
-      document.getElementById(`view-${v}`).classList.remove("hidden");
+      const viewEl = document.getElementById(`view-${v}`);
+      if (viewEl) viewEl.classList.remove("hidden");
       document.querySelectorAll("[data-view]").forEach(b => {
-          const isM = b.dataset.view === v;
-          b.classList.toggle("active", isM); b.classList.toggle("opacity-100", isM); b.classList.toggle("opacity-60", !isM);
+        const isMatch = b.dataset.view === v;
+        b.classList.toggle("active", isMatch);
+        b.classList.toggle("bg-white/20", isMatch && !b.classList.contains("mobile-nav-item"));
+        b.classList.toggle("opacity-100", isMatch);
+        b.classList.toggle("opacity-60", !isMatch);
       });
       if (v === "history") renderHistory();
-      if (window.innerWidth < 1024 && (v === "history")) toggleConsole(true);
+
+      // Auto-minimize on mobile for non-forge tabs
+      if (window.innerWidth < 1024 && (v === "history" || v === "tasks")) {
+        toggleConsole("minimize");
+      }
     }
 
-    function toggleConsole(force) {
-      const el = document.getElementById("desktopConsole");
-      const isM = force === true ? true : !el.classList.contains("minimized");
-      el.classList.toggle("minimized", isM);
-      document.getElementById("consoleToggleText").textContent = isM ? "Expand" : "Minimize";
-      document.getElementById("mobileToggleStub").style.display = isM ? "block" : "none";
+    document.querySelectorAll("[data-view]").forEach(btn => btn.addEventListener("click", (e) => setView(e.currentTarget.dataset.view)));
+
+    document.querySelectorAll("[data-mode]").forEach(btn => btn.addEventListener("click", () => applyMode(btn.dataset.mode)));
+    dom.generateBtn.addEventListener("click", runGeneration);
+
+    try {
+      applyMode(state.activeMode);
+      renderActiveRequest();
+      checkBackend(); // Only one check on load
+    } catch (e) {
+      console.error("Initialization error:", e);
+      setFooterMsg("Connect to Server for full functionality.", "info");
     }
-
-    function rollOracle() {
-        dom.prompt.value = ORACLE_PROMPTS[Math.floor(Math.random() * ORACLE_PROMPTS.length)];
-        setFooterMsg("The Oracle has spoken.");
-    }
-
-    function clearPrompt() { dom.prompt.value = ""; dom.negativePrompt.value = ""; }
-    function pastePrompt() { navigator.clipboard.readText().then(t => dom.prompt.value = t); }
-    function reloadHistory() { state.historyLoaded = false; renderHistory(); }
-    function escapeHtml(v) { return String(v).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
-
-    document.querySelectorAll("[data-view]").forEach(b => b.onclick = () => setView(b.dataset.view));
-    document.querySelectorAll("[data-mode]").forEach(b => b.onclick = () => applyMode(b.dataset.mode));
-    dom.generateBtn.onclick = runGeneration;
-
-    applyMode(state.activeMode); renderActiveRequest();
-    apiFetch("/health").then(r => dom.backendStatus.textContent = r.status==="ok" ? "Backend Online" : "Backend Offline").catch(() => dom.backendStatus.textContent = "Backend Offline");
   </script>
+  <div id="progressMatrix"
+    class="fixed top-0 left-0 right-0 h-1 z-[10000] pointer-events-none opacity-0 transition-opacity duration-500 flex gap-1">
+    <div class="progress-step flex-1 h-full"></div>
+    <div class="progress-step flex-1 h-full"></div>
+    <div class="progress-step flex-1 h-full"></div>
+    <div class="progress-step flex-1 h-full"></div>
+  </div>
 </body>
+
 </html>
