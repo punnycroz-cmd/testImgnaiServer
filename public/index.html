@@ -1991,19 +1991,11 @@
         })
           .then((res) => {
             if (!res || res.deleted !== true) throw new Error("Image was not deleted");
+            
             setFooterMsg("Spirit banished.", "info");
-
-            // Surgical Thumbnail removal
-            const thumb = Array.from(document.querySelectorAll('#bubbleRevealThumbs img'))
-              .find(t => canonicalImageUrl(t.src) === currentUrl);
-            if (thumb) {
-              const btn = thumb.parentElement;
-              btn.style.transition = "all 0.4s ease";
-              btn.style.transform = "scale(0)";
-              setTimeout(() => btn.remove(), 400);
-            }
-
-            // Surgical Vault card update
+            data.images = data.images.filter(i => canonicalImageUrl(i.r2_url) !== currentUrl);
+            
+            // 1. Surgical Vault card update
             const vaultCard = document.getElementById(`batch-${requestId}`);
             if (vaultCard) {
               const vImgs = vaultCard.querySelectorAll('.art-frame img');
@@ -2016,21 +2008,27 @@
               });
             }
 
-            data.images = data.images.filter(i => canonicalImageUrl(i.r2_url) !== currentUrl);
+            // 2. Surgical Forge bubble update
+            const bubbles = document.querySelectorAll(`.bubble`);
+            bubbles.forEach(b => {
+              const img = b.querySelector('img');
+              if (img && canonicalImageUrl(img.src) === currentUrl) {
+                b.classList.add("scale-0", "opacity-0");
+                setTimeout(() => b.remove(), 400);
+              }
+            });
 
             setTimeout(() => {
               if (data.images.length === 0) {
                 closeBubbleReveal();
                 if (vaultCard) vaultCard.remove();
               } else {
-                const nextVisible = data.images.find(i => !i.hidden) || data.images[0];
-                const next = nextVisible.r2_url;
-                img.src = next;
-                document.getElementById('bubbleRevealDownload').href = next;
-                img.dataset.hidden = nextVisible.hidden ? "true" : "false";
-                state.__inspected_current_url = next;
-                state.__inspected_current_hidden = !!nextVisible.hidden;
-                img.style.filter = ""; img.style.opacity = "1"; img.style.transform = "";
+                // Peek at next image
+                const nextImg = data.images[0];
+                if (nextImg) {
+                   img.src = nextImg.r2_url;
+                   document.getElementById("bubbleMeta").textContent = `${data.prompt || 'Manifestation'} | #${nextImg.image_index + 1}`;
+                }
               }
               updateVaultCache();
             }, 900);
@@ -2047,25 +2045,27 @@
       if (!data || !data.request_id) return;
       const requestId = data.request_id;
 
+      const viewerContainer = document.querySelector('.image-viewer-container');
+      const revealPanel = document.querySelector('.glass-reveal-panel');
+
+      if (viewerContainer) {
+        viewerContainer.style.transition = "all 1s cubic-bezier(0.4, 0, 0.2, 1)";
+        viewerContainer.style.filter = "grayscale(1) blur(80px)";
+        viewerContainer.style.opacity = "0";
+        viewerContainer.style.transform = "scale(0.9)";
+      }
+      if (revealPanel) {
+        revealPanel.style.transition = "all 0.8s ease";
+        revealPanel.style.opacity = "0";
+        revealPanel.style.transform = "translateX(20px)";
+      }
+
       openConfirm("Banish Entire Batch?", "Return all 4 spirits in this manifestation to the void.", async () => {
-        const viewerContainer = document.querySelector('.image-viewer-container');
-        const revealPanel = document.querySelector('.glass-reveal-panel');
-
-        if (viewerContainer) {
-          viewerContainer.style.transition = "all 1s cubic-bezier(0.4, 0, 0.2, 1)";
-          viewerContainer.style.filter = "grayscale(1) blur(80px)";
-          viewerContainer.style.opacity = "0";
-          viewerContainer.style.transform = "scale(0.9)";
-        }
-        if (revealPanel) {
-          revealPanel.style.transition = "all 0.8s ease";
-          revealPanel.style.opacity = "0";
-          revealPanel.style.transform = "translateX(20px)";
-        }
-
-        apiFetch(`/history/batch/${requestId}`, { method: 'DELETE' })
+        apiFetch(`/history/batch/${encodeURIComponent(requestId)}`, { method: 'DELETE' })
           .then(() => {
             setFooterMsg("Batch banished.", "info");
+            
+            // 1. Vault Card
             const vaultCard = document.getElementById(`batch-${requestId}`);
             if (vaultCard) {
               vaultCard.style.transition = "all 0.8s cubic-bezier(0.4, 0, 0.2, 1)";
@@ -2073,6 +2073,16 @@
               vaultCard.style.transform = "scale(0.8) translateY(30px)";
               setTimeout(() => vaultCard.remove(), 800);
             }
+
+            // 2. Forge Bubbles
+            const bubbles = document.querySelectorAll(`.bubble`);
+            bubbles.forEach(b => {
+              if (state.__inspected_data?.request_id === requestId) {
+                 b.classList.add("scale-0", "opacity-0");
+                 setTimeout(() => b.remove(), 400);
+              }
+            });
+
             updateVaultCache();
             setTimeout(() => { closeBubbleReveal(); }, 1000);
           })
