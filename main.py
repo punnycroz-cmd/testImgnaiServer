@@ -337,30 +337,26 @@ async def delete_batch(request_id: str):
         if request_id in cancelled_jobs:
             cancelled_jobs.remove(request_id)
 
-    # 3. R2 Cleanup
+    # 3. R2 Cleanup (Improved Batch Deletion)
     if result_data:
+        from core.vault import _public_url, extract_key_from_url, delete_objects_batch
         res_obj = result_data.get("result") or {}
-        # Get all types of URLs
-        urls = (res_obj.get("image_urls") or []) + (res_obj.get("hidden_image_urls") or []) + (res_obj.get("deleted_image_urls") or [])
-        for url in urls:
-            try:
-                # Key is usually the part after the public URL
-                key = url.split("/")[-1]
-                # If there's a prefix in the URL that we can identify...
-                # Actually, our keys are usually like 'day/session/uuid.jpg'
-                # Let's try to extract it more robustly if possible, or just the filename.
-                # For now, let's just attempt to delete the filename key if it's simple.
-                # In this project, keys are built as {batch_prefix}/{uuid}.jpg
-                # We don't have the full key easily from the URL without the prefix.
-                # But wait, upload_image returns the FULL URL.
-                # If we assume the structure is {public_url}/{key}
-                from core.vault import _public_url
-                if url.startswith(_public_url):
-                    key = url[len(_public_url):].lstrip("/")
-                    from core.vault import delete_object
-                    delete_object(key)
-            except Exception as e:
-                logging.error(f"Failed to cleanup R2 for {url}: {e}")
+        # Collect all unique URLs from different lists
+        all_urls = set()
+        for key in ["image_urls", "hidden_image_urls", "deleted_image_urls"]:
+            all_urls.update(res_obj.get(key) or [])
+        
+        # Extract keys for batch deletion
+        keys_to_delete = []
+        for url in all_urls:
+            key = extract_key_from_url(url, _public_url)
+            if key:
+                keys_to_delete.append(key)
+        
+        if keys_to_delete:
+            # We don't await because it's a synchronous function called in a thread inside if needed,
+            # but for now we just call it.
+            delete_objects_batch(keys_to_delete)
 
     return {"status": "ok", "deleted": request_id}
 
@@ -385,13 +381,10 @@ async def delete_image(request: Request, request_id: str, url: Optional[str] = N
     ok = await DB.delete_image(request_id, resolved_url)
     
     if ok:
-        try:
-            from core.vault import _public_url, delete_object
-            if resolved_url.startswith(_public_url):
-                key = resolved_url[len(_public_url):].lstrip("/")
-                delete_object(key)
-        except Exception as e:
-            logging.error(f"Failed to cleanup R2 image {resolved_url}: {e}")
+        from core.vault import _public_url, extract_key_from_url, delete_object
+        key = extract_key_from_url(resolved_url, _public_url)
+        if key:
+            delete_object(key)
 
     return {"status": "ok" if ok else "error", "deleted": ok, "request_id": request_id, "url": resolved_url}
 

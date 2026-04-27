@@ -5,6 +5,7 @@ from datetime import datetime
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 from typing import Optional, List, Dict
+from urllib.parse import urlparse, unquote
 
 import time
 import boto3
@@ -113,15 +114,81 @@ def list_images(prefix: str = "vault/") -> List[Dict]:
         logging.error("Failed to list images: %s", exc)
         return []
 
-def delete_object(key: str) -> bool:
+def extract_key_from_url(image_url: str, public_url: str) -> Optional[str]:
+    """Safely extract R2 object key from a public URL."""
+    try:
+        # Strip query params/fragments and unquote
+        clean_url = image_url.split("?")[0].split("#")[0]
+        url_parsed = urlparse(unquote(clean_url.strip()))
+        public_parsed = urlparse(public_url.rstrip("/"))
+        
+        if url_parsed.netloc != public_parsed.netloc:
+            # logging.warning(f"URL domain mismatch: {image_url}")
+            return None
+            
+        # Extract path and strip the leading slash
+        key = url_parsed.path.lstrip("/")
+        if not key:
+            return None
+        return key
+    except Exception as e:
+        logging.error(f"Failed to extract key from {image_url}: {e}")
+        return None
+
+def delete_object(key: str, max_retries: int = 3) -> bool:
+    """Delete object from R2 with exponential backoff retry."""
     s3 = get_s3_client()
     if s3 is None: return False
-    try:
-        s3.delete_object(Bucket=_bucket_name, Key=key)
-        return True
-    except Exception as exc:
-        logging.error("Failed to delete key %s: %s", key, exc)
-        return False
+    
+    last_exc = None
+    for attempt in range(max_retries):
+        try:
+            s3.delete_object(Bucket=_bucket_name, Key=key)
+            logging.info("R2 object deleted: key=%s", key)
+            return True
+        except s3.exceptions.NoSuchKey:
+            logging.info("R2 object already deleted (404): key=%s", key)
+            return True
+        except Exception as exc:
+            last_exc = exc
+            wait_time = 1 * (2 ** attempt) # Simple exponential backoff
+            logging.warning("R2 delete failed for %s (attempt %d/%d): %s - retrying in %.1fs", 
+                            key, attempt+1, max_retries, exc, wait_time)
+            if attempt < max_retries - 1:
+                time.sleep(wait_time)
+                
+    logging.error("Failed to delete R2 key %s after %d retries: %s", key, max_retries, last_exc)
+    return False
+
+def delete_objects_batch(keys: List[str], max_retries: int = 2) -> Dict[str, bool]:
+    """Delete multiple objects from R2 efficiently using DeleteObjects API."""
+    s3 = get_s3_client()
+    if s3 is None or not keys: 
+        return {k: False for k in keys}
+    
+    results = {k: False for k in keys}
+    # S3 allows up to 1000 objects per batch delete call
+    for i in range(0, len(keys), 1000):
+        batch = keys[i:i+1000]
+        delete_request = {"Objects": [{"Key": k} for k in batch], "Quiet": True}
+        
+        for attempt in range(max_retries):
+            try:
+                response = s3.delete_objects(Bucket=_bucket_name, Delete=delete_request)
+                # Mark successfully deleted
+                for deleted in response.get("Deleted", []):
+                    results[deleted["Key"]] = True
+                # Log errors
+                for error in response.get("Errors", []):
+                    logging.warning(f"R2 batch delete error for {error['Key']}: {error['Message']}")
+                    results[error["Key"]] = False
+                break
+            except Exception as exc:
+                logging.warning(f"R2 batch delete failed (attempt {attempt+1}): {exc}")
+                if attempt < max_retries - 1:
+                    time.sleep(1 * (2 ** attempt))
+                    
+    return results
 
 # Compatibility Class
 class R2Vault:
