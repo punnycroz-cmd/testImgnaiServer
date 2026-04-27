@@ -83,6 +83,10 @@ async def init_db(force: bool = False):
         # Self-healing: Ensure columns exist for existing tables
         await conn.execute("ALTER TABLE generations ADD COLUMN IF NOT EXISTS uid TEXT DEFAULT 'uid_0';")
         await conn.execute("ALTER TABLE generations ADD COLUMN IF NOT EXISTS image_id BIGINT;")
+        await conn.execute("ALTER TABLE generations ADD COLUMN IF NOT EXISTS result JSONB DEFAULT '{}'::jsonb;")
+        await conn.execute("ALTER TABLE generations ADD COLUMN IF NOT EXISTS is_hidden BOOLEAN DEFAULT FALSE;")
+        await conn.execute("ALTER TABLE generations ADD COLUMN IF NOT EXISTS error TEXT;")
+        await conn.execute("ALTER TABLE generations ADD COLUMN IF NOT EXISTS last_error_text TEXT;")
         
         # Backfill: Assign image_id to existing rows that don't have one
         null_rows = await conn.fetch("SELECT id FROM generations WHERE image_id IS NULL ORDER BY created_at ASC")
@@ -103,6 +107,46 @@ async def get_next_image_id(uid: str) -> int:
     async with pool.acquire() as conn:
         val = await conn.fetchval("SELECT MAX(image_id) FROM generations WHERE uid = $1", uid)
         return (val or 0) + 1
+
+
+def _normalize_result(result_obj: Any) -> Dict[str, Any]:
+    if not result_obj:
+        return {}
+    if isinstance(result_obj, str):
+        try:
+            result_obj = json.loads(result_obj)
+        except Exception:
+            return {}
+    if not isinstance(result_obj, dict):
+        return {}
+    result_obj.setdefault("image_urls", [])
+    result_obj.setdefault("hidden_image_urls", [])
+    result_obj.setdefault("deleted_image_urls", [])
+    return result_obj
+
+
+def _build_images(result_obj: Dict[str, Any], include_hidden: bool = False) -> List[Dict]:
+    images = [{"r2_url": url, "hidden": False} for url in result_obj.get("image_urls", []) if url]
+    if include_hidden:
+      images.extend({"r2_url": url, "hidden": True} for url in result_obj.get("hidden_image_urls", []) if url)
+    return images
+
+
+async def _mutate_result_images(request_id: str, mutator) -> bool:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            row = await conn.fetchrow("SELECT result FROM generations WHERE request_id = $1 FOR UPDATE", request_id)
+            if not row:
+                return False
+            result_obj = _normalize_result(row["result"])
+            new_result = mutator(result_obj)
+            await conn.execute(
+                "UPDATE generations SET result = $1, updated_at = NOW() WHERE request_id = $2",
+                json.dumps(new_result),
+                request_id,
+            )
+            return True
 
 
 async def create_generation(data: Dict[str, Any]) -> str:
@@ -135,6 +179,56 @@ async def create_generation(data: Dict[str, Any]) -> str:
         return await conn.fetchval(query, *values)
 
 
+async def hide_image(request_id: str, image_url: str) -> bool:
+    image_url = (image_url or "").strip()
+    if not image_url:
+        return False
+
+    def mutator(result_obj):
+        result_obj["image_urls"] = [u for u in result_obj.get("image_urls", []) if u and u != image_url]
+        hidden = [u for u in result_obj.get("hidden_image_urls", []) if u]
+        if image_url not in hidden:
+            hidden.append(image_url)
+        result_obj["hidden_image_urls"] = hidden
+        return result_obj
+
+    return await _mutate_result_images(request_id, mutator)
+
+
+async def show_image(request_id: str, image_url: str) -> bool:
+    image_url = (image_url or "").strip()
+    if not image_url:
+        return False
+
+    def mutator(result_obj):
+        hidden = [u for u in result_obj.get("hidden_image_urls", []) if u and u != image_url]
+        visible = [u for u in result_obj.get("image_urls", []) if u]
+        if image_url not in visible:
+            visible.append(image_url)
+        result_obj["hidden_image_urls"] = hidden
+        result_obj["image_urls"] = visible
+        return result_obj
+
+    return await _mutate_result_images(request_id, mutator)
+
+
+async def delete_image(request_id: str, image_url: str) -> bool:
+    image_url = (image_url or "").strip()
+    if not image_url:
+        return False
+
+    def mutator(result_obj):
+        result_obj["image_urls"] = [u for u in result_obj.get("image_urls", []) if u and u != image_url]
+        result_obj["hidden_image_urls"] = [u for u in result_obj.get("hidden_image_urls", []) if u and u != image_url]
+        deleted = [u for u in result_obj.get("deleted_image_urls", []) if u]
+        if image_url not in deleted:
+            deleted.append(image_url)
+        result_obj["deleted_image_urls"] = deleted
+        return result_obj
+
+    return await _mutate_result_images(request_id, mutator)
+
+
 async def update_generation(request_id: str, **fields: Any):
     if not fields:
         return
@@ -161,32 +255,29 @@ async def update_generation(request_id: str, **fields: Any):
     async with pool.acquire() as conn:
         await conn.execute(query, *values)
 
-async def get_generation(request_id: str) -> Optional[Dict]:
+async def get_generation(request_id: str, include_hidden: bool = False) -> Optional[Dict]:
     pool = await get_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow("SELECT * FROM generations WHERE request_id = $1", request_id)
         if row:
             d = dict(row)
             if d.get('id'): d['id'] = str(d['id'])
-            
-            result_obj = d.get("result") or {}
-            if isinstance(result_obj, str):
-                try: result_obj = json.loads(result_obj)
-                except: result_obj = {}
-            
-            image_urls = result_obj.get("image_urls", [])
-            d['images'] = [{"r2_url": url} for url in image_urls]
+            result_obj = _normalize_result(d.get("result"))
+            d['images'] = _build_images(result_obj, include_hidden=include_hidden)
             return d
         return None
 
 
 
-async def list_generations(limit: int = 20, offset: int = 0, realm: Optional[str] = None, before_id: Optional[int] = None, uid: str = "uid_0") -> List[Dict]:
+async def list_generations(limit: int = 20, offset: int = 0, realm: Optional[str] = None, before_id: Optional[int] = None, uid: str = "uid_0", include_hidden: bool = False) -> List[Dict]:
     pool = await get_pool()
     
     # Build where clauses explicitly
-    clauses = ["is_hidden = FALSE", "status = 'done'", "uid = $1"]
+    clauses = ["status = 'done'", "uid = $1"]
     params = [uid] # $1
+
+    if not include_hidden:
+        clauses.append("is_hidden = FALSE")
     
     if realm:
         params.append(realm)
@@ -221,13 +312,8 @@ async def list_generations(limit: int = 20, offset: int = 0, realm: Optional[str
             if d.get('created_at'): d['created_at'] = d['created_at'].isoformat()
             if d.get('updated_at'): d['updated_at'] = d['updated_at'].isoformat()
             
-            result_obj = d.get("result") or {}
-            if isinstance(result_obj, str):
-                try: result_obj = json.loads(result_obj)
-                except: result_obj = {}
-            
-            image_urls = result_obj.get("image_urls", [])
-            d['images'] = [{"r2_url": url} for url in image_urls]
+            result_obj = _normalize_result(d.get("result"))
+            d['images'] = _build_images(result_obj, include_hidden=include_hidden)
             results.append(d)
         return results
 
@@ -235,6 +321,11 @@ async def hide_generation(request_id: str):
     pool = await get_pool()
     async with pool.acquire() as conn:
         await conn.execute("UPDATE generations SET is_hidden = true WHERE request_id = $1", request_id)
+
+async def show_generation(request_id: str):
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute("UPDATE generations SET is_hidden = false WHERE request_id = $1", request_id)
 
 async def delete_generation(request_id: str):
     pool = await get_pool()
@@ -285,10 +376,13 @@ class DatabaseProxy:
     async def get_generation(self, rid): return await get_generation(rid)
     async def update_generation(self, rid, **kwargs): await update_generation(rid, **kwargs)
     async def create_generation(self, **data): return await create_generation(data)
-    async def list_generations(self, limit=20, offset=0, realm=None, before_id=None, uid="uid_0"): 
-        return await list_generations(limit=limit, offset=offset, realm=realm, before_id=before_id, uid=uid)
+    async def list_generations(self, limit=20, offset=0, realm=None, before_id=None, uid="uid_0", include_hidden=False):
+        return await list_generations(limit=limit, offset=offset, realm=realm, before_id=before_id, uid=uid, include_hidden=include_hidden)
     async def hide_generation(self, rid): await hide_generation(rid)
+    async def show_generation(self, rid): await show_generation(rid)
     async def delete_generation(self, rid): await delete_generation(rid)
+    async def hide_image(self, rid, url): await hide_image(rid, url)
+    async def show_image(self, rid, url): await show_image(rid, url)
+    async def delete_image(self, rid, url): await delete_image(rid, url)
 
 DB = DatabaseProxy()
-

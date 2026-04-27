@@ -564,9 +564,18 @@
           class="h-12 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-[10px] font-black uppercase tracking-[0.15em] hidden lg:block">Close</button>
 
         <div class="col-span-2 lg:col-span-3 grid grid-cols-2 gap-3 mt-1">
+          <button onclick="hideCurrentItem()"
+            class="h-12 rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all text-[10px] font-black uppercase tracking-[0.15em]">Hide
+            One</button>
           <button onclick="banishCurrentItem()"
             class="h-12 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all text-[10px] font-black uppercase tracking-[0.15em]">Banish
             One</button>
+          <button onclick="showCurrentItem()"
+            class="h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all text-[10px] font-black uppercase tracking-[0.15em]">Show
+            One</button>
+          <button onclick="toggleBatchHidden()"
+            class="h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-300 hover:bg-blue-500 hover:text-white transition-all text-[10px] font-black uppercase tracking-[0.15em]">Toggle
+            Batch</button>
           <button onclick="banishBatch()"
             class="h-12 rounded-xl bg-red-900/20 border border-red-500/30 text-red-400 hover:bg-red-600 hover:text-white transition-all text-[10px] font-black uppercase tracking-[0.15em]">Banish
             Batch</button>
@@ -631,6 +640,8 @@
           </div>
 
           <div class="flex items-center gap-4">
+            <button onclick="toggleHiddenVault()" id="toggleHiddenVaultBtn"
+              class="text-[10px] font-bold uppercase tracking-widest opacity-60 hover:opacity-100">Show Hidden</button>
             <button onclick="toggleSelectionMode()" id="toggleSelectBtn"
               class="text-[10px] font-bold uppercase tracking-widest opacity-60 hover:opacity-100">Select Mode</button>
             <div class="w-px h-4 bg-white/10"></div>
@@ -858,6 +869,7 @@
       loadingHistory: false,
       currentPoll: null,
       vaultRealm: null,
+      showHiddenVault: false,
       selectionMode: false,
       selectedIds: new Set(),
       matrixPaused: false,
@@ -903,6 +915,13 @@
       dom.footerStatus.style.borderColor = kind === "error" ? "rgba(239,68,68,0.35)" : "var(--panel-border)";
       dom.footerStatus.classList.remove("translate-y-32", "opacity-0");
       setTimeout(() => dom.footerStatus.classList.add("translate-y-32", "opacity-0"), 3200);
+    }
+
+    function toggleHiddenVault() {
+      state.showHiddenVault = !state.showHiddenVault;
+      const btn = document.getElementById("toggleHiddenVaultBtn");
+      if (btn) btn.textContent = state.showHiddenVault ? "Hide Hidden" : "Show Hidden";
+      reloadHistory(true);
     }
 
     function setLoading(loading) {
@@ -1619,8 +1638,15 @@
       animate();
       setTimeout(() => {
         const reveal = document.getElementById("bubbleReveal");
-        document.getElementById("bubbleRevealImg").src = url;
-        document.getElementById("bubbleRevealDownload").href = url;
+        const imgEl = document.getElementById("bubbleRevealImg");
+        const downloadEl = document.getElementById("bubbleRevealDownload");
+        if (imgEl) {
+          imgEl.src = url;
+          imgEl.dataset.hidden = data?.hidden ? "true" : "false";
+        }
+        if (downloadEl) downloadEl.href = url;
+        state.__inspected_current_url = url;
+        state.__inspected_current_hidden = !!data?.hidden;
         populateInspector(data);
 
         // Populate Thumbs if batch exists
@@ -1630,7 +1656,7 @@
           thumbsSection.style.display = "flex";
           thumbsGrid.innerHTML = batchUrls.map(u => `
              <button class="art-frame overflow-hidden border-2 border-transparent hover:border-[var(--accent)] transition-all ${u === url ? 'border-[var(--accent)]' : ''}" 
-                     onclick="event.stopPropagation(); document.getElementById('bubbleRevealImg').src='${u}'; document.getElementById('bubbleRevealDownload').href='${u}';">
+                     onclick="event.stopPropagation(); document.getElementById('bubbleRevealImg').src='${u}'; document.getElementById('bubbleRevealImg').dataset.hidden='false'; document.getElementById('bubbleRevealDownload').href='${u}'; state.__inspected_current_url='${u}'; state.__inspected_current_hidden=false;">
                 <img src="${u}" class="w-full aspect-square object-cover" loading="lazy">
              </button>
            `).join("");
@@ -1665,8 +1691,54 @@
       setFooterMsg("Visions cloned to Forge.", "info");
     }
 
+    async function setCurrentImageVisibility(hidden) {
+      const data = state.__inspected_data;
+      const requestId = data?.request_id;
+      const url = state.__inspected_current_url;
+      if (!requestId || !url) return;
+
+      const endpoint = hidden ? "hide" : "show";
+      try {
+        await apiFetch(`/history/image/${encodeURIComponent(requestId)}/${endpoint}?url=${encodeURIComponent(url)}`, {
+          method: "POST"
+        });
+        state.__inspected_current_hidden = hidden;
+        const img = document.getElementById("bubbleRevealImg");
+        if (img) img.dataset.hidden = hidden ? "true" : "false";
+        setFooterMsg(hidden ? "Spirit hidden." : "Spirit restored.", "info");
+        reloadHistory(true);
+      } catch (err) {
+        setFooterMsg("Visibility change failed.", "error");
+      }
+    }
+
+    function hideCurrentItem() {
+      return setCurrentImageVisibility(true);
+    }
+
+    function showCurrentItem() {
+      return setCurrentImageVisibility(false);
+    }
+
+    async function toggleBatchHidden() {
+      const data = state.__inspected_data;
+      const requestId = data?.request_id;
+      if (!requestId) return;
+      const nextHidden = !data.is_hidden;
+      const endpoint = nextHidden ? "hide" : "show";
+      try {
+        await apiFetch(`/history/batch/${encodeURIComponent(requestId)}/${endpoint}`, { method: "POST" });
+        data.is_hidden = nextHidden;
+        setFooterMsg(nextHidden ? "Batch hidden." : "Batch restored.", "info");
+        reloadHistory(true);
+      } catch (err) {
+        setFooterMsg("Batch visibility failed.", "error");
+      }
+    }
+
     function openHistoryGroup(entry) {
-      const urls = (entry.images || []).map(img => img.r2_url).filter(Boolean);
+      const images = (entry.images || []).filter(img => img && img.r2_url);
+      const urls = images.map(img => img.r2_url);
       if (!urls.length) return;
       const reveal = document.getElementById("bubbleReveal");
       reveal.scrollTop = 0;
@@ -1675,15 +1747,18 @@
       const thumbsGrid = document.getElementById("bubbleRevealThumbs");
 
       img.src = urls[0];
+      img.dataset.hidden = images[0]?.hidden ? "true" : "false";
       document.getElementById("bubbleRevealDownload").href = urls[0];
+      state.__inspected_current_url = urls[0];
+      state.__inspected_current_hidden = !!images[0]?.hidden || !!entry.is_hidden;
       populateInspector(entry);
 
       if (urls.length > 1) {
         thumbsSection.style.display = "flex";
-        thumbsGrid.innerHTML = urls.map(u => `
-           <button class="art-frame overflow-hidden border-2 border-transparent hover:border-[var(--accent)] transition-all ${u === urls[0] ? 'border-[var(--accent)]' : ''}" 
-                   onclick="event.stopPropagation(); document.getElementById('bubbleRevealImg').src='${u}'; document.getElementById('bubbleRevealDownload').href='${u}';">
-              <img src="${u}" class="w-full aspect-square object-cover" loading="lazy">
+        thumbsGrid.innerHTML = images.map((imgData, idx) => `
+           <button class="art-frame overflow-hidden border-2 border-transparent hover:border-[var(--accent)] transition-all ${imgData.r2_url === urls[0] ? 'border-[var(--accent)]' : ''} ${imgData.hidden ? 'ring-1 ring-red-400/60' : ''}" 
+                   onclick="event.stopPropagation(); document.getElementById('bubbleRevealImg').src='${imgData.r2_url}'; document.getElementById('bubbleRevealImg').dataset.hidden='${imgData.hidden ? 'true' : 'false'}'; document.getElementById('bubbleRevealDownload').href='${imgData.r2_url}'; state.__inspected_current_url='${imgData.r2_url}'; state.__inspected_current_hidden=${imgData.hidden ? 'true' : 'false'};">
+              <img src="${imgData.r2_url}" class="w-full aspect-square object-cover ${imgData.hidden ? 'opacity-70' : ''}" loading="lazy">
            </button>
          `).join("");
       } else {
@@ -1699,6 +1774,7 @@
       wrap.id = `batch-${entry.request_id}`;
       wrap.className = "glass-panel p-4 pb-5 cursor-pointer group relative transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_20px_50px_rgba(0,0,0,0.4)] border-white/5 hover:border-white/20";
       if (state.selectedIds.has(entry.request_id)) wrap.classList.add("border-[var(--accent)]", "bg-[var(--accent)]/10");
+      if (entry.is_hidden) wrap.classList.add("opacity-65");
 
       wrap.onclick = (e) => {
         if (e.target.closest("button")) return;
@@ -1718,6 +1794,7 @@
                 <div class="text-[9px] uppercase tracking-widest text-[var(--accent)] font-black">${entry.realm || "day"}</div>
                 <div class="text-[9px] font-bold opacity-40 bg-white/5 px-1 rounded">ID #${entry.image_id || "..."}</div>
                 <div class="text-[9px] font-bold opacity-40 bg-white/5 px-1 rounded">${entry.uid || "uid_0"}</div>
+                ${entry.is_hidden ? '<div class="text-[9px] font-black uppercase tracking-widest bg-red-500/15 text-red-400 px-1 rounded">Hidden</div>' : ''}
               </div>
               <div class="text-xs font-bold truncate opacity-80">${escapeHtml(entry.prompt || "No Inscription")}</div>
             </div>
@@ -1726,7 +1803,7 @@
             </div>
           </div>
           <div class="grid grid-cols-2 gap-2">
-            ${(entry.images || []).slice(0, 4).map(img => `<div class="art-frame"><img src="${img.r2_url}" class="w-full aspect-square object-cover" loading="lazy"></div>`).join("")}
+            ${(entry.images || []).slice(0, 4).map(img => `<div class="art-frame ${img.hidden ? 'ring-1 ring-red-400/60 opacity-70' : ''}"><img src="${img.r2_url}" class="w-full aspect-square object-cover" loading="lazy"></div>`).join("")}
           </div>
         `;
       return wrap;
@@ -1886,7 +1963,6 @@
       const data = state.__inspected_data;
       if (!data || !data.images) return;
       const requestId = data.request_id;
-
       const imgObj = data.images.find(i => i.r2_url === currentUrl);
       if (!imgObj) return;
 
@@ -1896,7 +1972,7 @@
         img.style.opacity = "0";
         img.style.transform = "scale(0.85) translateY(20px)";
 
-        apiFetch(`/history/image/${imgObj.id}`, { method: 'DELETE' })
+        apiFetch(`/history/image/${encodeURIComponent(requestId)}?url=${encodeURIComponent(currentUrl)}`, { method: 'DELETE' })
           .then(() => {
             setFooterMsg("Spirit banished.", "info");
 
@@ -1922,16 +1998,20 @@
               });
             }
 
-            data.images = data.images.filter(i => i.id !== imgObj.id);
+            data.images = data.images.filter(i => i.r2_url !== currentUrl);
 
             setTimeout(() => {
               if (data.images.length === 0) {
                 closeBubbleReveal();
                 if (vaultCard) vaultCard.remove();
               } else {
-                const next = data.images[0].r2_url;
+                const nextVisible = data.images.find(i => !i.hidden) || data.images[0];
+                const next = nextVisible.r2_url;
                 img.src = next;
                 document.getElementById('bubbleRevealDownload').href = next;
+                img.dataset.hidden = nextVisible.hidden ? "true" : "false";
+                state.__inspected_current_url = next;
+                state.__inspected_current_hidden = !!nextVisible.hidden;
                 img.style.filter = ""; img.style.opacity = "1"; img.style.transform = "";
               }
               updateVaultCache();
@@ -1998,7 +2078,8 @@
       try {
         const cacheBuster = `&_t=${Date.now()}`;
         const cursorParam = state.historyCursor ? `&before=${state.historyCursor}` : "";
-        const fetchUrl = `/history?limit=${state.historyLimit}${cursorParam}&uid=${state.activeUid}${cacheBuster}`;
+        const hiddenParam = state.showHiddenVault ? "&include_hidden=true" : "";
+        const fetchUrl = `/history?limit=${state.historyLimit}${cursorParam}&uid=${state.activeUid}${hiddenParam}${cacheBuster}`;
 
         const res = await apiFetch(fetchUrl);
         const items = res.items || [];

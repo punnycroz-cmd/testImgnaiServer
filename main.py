@@ -266,7 +266,7 @@ async def vault_stats(realm: Optional[str] = None):
 
 
 @app.get("/history")
-async def history(request: Request, limit: int = 20, realm: Optional[str] = None, before: Optional[str] = None, uid: str = "uid_0"):
+async def history(request: Request, limit: int = 20, realm: Optional[str] = None, before: Optional[str] = None, uid: str = "uid_0", include_hidden: bool = False):
     # Fallback for proxies that strip query params
     cursor = before or request.headers.get("X-Debug-Cursor")
     b_id = None
@@ -274,7 +274,7 @@ async def history(request: Request, limit: int = 20, realm: Optional[str] = None
         try: b_id = int(float(cursor))
         except: pass
 
-    page_items = await DB.list_generations(limit=limit, realm=realm, before_id=b_id, uid=uid)
+    page_items = await DB.list_generations(limit=limit, realm=realm, before_id=b_id, uid=uid, include_hidden=include_hidden)
     
     return {
         "items": page_items,
@@ -297,10 +297,34 @@ async def hide_batch(request_id: str):
     return {"status": "ok", "hidden": request_id}
 
 
+@app.post("/history/batch/{request_id}/show")
+async def show_batch(request_id: str):
+    await DB.show_generation(request_id)
+    return {"status": "ok", "shown": request_id}
+
+
 @app.delete("/history/batch/{request_id}")
 async def delete_batch(request_id: str):
     await DB.delete_generation(request_id)
     return {"status": "ok", "deleted": request_id}
+
+
+@app.post("/history/image/{request_id}/hide")
+async def hide_image(request_id: str, url: str):
+    ok = await DB.hide_image(request_id, url)
+    return {"status": "ok" if ok else "error", "hidden": ok, "request_id": request_id, "url": url}
+
+
+@app.post("/history/image/{request_id}/show")
+async def show_image(request_id: str, url: str):
+    ok = await DB.show_image(request_id, url)
+    return {"status": "ok" if ok else "error", "shown": ok, "request_id": request_id, "url": url}
+
+
+@app.delete("/history/image/{request_id}")
+async def delete_image(request_id: str, url: str):
+    ok = await DB.delete_image(request_id, url)
+    return {"status": "ok" if ok else "error", "deleted": ok, "request_id": request_id, "url": url}
 
 
 @app.post("/cancel-job/{request_id}")

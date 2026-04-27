@@ -9,7 +9,7 @@ import httpx
 from playwright.async_api import async_playwright
 from playwright_stealth import Stealth
 
-import star_api
+from engines import star_client as star_api
 from core.vault import R2Vault
 
 
@@ -97,12 +97,16 @@ class StarManager:
                 return None
             poll_data = await self._get_json(client, star_api.URL_GENERATE_TASK.format(task_uuid=tuid), headers)
             if not poll_data:
+                if attempt in (0, 5, 15, 30, 60):
+                    await self._capture_debug(f"poll_wait_{request_id or 'noid'}_{idx}_{attempt}")
                 await self._sleep_backoff(attempt)
                 continue
             resp_obj = poll_data.get("response") or poll_data
             img_path = resp_obj.get("no_watermark_image_url") or resp_obj.get("image_url")
             if img_path:
                 return f"https://r.imagine.red/{img_path.lstrip('/')}"
+            if attempt in (0, 5, 15, 30, 60):
+                await self._capture_debug(f"poll_empty_{request_id or 'noid'}_{idx}_{attempt}")
             await self._sleep_backoff(attempt)
         return None
 
@@ -123,7 +127,7 @@ class StarManager:
             await self._capture_debug(f"auth_ready_{request_id or 'noid'}")
 
             payload = star_api.build_payload(req.model, req.quality, req.aspect, req.prompt, req.count, req.seed, True, negative_prompt=req.negative_prompt)
-            async with httpx.AsyncClient(timeout=90.0) as client:
+            async with httpx.AsyncClient(timeout=120.0) as client:
                 headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json", "Origin": "https://imagine.red"}
                 session_resp = await client.post(star_api.URL_GENERATE_SESSION, headers=headers)
                 session_resp.raise_for_status()
