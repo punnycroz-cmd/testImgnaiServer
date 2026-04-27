@@ -132,17 +132,17 @@ def _build_images(result_obj: Dict[str, Any], include_hidden: bool = False) -> L
     images = []
     
     # Active images
-    for url in result_obj.get("image_urls", []):
-        if url: images.append({"r2_url": url, "status": "active"})
+    for i, url in enumerate(result_obj.get("image_urls", [])):
+        if url: images.append({"r2_url": url, "status": "active", "image_index": i})
         
     # Hidden images (Archive)
     if include_hidden:
-        for url in result_obj.get("hidden_image_urls", []):
-            if url: images.append({"r2_url": url, "status": "hidden"})
+        for i, url in enumerate(result_obj.get("hidden_image_urls", [])):
+            if url: images.append({"r2_url": url, "status": "hidden", "image_index": i})
             
     # Deleting images (Transient state for UI blurring)
-    for url in result_obj.get("deleting_image_urls", []):
-        if url: images.append({"r2_url": url, "status": "deleting"})
+    for i, url in enumerate(result_obj.get("deleting_image_urls", [])):
+        if url: images.append({"r2_url": url, "status": "deleting", "image_index": i})
         
     return images
 

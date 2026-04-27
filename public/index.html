@@ -2033,16 +2033,35 @@
           body: JSON.stringify({ url: currentUrl })
         })
           .then((res) => {
-            setFooterMsg("Spirit banishment initiated.", "info");
-            // We DON'T remove from data.images yet. 
-            // The backend will move it to 'deleting' state.
-            // Next poll/refresh will show it as blurred.
-            // Once it's truly gone, it will disappear.
+            setFooterMsg("Spirit banishment initiated. Moving focus...", "info");
             
-            // To prevent ghosting, we can add it to pendingDeletions but we'll 
-            // modify the render logic to let 'deleting' items through but blurred.
-            // Wait, if I add to pendingDeletions, the filter will hide it.
-            // Let's NOT add it to pendingDeletions, instead let the DB status drive it.
+            // Mark as deleting in our local state to avoid re-renders showing it active
+            imgObj.status = 'deleting';
+
+            setTimeout(() => {
+                // Find remaining active/hidden images
+                const remaining = data.images.filter(i => i.status === 'active' || i.status === 'hidden');
+                
+                if (remaining.length > 0) {
+                    // Pick the first available remaining image
+                    const nextImg = remaining[0];
+                    img.classList.remove("spirit-deleting");
+                    img.src = nextImg.r2_url;
+                    img.dataset.hidden = (nextImg.status === 'hidden') ? "true" : "false";
+                    document.getElementById("bubbleRevealDownload").href = nextImg.r2_url;
+                    document.getElementById("bubbleMeta").textContent = `${data.prompt || 'Manifestation'} | #${nextImg.image_index + 1}`;
+                    
+                    state.__inspected_current_url = nextImg.r2_url;
+                    state.__inspected_current_hidden = (nextImg.status === 'hidden');
+                    
+                    // Re-render thumbnails to show the new 'deleting' state
+                    openHistoryGroup(data); 
+                } else {
+                    // No spirits left in this manifestation
+                    closeBubbleReveal();
+                }
+                updateVaultCache();
+            }, 1200); // Give user time to see the blur animation
           })
           .catch(e => {
             setFooterMsg("Banishment fractured.", "error");
