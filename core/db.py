@@ -4,6 +4,7 @@ import asyncio
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 import os
+from urllib.parse import urlsplit, urlunsplit
 from dotenv import load_dotenv
 import asyncpg
 from uuid import uuid4
@@ -132,6 +133,18 @@ def _build_images(result_obj: Dict[str, Any], include_hidden: bool = False) -> L
     return images
 
 
+def _normalize_image_url(url: str) -> str:
+    raw = (url or "").strip()
+    if not raw:
+        return ""
+    try:
+        parsed = urlsplit(raw)
+        # Strip query/fragment because UI cache-busting can append them.
+        return urlunsplit((parsed.scheme, parsed.netloc, parsed.path, "", ""))
+    except Exception:
+        return raw.split("?", 1)[0].split("#", 1)[0]
+
+
 async def _mutate_result_images(request_id: str, mutator) -> bool:
     pool = await get_pool()
     async with pool.acquire() as conn:
@@ -140,7 +153,9 @@ async def _mutate_result_images(request_id: str, mutator) -> bool:
             if not row:
                 return False
             result_obj = _normalize_result(row["result"])
-            new_result = mutator(result_obj)
+            new_result, changed = mutator(result_obj)
+            if not changed:
+                return False
             await conn.execute(
                 "UPDATE generations SET result = $1, updated_at = NOW() WHERE request_id = $2",
                 json.dumps(new_result),
@@ -180,51 +195,87 @@ async def create_generation(data: Dict[str, Any]) -> str:
 
 
 async def hide_image(request_id: str, image_url: str) -> bool:
-    image_url = (image_url or "").strip()
+    image_url = _normalize_image_url(image_url)
     if not image_url:
         return False
 
     def mutator(result_obj):
-        result_obj["image_urls"] = [u for u in result_obj.get("image_urls", []) if u and u != image_url]
+        changed = False
+        visible = []
+        for u in result_obj.get("image_urls", []):
+            if not u:
+                continue
+            if _normalize_image_url(u) == image_url:
+                changed = True
+                continue
+            visible.append(u)
+        result_obj["image_urls"] = visible
         hidden = [u for u in result_obj.get("hidden_image_urls", []) if u]
-        if image_url not in hidden:
+        if all(_normalize_image_url(u) != image_url for u in hidden):
             hidden.append(image_url)
+            changed = True
         result_obj["hidden_image_urls"] = hidden
-        return result_obj
+        return result_obj, changed
 
     return await _mutate_result_images(request_id, mutator)
 
 
 async def show_image(request_id: str, image_url: str) -> bool:
-    image_url = (image_url or "").strip()
+    image_url = _normalize_image_url(image_url)
     if not image_url:
         return False
 
     def mutator(result_obj):
-        hidden = [u for u in result_obj.get("hidden_image_urls", []) if u and u != image_url]
+        changed = False
+        hidden = []
+        for u in result_obj.get("hidden_image_urls", []):
+            if not u:
+                continue
+            if _normalize_image_url(u) == image_url:
+                changed = True
+                continue
+            hidden.append(u)
         visible = [u for u in result_obj.get("image_urls", []) if u]
-        if image_url not in visible:
+        if all(_normalize_image_url(u) != image_url for u in visible):
             visible.append(image_url)
+            changed = True
         result_obj["hidden_image_urls"] = hidden
         result_obj["image_urls"] = visible
-        return result_obj
+        return result_obj, changed
 
     return await _mutate_result_images(request_id, mutator)
 
 
 async def delete_image(request_id: str, image_url: str) -> bool:
-    image_url = (image_url or "").strip()
+    image_url = _normalize_image_url(image_url)
     if not image_url:
         return False
 
     def mutator(result_obj):
-        result_obj["image_urls"] = [u for u in result_obj.get("image_urls", []) if u and u != image_url]
-        result_obj["hidden_image_urls"] = [u for u in result_obj.get("hidden_image_urls", []) if u and u != image_url]
+        changed = False
+        visible = []
+        for u in result_obj.get("image_urls", []):
+            if not u:
+                continue
+            if _normalize_image_url(u) == image_url:
+                changed = True
+                continue
+            visible.append(u)
+        hidden = []
+        for u in result_obj.get("hidden_image_urls", []):
+            if not u:
+                continue
+            if _normalize_image_url(u) == image_url:
+                changed = True
+                continue
+            hidden.append(u)
+        result_obj["image_urls"] = visible
+        result_obj["hidden_image_urls"] = hidden
         deleted = [u for u in result_obj.get("deleted_image_urls", []) if u]
-        if image_url not in deleted:
+        if changed and all(_normalize_image_url(u) != image_url for u in deleted):
             deleted.append(image_url)
         result_obj["deleted_image_urls"] = deleted
-        return result_obj
+        return result_obj, changed
 
     return await _mutate_result_images(request_id, mutator)
 
