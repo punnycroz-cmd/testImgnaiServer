@@ -118,6 +118,25 @@ async def health():
     }
 
 
+async def _cleanup_r2_image_task(request_id: str, url: str):
+    """Background task to delete from R2 and then finalize DB state."""
+    try:
+        from core.vault import _public_url, delete_object
+        if url.startswith(_public_url):
+            key = url[len(_public_url):].lstrip("/")
+            # Attempt R2 deletion with retries (logic inside delete_object)
+            ok = delete_object(key)
+            if not ok:
+                logger.error(f"Failed R2 cleanup for {url}, will NOT finalize DB deletion.")
+                return
+        
+        # Once storage is clean, finalize the record
+        await DB.finalize_image_deletion(request_id, url)
+        logger.info(f"Finalized deletion for {url} in {request_id}")
+    except Exception as e:
+        logger.error(f"Error in R2 cleanup task for {url}: {e}")
+
+
 async def _run_generation(job_id: str, req: GenerateRequest):
     max_retries = 2
     for attempt in range(max_retries):
@@ -378,13 +397,13 @@ async def show_image(request: Request, request_id: str, url: Optional[str] = Non
 @app.delete("/history/image/{request_id}")
 async def delete_image(request: Request, request_id: str, url: Optional[str] = None):
     resolved_url = await _extract_image_url(request, url)
-    ok = await DB.delete_image(request_id, resolved_url)
+    
+    # 1. Mark as 'deleting' in DB (immediate)
+    ok = await DB.mark_image_deleting(request_id, resolved_url)
     
     if ok:
-        from core.vault import _public_url, extract_key_from_url, delete_object
-        key = extract_key_from_url(resolved_url, _public_url)
-        if key:
-            delete_object(key)
+        # 2. Spawn background task for R2 cleanup and finalization
+        asyncio.create_task(_cleanup_r2_image_task(request_id, resolved_url))
 
     return {"status": "ok" if ok else "error", "deleted": ok, "request_id": request_id, "url": resolved_url}
 

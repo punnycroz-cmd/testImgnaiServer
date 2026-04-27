@@ -122,14 +122,28 @@ def _normalize_result(result_obj: Any) -> Dict[str, Any]:
         return {}
     result_obj.setdefault("image_urls", [])
     result_obj.setdefault("hidden_image_urls", [])
+    result_obj.setdefault("deleting_image_urls", []) # New intermediate state
     result_obj.setdefault("deleted_image_urls", [])
     return result_obj
 
 
 def _build_images(result_obj: Dict[str, Any], include_hidden: bool = False) -> List[Dict]:
-    images = [{"r2_url": url, "hidden": False} for url in result_obj.get("image_urls", []) if url]
+    """Returns list of image objects with status metadata."""
+    images = []
+    
+    # Active images
+    for url in result_obj.get("image_urls", []):
+        if url: images.append({"r2_url": url, "status": "active"})
+        
+    # Hidden images (Archive)
     if include_hidden:
-      images.extend({"r2_url": url, "hidden": True} for url in result_obj.get("hidden_image_urls", []) if url)
+        for url in result_obj.get("hidden_image_urls", []):
+            if url: images.append({"r2_url": url, "status": "hidden"})
+            
+    # Deleting images (Transient state for UI blurring)
+    for url in result_obj.get("deleting_image_urls", []):
+        if url: images.append({"r2_url": url, "status": "deleting"})
+        
     return images
 
 
@@ -249,42 +263,58 @@ async def show_image(request_id: str, image_url: str) -> bool:
     return ok
 
 
-async def delete_image(request_id: str, image_url: str) -> bool:
+async def mark_image_deleting(request_id: str, image_url: str) -> bool:
+    """Move image to a 'deleting' state in the DB."""
     image_url = _normalize_image_url(image_url)
-    if not image_url:
-        return False
+    if not image_url: return False
 
     def mutator(result_obj):
         changed = False
-        visible = []
-        for u in result_obj.get("image_urls", []):
-            if not u:
-                continue
-            if _normalize_image_url(u) == image_url:
+        # Remove from active or hidden
+        for key in ["image_urls", "hidden_image_urls"]:
+            old_list = result_obj.get(key, [])
+            new_list = [u for u in old_list if u and _normalize_image_url(u) != image_url]
+            if len(new_list) < len(old_list):
+                result_obj[key] = new_list
                 changed = True
-                continue
-            visible.append(u)
         
-        hidden = []
-        for u in result_obj.get("hidden_image_urls", []):
-            if not u:
-                continue
-            if _normalize_image_url(u) == image_url:
-                changed = True
-                continue
-            hidden.append(u)
-        
-        result_obj["image_urls"] = visible
-        result_obj["hidden_image_urls"] = hidden
-        
-        deleted = [u for u in result_obj.get("deleted_image_urls", []) if u]
-        if changed and all(_normalize_image_url(u) != image_url for u in deleted):
-            deleted.append(image_url)
-        result_obj["deleted_image_urls"] = deleted
+        if changed:
+            deleting = [u for u in result_obj.get("deleting_image_urls", []) if u]
+            if all(_normalize_image_url(u) != image_url for u in deleting):
+                deleting.append(image_url)
+            result_obj["deleting_image_urls"] = deleting
         return result_obj, changed
 
-    res_obj, ok = await _mutate_result_images(request_id, mutator)
+    res, ok = await _mutate_result_images(request_id, mutator)
     return ok
+
+async def finalize_image_deletion(request_id: str, image_url: str) -> bool:
+    """Move image from 'deleting' to 'deleted' graveyard."""
+    image_url = _normalize_image_url(image_url)
+    if not image_url: return False
+
+    def mutator(result_obj):
+        changed = False
+        deleting = result_obj.get("deleting_image_urls", [])
+        new_deleting = [u for u in deleting if u and _normalize_image_url(u) != image_url]
+        
+        if len(new_deleting) < len(deleting):
+            result_obj["deleting_image_urls"] = new_deleting
+            changed = True
+            
+            deleted = [u for u in result_obj.get("deleted_image_urls", []) if u]
+            if all(_normalize_image_url(u) != image_url for u in deleted):
+                deleted.append(image_url)
+            result_obj["deleted_image_urls"] = deleted
+            
+        return result_obj, changed
+
+    res, ok = await _mutate_result_images(request_id, mutator)
+    return ok
+
+async def delete_image(request_id: str, image_url: str) -> bool:
+    # Legacy wrapper: for immediate hard-ish delete
+    return await mark_image_deleting(request_id, image_url)
 
 
 async def update_generation(request_id: str, **fields: Any):
@@ -442,6 +472,8 @@ class DatabaseProxy:
     async def delete_generation(self, rid): await delete_generation(rid)
     async def hide_image(self, rid, url): await hide_image(rid, url)
     async def show_image(self, rid, url): await show_image(rid, url)
-    async def delete_image(self, rid, url): await delete_image(rid, url)
+    async def delete_image(self, rid, url): return await delete_image(rid, url)
+    async def mark_image_deleting(self, rid, url): return await mark_image_deleting(rid, url)
+    async def finalize_image_deletion(self, rid, url): return await finalize_image_deletion(rid, url)
 
 DB = DatabaseProxy()

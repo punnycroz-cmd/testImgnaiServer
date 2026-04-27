@@ -258,6 +258,13 @@
       box-shadow: 0 4px 10px var(--accent-glow);
     }
 
+    .spirit-deleting {
+      filter: grayscale(1) blur(40px) brightness(0.7) !important;
+      opacity: 0.5 !important;
+      pointer-events: none !important;
+      transition: all 8s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    }
+
     .art-frame {
       border-radius: 1.25rem;
       overflow: hidden;
@@ -1594,27 +1601,37 @@
       renderHistory();
     }
 
-    function renderGallery(urls, requestId, payload, meta = {}) {
-      // Filter out pending deletions
-      const filteredUrls = urls.filter(url => !state.pendingDeletions.has(canonicalImageUrl(url)));
+    function renderGallery(urls_or_imgs, requestId, payload, meta = {}) {
+      // Normalize input: could be raw strings or objects with status
+      const normalized = urls_or_imgs.map(u => typeof u === 'string' ? { r2_url: u, status: 'active' } : u);
       
-      if (filteredUrls.length === 0) {
-        dom.gallery.innerHTML = "";
+      // Filter out 'deleted' (final graveyard) but keep 'deleting' for the animation
+      const visibleImgs = normalized.filter(img => !state.pendingDeletions.has(canonicalImageUrl(img.r2_url)));
+      
+      if (visibleImgs.length === 0) {
+        dom.gallery.innerHTML = '<div class="col-span-full py-24 cinematic-text text-xl opacity-20 uppercase tracking-widest text-center">Manifestation Dissolved</div>';
         return;
       }
 
-      dom.gallery.innerHTML = filteredUrls.map((url, idx) => `
-        <div class="bubble" id="bubble-${requestId}-${idx}">
-          ${(url.includes(".r2.dev") || url.includes("cloudflare")) ? '<span class="vault-badge">Vaulted</span>' : ''}
-          <div class="bubble-img-overlay"><img src="${url}" alt="Image ${idx + 1}" loading="lazy"></div>
-          <div class="bubble-sphere"></div>
-          <canvas class="bubble-canvas" width="260" height="260"></canvas>
-        </div>
-      `).join("");
+      dom.gallery.innerHTML = visibleImgs.map((imgObj, idx) => {
+        const url = imgObj.r2_url;
+        const isDeleting = imgObj.status === 'deleting';
+        return `
+          <div class="bubble ${isDeleting ? 'spirit-deleting' : ''}" id="bubble-${requestId}-${idx}">
+            ${(url.includes(".r2.dev") || url.includes("cloudflare")) ? '<span class="vault-badge">Vaulted</span>' : ''}
+            <div class="bubble-img-overlay"><img src="${url}" alt="Image ${idx + 1}" loading="lazy"></div>
+            <div class="bubble-sphere"></div>
+            <canvas class="bubble-canvas" width="260" height="260"></canvas>
+          </div>
+        `;
+      }).join("");
       
-      filteredUrls.forEach((url, idx) => {
+      visibleImgs.forEach((imgObj, idx) => {
+        const url = imgObj.r2_url;
         const b = document.getElementById(`bubble-${requestId}-${idx}`);
-        if (b) b.onclick = () => popBubble(b, url, { ...payload, ...meta }, filteredUrls);
+        if (b && imgObj.status !== 'deleting') {
+            b.onclick = () => popBubble(b, url, { ...payload, ...meta }, visibleImgs.map(i => i.r2_url));
+        }
       });
     }
 
@@ -1762,17 +1779,21 @@
       img.dataset.hidden = images[0]?.hidden ? "true" : "false";
       document.getElementById("bubbleRevealDownload").href = urls[0];
       state.__inspected_current_url = urls[0];
-      state.__inspected_current_hidden = !!images[0]?.hidden || !!entry.is_hidden;
+      state.__inspected_current_hidden = (images[0]?.status === 'hidden') || !!entry.is_hidden;
       populateInspector(entry);
 
       if (urls.length > 1) {
         thumbsSection.style.display = "flex";
-        thumbsGrid.innerHTML = images.map((imgData, idx) => `
-           <button class="art-frame overflow-hidden border-2 border-transparent hover:border-[var(--accent)] transition-all ${imgData.r2_url === urls[0] ? 'border-[var(--accent)]' : ''} ${imgData.hidden ? 'ring-1 ring-red-400/60' : ''}" 
-                   onclick="event.stopPropagation(); document.getElementById('bubbleRevealImg').src='${imgData.r2_url}'; document.getElementById('bubbleRevealImg').dataset.hidden='${imgData.hidden ? 'true' : 'false'}'; document.getElementById('bubbleRevealDownload').href='${imgData.r2_url}'; state.__inspected_current_url='${imgData.r2_url}'; state.__inspected_current_hidden=${imgData.hidden ? 'true' : 'false'};">
-              <img src="${imgData.r2_url}" class="w-full aspect-square object-cover ${imgData.hidden ? 'opacity-70' : ''}" loading="lazy">
-           </button>
-         `).join("");
+        thumbsGrid.innerHTML = images.map((imgData, idx) => {
+            const isHidden = imgData.status === 'hidden';
+            const isDeleting = imgData.status === 'deleting';
+            return `
+               <button class="art-frame overflow-hidden border-2 border-transparent hover:border-[var(--accent)] transition-all ${imgData.r2_url === urls[0] ? 'border-[var(--accent)]' : ''} ${isHidden ? 'ring-1 ring-red-400/60' : ''} ${isDeleting ? 'spirit-deleting' : ''}" 
+                       onclick="event.stopPropagation(); document.getElementById('bubbleRevealImg').src='${imgData.r2_url}'; document.getElementById('bubbleRevealImg').dataset.hidden='${isHidden ? 'true' : 'false'}'; document.getElementById('bubbleRevealDownload').href='${imgData.r2_url}'; state.__inspected_current_url='${imgData.r2_url}'; state.__inspected_current_hidden=${isHidden ? 'true' : 'false'};">
+                  <img src="${imgData.r2_url}" class="w-full aspect-square object-cover ${isHidden ? 'opacity-70' : ''}" loading="lazy">
+               </button>
+            `;
+        }).join("");
       } else {
         thumbsSection.style.display = "none";
       }
@@ -1815,7 +1836,11 @@
             </div>
           </div>
           <div class="grid grid-cols-2 gap-2">
-            ${(entry.images || []).slice(0, 4).map(img => `<div class="art-frame ${img.hidden ? 'ring-1 ring-red-400/60 opacity-70' : ''}"><img src="${img.r2_url}" class="w-full aspect-square object-cover" loading="lazy"></div>`).join("")}
+            ${(entry.images || []).slice(0, 4).map(img => {
+                const isHidden = img.status === 'hidden';
+                const isDeleting = img.status === 'deleting';
+                return `<div class="art-frame ${isHidden ? 'ring-1 ring-red-400/60 opacity-70' : ''} ${isDeleting ? 'spirit-deleting' : ''}"><img src="${img.r2_url}" class="w-full aspect-square object-cover" loading="lazy"></div>`;
+            }).join("")}
           </div>
         `;
       return wrap;
@@ -1989,13 +2014,18 @@
       if (!imgObj) return;
 
       openConfirm("Banish Spirit?", "This single manifestation will fade into the void.", async () => {
-        // Optimistic Exclusion: prevent ghosting during polling
-        state.pendingDeletions.add(currentUrl);
+        // Apply immediate visual "deleting" state
+        img.classList.add("spirit-deleting");
         
-        img.style.transition = "all 0.8s cubic-bezier(0.4, 0, 0.2, 1)";
-        img.style.filter = "grayscale(1) blur(60px)";
-        img.style.opacity = "0";
-        img.style.transform = "scale(0.85) translateY(20px)";
+        // Find corresponding element in the gallery/vault and blur it too
+        const forgeBubble = Array.from(document.querySelectorAll('.bubble')).find(b => {
+            const bImg = b.querySelector('img');
+            return bImg && canonicalImageUrl(bImg.src) === currentUrl;
+        });
+        if (forgeBubble) forgeBubble.classList.add("spirit-deleting");
+
+        const vaultThumb = Array.from(document.querySelectorAll('.art-frame img')).find(t => canonicalImageUrl(t.src) === currentUrl);
+        if (vaultThumb) vaultThumb.parentElement.classList.add("spirit-deleting");
 
         apiFetch(`/history/image/${encodeURIComponent(requestId)}?url=${encodeURIComponent(currentUrl)}`, {
           method: 'DELETE',
@@ -2003,48 +2033,22 @@
           body: JSON.stringify({ url: currentUrl })
         })
           .then((res) => {
-            if (!res || res.deleted !== true) throw new Error("Image was not deleted");
+            setFooterMsg("Spirit banishment initiated.", "info");
+            // We DON'T remove from data.images yet. 
+            // The backend will move it to 'deleting' state.
+            // Next poll/refresh will show it as blurred.
+            // Once it's truly gone, it will disappear.
             
-            setFooterMsg("Spirit banished.", "info");
-            data.images = data.images.filter(i => canonicalImageUrl(i.r2_url) !== currentUrl);
-            
-            // 1. Surgical Vault card update
-            const vaultCard = document.getElementById(`batch-${requestId}`);
-            if (vaultCard) {
-              const vImgs = vaultCard.querySelectorAll('.art-frame img');
-              vImgs.forEach(vImg => {
-                if (canonicalImageUrl(vImg.src) === currentUrl) {
-                  const frame = vImg.parentElement;
-                  frame.style.opacity = "0";
-                  setTimeout(() => frame.remove(), 300);
-                }
-              });
-            }
-
-            // 2. Surgical Forge bubble update
-            const bubbles = document.querySelectorAll(`.bubble`);
-            bubbles.forEach(b => {
-              const img = b.querySelector('img');
-              if (img && canonicalImageUrl(img.src) === currentUrl) {
-                b.classList.add("scale-0", "opacity-0");
-                setTimeout(() => b.remove(), 400);
-              }
-            });
-
-            setTimeout(() => {
-              if (data.images.length === 0) {
-                closeBubbleReveal();
-                if (vaultCard) vaultCard.remove();
-              } else {
-                // Peek at next image
-                const nextImg = data.images[0];
-                if (nextImg) {
-                   img.src = nextImg.r2_url;
-                   document.getElementById("bubbleMeta").textContent = `${data.prompt || 'Manifestation'} | #${nextImg.image_index + 1}`;
-                }
-              }
-              updateVaultCache();
-            }, 900);
+            // To prevent ghosting, we can add it to pendingDeletions but we'll 
+            // modify the render logic to let 'deleting' items through but blurred.
+            // Wait, if I add to pendingDeletions, the filter will hide it.
+            // Let's NOT add it to pendingDeletions, instead let the DB status drive it.
+          })
+          .catch(e => {
+            setFooterMsg("Banishment fractured.", "error");
+            img.classList.remove("spirit-deleting");
+            if (forgeBubble) forgeBubble.classList.remove("spirit-deleting");
+            if (vaultThumb) vaultThumb.parentElement.classList.remove("spirit-deleting");
           })
           .catch(e => {
             setFooterMsg("Banishment fractured.", "error");
