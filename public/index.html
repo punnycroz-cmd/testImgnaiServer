@@ -542,8 +542,10 @@
     <div class="glass-reveal-panel w-full p-8 sm:p-10 flex flex-col gap-6 shadow-2xl mb-24 sm:mb-0"
       onclick="event.stopPropagation()">
       <div id="thumbsSection" class="hidden flex-col gap-3">
-        <span class="opacity-60 uppercase font-black text-[9px] tracking-[0.2em] mb-1 text-[var(--accent)]">The
-          Batch</span>
+        <div class="flex items-center justify-between mb-1">
+            <span class="opacity-60 uppercase font-black text-[9px] tracking-[0.2em] text-[var(--accent)]">The Batch</span>
+            <span id="bubbleMeta" class="opacity-40 uppercase font-black text-[9px] tracking-[0.2em] text-white"># -</span>
+        </div>
         <div id="bubbleRevealThumbs" class="grid grid-cols-4 gap-2"></div>
       </div>
 
@@ -1760,36 +1762,54 @@
         data.is_hidden = nextHidden;
         setFooterMsg(nextHidden ? "Batch hidden." : "Batch restored.", "info");
         reloadHistory(true);
-      } catch (err) {
+} catch (err) {
         setFooterMsg("Batch visibility failed.", "error");
       }
     }
 
-    function openHistoryGroup(entry) {
-      const images = (entry.images || []).filter(img => img && img.r2_url);
-      const urls = images.map(img => img.r2_url);
-      if (!urls.length) return;
+    function openHistoryGroup(entry, focusUrl = null) {
+      if (!entry) return;
+      state.__inspected_data = entry;
+      const images = entry.images || [];
+      // If no focusUrl provided, pick the first one that ISN'T deleting
+      const activeImages = images.filter(i => i.status !== 'deleting');
+      const urls = activeImages.map(img => img.r2_url);
+      
+      if (!urls.length && !images.some(i => i.status === 'deleting')) return;
+
       const reveal = document.getElementById("bubbleReveal");
-      reveal.scrollTop = 0;
       const img = document.getElementById("bubbleRevealImg");
       const thumbsSection = document.getElementById("thumbsSection");
       const thumbsGrid = document.getElementById("bubbleRevealThumbs");
 
-      img.src = urls[0];
-      img.dataset.hidden = images[0]?.hidden ? "true" : "false";
-      document.getElementById("bubbleRevealDownload").href = urls[0];
-      state.__inspected_current_url = urls[0];
-      state.__inspected_current_hidden = (images[0]?.status === 'hidden') || !!entry.is_hidden;
+      // Use the provided focusUrl, or the first active URL, or the first image overall as fallback
+      const targetUrl = focusUrl || urls[0] || images[0]?.r2_url;
+      const targetImgObj = images.find(i => i.r2_url === targetUrl) || images[0];
+
+      img.src = targetUrl;
+      img.dataset.hidden = (targetImgObj?.status === 'hidden') ? "true" : "false";
+      if (targetImgObj?.status === 'deleting') img.classList.add("spirit-deleting");
+      else img.classList.remove("spirit-deleting");
+
+      document.getElementById("bubbleRevealDownload").href = targetUrl;
+      const metaEl = document.getElementById("bubbleMeta");
+      if (metaEl) {
+          metaEl.textContent = `#${(targetImgObj?.image_index ?? 0) + 1}`;
+      }
+      
+      state.__inspected_current_url = targetUrl;
+      state.__inspected_current_hidden = (targetImgObj?.status === 'hidden');
       populateInspector(entry);
 
-      if (urls.length > 1) {
+      if (images.length > 1) {
         thumbsSection.style.display = "flex";
         thumbsGrid.innerHTML = images.map((imgData, idx) => {
             const isHidden = imgData.status === 'hidden';
             const isDeleting = imgData.status === 'deleting';
+            const isTarget = imgData.r2_url === targetUrl;
             return `
-               <button class="art-frame overflow-hidden border-2 border-transparent hover:border-[var(--accent)] transition-all ${imgData.r2_url === urls[0] ? 'border-[var(--accent)]' : ''} ${isHidden ? 'ring-1 ring-red-400/60' : ''} ${isDeleting ? 'spirit-deleting' : ''}" 
-                       onclick="event.stopPropagation(); document.getElementById('bubbleRevealImg').src='${imgData.r2_url}'; document.getElementById('bubbleRevealImg').dataset.hidden='${isHidden ? 'true' : 'false'}'; document.getElementById('bubbleRevealDownload').href='${imgData.r2_url}'; state.__inspected_current_url='${imgData.r2_url}'; state.__inspected_current_hidden=${isHidden ? 'true' : 'false'};">
+               <button class="art-frame overflow-hidden border-2 transition-all ${isTarget ? 'border-[var(--accent)]' : 'border-transparent'} ${isHidden ? 'ring-1 ring-red-400/60' : ''} ${isDeleting ? 'spirit-deleting' : ''}" 
+                       onclick="event.stopPropagation(); openHistoryGroup(state.__inspected_data, '${imgData.r2_url}')">
                   <img src="${imgData.r2_url}" class="w-full aspect-square object-cover ${isHidden ? 'opacity-70' : ''}" loading="lazy">
                </button>
             `;
@@ -1798,8 +1818,10 @@
         thumbsSection.style.display = "none";
       }
 
-      reveal.style.display = "flex";
-      setTimeout(() => reveal.classList.add("active"), 10);
+      if (!reveal.classList.contains("active")) {
+          reveal.style.display = "flex";
+          setTimeout(() => reveal.classList.add("active"), 10);
+      }
     }
 
     function createBatchCard(entry) {
@@ -2043,25 +2065,26 @@
                 const remaining = data.images.filter(i => i.status === 'active' || i.status === 'hidden');
                 
                 if (remaining.length > 0) {
-                    // Pick the first available remaining image
-                    const nextImg = remaining[0];
-                    img.classList.remove("spirit-deleting");
-                    img.src = nextImg.r2_url;
-                    img.dataset.hidden = (nextImg.status === 'hidden') ? "true" : "false";
-                    document.getElementById("bubbleRevealDownload").href = nextImg.r2_url;
-                    document.getElementById("bubbleMeta").textContent = `${data.prompt || 'Manifestation'} | #${nextImg.image_index + 1}`;
+                    // Smart Cycle: Try to find the image with the NEXT index, otherwise loop to first
+                    const currentIndex = imgObj.image_index;
+                    let nextImg = remaining.find(i => i.image_index > currentIndex) || remaining[0];
                     
-                    state.__inspected_current_url = nextImg.r2_url;
-                    state.__inspected_current_hidden = (nextImg.status === 'hidden');
+                    openHistoryGroup(data, nextImg.r2_url);
                     
-                    // Re-render thumbnails to show the new 'deleting' state
-                    openHistoryGroup(data); 
+                    // SURGICAL REFRESH: Update the Vault card in the background immediately
+                    const vaultCard = document.getElementById(`batch-${requestId}`);
+                    if (vaultCard) {
+                        const newCard = createBatchCard(data);
+                        vaultCard.parentNode.replaceChild(newCard, vaultCard);
+                    }
                 } else {
                     // No spirits left in this manifestation
                     closeBubbleReveal();
+                    const vaultCard = document.getElementById(`batch-${requestId}`);
+                    if (vaultCard) vaultCard.remove();
                 }
                 updateVaultCache();
-            }, 1200); // Give user time to see the blur animation
+            }, 1200);
           })
           .catch(e => {
             setFooterMsg("Banishment fractured.", "error");
