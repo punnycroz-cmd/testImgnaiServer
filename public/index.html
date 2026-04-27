@@ -1700,7 +1700,9 @@
       const endpoint = hidden ? "hide" : "show";
       try {
         await apiFetch(`/history/image/${encodeURIComponent(requestId)}/${endpoint}?url=${encodeURIComponent(url)}`, {
-          method: "POST"
+          method: "POST",
+          headers: { "X-Image-Url": url },
+          body: JSON.stringify({ url })
         });
         state.__inspected_current_hidden = hidden;
         const img = document.getElementById("bubbleRevealImg");
@@ -1982,7 +1984,11 @@
         img.style.opacity = "0";
         img.style.transform = "scale(0.85) translateY(20px)";
 
-        apiFetch(`/history/image/${encodeURIComponent(requestId)}?url=${encodeURIComponent(currentUrl)}`, { method: 'DELETE' })
+        apiFetch(`/history/image/${encodeURIComponent(requestId)}?url=${encodeURIComponent(currentUrl)}`, {
+          method: 'DELETE',
+          headers: { "X-Image-Url": currentUrl },
+          body: JSON.stringify({ url: currentUrl })
+        })
           .then((res) => {
             if (!res || res.deleted !== true) throw new Error("Image was not deleted");
             setFooterMsg("Spirit banished.", "info");

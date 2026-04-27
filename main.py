@@ -80,6 +80,28 @@ def classify_error(message: str) -> str:
     return "TRANSIENT"
 
 
+async def _extract_image_url(request: Request, url: Optional[str]) -> str:
+    """Accept image URL from query string, fallback header, then JSON body."""
+    candidate = (url or "").strip()
+    if candidate:
+        return candidate
+
+    candidate = (request.headers.get("X-Image-Url") or "").strip()
+    if candidate:
+        return candidate
+
+    try:
+        body = await request.json()
+    except Exception:
+        body = None
+    if isinstance(body, dict):
+        candidate = str(body.get("url") or "").strip()
+        if candidate:
+            return candidate
+
+    raise HTTPException(status_code=422, detail="Missing image url")
+
+
 @app.get("/")
 async def index():
     return {"status": "Aether Server Online", "vault": R2_VAULT.bucket_name}
@@ -310,21 +332,24 @@ async def delete_batch(request_id: str):
 
 
 @app.post("/history/image/{request_id}/hide")
-async def hide_image(request_id: str, url: str):
-    ok = await DB.hide_image(request_id, url)
-    return {"status": "ok" if ok else "error", "hidden": ok, "request_id": request_id, "url": url}
+async def hide_image(request: Request, request_id: str, url: Optional[str] = None):
+    resolved_url = await _extract_image_url(request, url)
+    ok = await DB.hide_image(request_id, resolved_url)
+    return {"status": "ok" if ok else "error", "hidden": ok, "request_id": request_id, "url": resolved_url}
 
 
 @app.post("/history/image/{request_id}/show")
-async def show_image(request_id: str, url: str):
-    ok = await DB.show_image(request_id, url)
-    return {"status": "ok" if ok else "error", "shown": ok, "request_id": request_id, "url": url}
+async def show_image(request: Request, request_id: str, url: Optional[str] = None):
+    resolved_url = await _extract_image_url(request, url)
+    ok = await DB.show_image(request_id, resolved_url)
+    return {"status": "ok" if ok else "error", "shown": ok, "request_id": request_id, "url": resolved_url}
 
 
 @app.delete("/history/image/{request_id}")
-async def delete_image(request_id: str, url: str):
-    ok = await DB.delete_image(request_id, url)
-    return {"status": "ok" if ok else "error", "deleted": ok, "request_id": request_id, "url": url}
+async def delete_image(request: Request, request_id: str, url: Optional[str] = None):
+    resolved_url = await _extract_image_url(request, url)
+    ok = await DB.delete_image(request_id, resolved_url)
+    return {"status": "ok" if ok else "error", "deleted": ok, "request_id": request_id, "url": resolved_url}
 
 
 @app.post("/cancel-job/{request_id}")
