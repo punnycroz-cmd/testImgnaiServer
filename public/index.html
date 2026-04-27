@@ -1604,10 +1604,14 @@
     }
 
     function renderGallery(urls_or_imgs, requestId, payload, meta = {}) {
-      // Normalize input: could be raw strings or objects with status
-      const normalized = urls_or_imgs.map(u => typeof u === 'string' ? { r2_url: u, status: 'active' } : u);
+      // Normalize input: Ensure every image has at least a 'status'
+      const normalized = urls_or_imgs.map(u => {
+          if (typeof u === 'string') return { r2_url: u, status: 'active' };
+          if (!u.status) u.status = 'active'; // Default to active if missing
+          return u;
+      });
       
-      // Filter out 'deleted' (final graveyard) but keep 'deleting' for the animation
+      // Filter out only HARD deleted items
       const visibleImgs = normalized.filter(img => !state.pendingDeletions.has(canonicalImageUrl(img.r2_url)));
       
       if (visibleImgs.length === 0) {
@@ -2061,13 +2065,13 @@
             imgObj.status = 'deleting';
 
             setTimeout(() => {
-                // Find remaining active/hidden images
-                const remaining = data.images.filter(i => i.status === 'active' || i.status === 'hidden');
+                // Find remaining active/hidden images (Be defensive about missing status)
+                const remaining = data.images.filter(i => (i.status === 'active' || i.status === 'hidden' || !i.status));
                 
                 if (remaining.length > 0) {
                     // Smart Cycle: Try to find the image with the NEXT index, otherwise loop to first
-                    const currentIndex = imgObj.image_index;
-                    let nextImg = remaining.find(i => i.image_index > currentIndex) || remaining[0];
+                    const currentIndex = imgObj.image_index || 0;
+                    let nextImg = remaining.find(i => (i.image_index || 0) > currentIndex) || remaining[0];
                     
                     openHistoryGroup(data, nextImg.r2_url);
                     
@@ -2078,7 +2082,7 @@
                         vaultCard.parentNode.replaceChild(newCard, vaultCard);
                     }
                 } else {
-                    // No spirits left in this manifestation
+                    // Truly empty
                     closeBubbleReveal();
                     const vaultCard = document.getElementById(`batch-${requestId}`);
                     if (vaultCard) vaultCard.remove();
@@ -2182,7 +2186,7 @@
         let ghostCount = 0;
 
         for (const entry of items) {
-          // GHOSTING PREVENTION: Skip if this batch is in-flight for deletion
+          // Only skip if the ENTIRE batch is explicitly banished (hard delete)
           if (state.pendingDeletions.has(entry.request_id)) {
             ghostCount++;
             continue;
@@ -2193,15 +2197,11 @@
             continue;
           }
 
-          // FILTER INDIVIDUAL IMAGES: Skip images in-flight for deletion
-          entry.images = entry.images.filter(img => !state.pendingDeletions.has(canonicalImageUrl(img.r2_url)));
-          
-          if (entry.images.length === 0) {
-            ghostCount++;
-            continue;
-          }
+          // We no longer filter individual images here because createBatchCard 
+          // now handles the 'deleting' status internally (by blurring).
+          // This prevents the batch from appearing "empty" and disappearing prematurely.
 
-          // Even with stable IDs, we check for DOM collision as a precaution
+          // DOM collision check
           if (document.getElementById(`batch-${entry.request_id}`)) continue;
 
           dom.historyList.appendChild(createBatchCard(entry));
