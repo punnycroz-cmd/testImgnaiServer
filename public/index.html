@@ -868,6 +868,7 @@
       historyLoaded: false,
       loadingHistory: false,
       currentPoll: null,
+      pendingDeletions: new Set(),
       vaultRealm: null,
       showHiddenVault: false,
       selectionMode: false,
@@ -1594,7 +1595,15 @@
     }
 
     function renderGallery(urls, requestId, payload, meta = {}) {
-      dom.gallery.innerHTML = urls.map((url, idx) => `
+      // Filter out pending deletions
+      const filteredUrls = urls.filter(url => !state.pendingDeletions.has(canonicalImageUrl(url)));
+      
+      if (filteredUrls.length === 0) {
+        dom.gallery.innerHTML = "";
+        return;
+      }
+
+      dom.gallery.innerHTML = filteredUrls.map((url, idx) => `
         <div class="bubble" id="bubble-${requestId}-${idx}">
           ${(url.includes(".r2.dev") || url.includes("cloudflare")) ? '<span class="vault-badge">Vaulted</span>' : ''}
           <div class="bubble-img-overlay"><img src="${url}" alt="Image ${idx + 1}" loading="lazy"></div>
@@ -1602,9 +1611,10 @@
           <canvas class="bubble-canvas" width="260" height="260"></canvas>
         </div>
       `).join("");
-      urls.forEach((url, idx) => {
+      
+      filteredUrls.forEach((url, idx) => {
         const b = document.getElementById(`bubble-${requestId}-${idx}`);
-        if (b) b.onclick = () => popBubble(b, url, { ...payload, ...meta }, urls);
+        if (b) b.onclick = () => popBubble(b, url, { ...payload, ...meta }, filteredUrls);
       });
     }
 
@@ -1979,6 +1989,9 @@
       if (!imgObj) return;
 
       openConfirm("Banish Spirit?", "This single manifestation will fade into the void.", async () => {
+        // Optimistic Exclusion: prevent ghosting during polling
+        state.pendingDeletions.add(currentUrl);
+        
         img.style.transition = "all 0.8s cubic-bezier(0.4, 0, 0.2, 1)";
         img.style.filter = "grayscale(1) blur(60px)";
         img.style.opacity = "0";
@@ -2061,6 +2074,9 @@
       }
 
       openConfirm("Banish Entire Batch?", "Return all 4 spirits in this manifestation to the void.", async () => {
+        // Optimistic Exclusion: prevent ghosting during polling
+        state.pendingDeletions.add(requestId);
+
         apiFetch(`/history/batch/${encodeURIComponent(requestId)}`, { method: 'DELETE' })
           .then(() => {
             setFooterMsg("Batch banished.", "info");
@@ -2120,7 +2136,21 @@
         let ghostCount = 0;
 
         for (const entry of items) {
+          // GHOSTING PREVENTION: Skip if this batch is in-flight for deletion
+          if (state.pendingDeletions.has(entry.request_id)) {
+            ghostCount++;
+            continue;
+          }
+
           if (!entry.images || entry.images.length === 0) {
+            ghostCount++;
+            continue;
+          }
+
+          // FILTER INDIVIDUAL IMAGES: Skip images in-flight for deletion
+          entry.images = entry.images.filter(img => !state.pendingDeletions.has(canonicalImageUrl(img.r2_url)));
+          
+          if (entry.images.length === 0) {
             ghostCount++;
             continue;
           }
