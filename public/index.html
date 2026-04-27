@@ -122,6 +122,21 @@
       animation: spin 1s linear infinite;
     }
 
+    .shimmer {
+      background: linear-gradient(90deg, 
+        rgba(255,255,255,0.03) 25%, 
+        rgba(255,255,255,0.08) 50%, 
+        rgba(255,255,255,0.03) 75%
+      );
+      background-size: 200% 100%;
+      animation: shimmer 2s infinite;
+    }
+
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
     @keyframes spin {
       to {
         transform: rotate(360deg);
@@ -1888,7 +1903,14 @@
             ${(entry.images || []).slice(0, 4).map(img => {
                 const isHidden = img.status === 'hidden';
                 const isDeleting = img.status === 'deleting';
-                return `<div class="art-frame ${isHidden ? 'ring-1 ring-red-400/60 opacity-70' : ''} ${isDeleting ? 'spirit-deleting' : ''}"><img src="${img.r2_url}" class="w-full aspect-square object-cover" loading="lazy"></div>`;
+                // Using a div-based placeholder while image loads
+                return `
+                  <div class="art-frame shimmer relative ${isHidden ? 'ring-1 ring-red-400/60 opacity-70' : ''} ${isDeleting ? 'spirit-deleting' : ''}">
+                    <img src="${img.r2_url}" 
+                         class="w-full aspect-square object-cover relative z-10 opacity-0 transition-opacity duration-500" 
+                         loading="lazy"
+                         onload="this.style.opacity='1'; this.parentElement.classList.remove('shimmer');">
+                  </div>`;
             }).join("")}
           </div>
         `;
@@ -2221,14 +2243,21 @@
             continue;
           }
 
-          // We no longer filter individual images here because createBatchCard 
-          // now handles the 'deleting' status internally (by blurring).
-          // This prevents the batch from appearing "empty" and disappearing prematurely.
-
-          // DOM collision check
+          // DOM collision check: prevent re-adding if already in view
           if (document.getElementById(`batch-${entry.request_id}`)) continue;
 
-          dom.historyList.appendChild(createBatchCard(entry));
+          const card = createBatchCard(entry);
+          // Set an initial small delay for a staggered entrance animation
+          card.style.opacity = "0";
+          card.style.transform = "translateY(10px)";
+          dom.historyList.appendChild(card);
+          
+          requestAnimationFrame(() => {
+              card.style.transition = "all 0.4s ease";
+              card.style.opacity = "1";
+              card.style.transform = "translateY(0)";
+          });
+
           renderedInThisPass++;
           validInBatch++;
         }
