@@ -1706,7 +1706,30 @@
       if (e && e.target.tagName === "IMG") return;
       const reveal = document.getElementById("bubbleReveal");
       reveal.classList.remove("active");
-      setTimeout(() => reveal.style.display = "none", 350);
+      
+      // Surgical Reset of all internal containers that might have been blurred/faded
+      const viewerContainer = document.querySelector('.image-viewer-container');
+      const revealPanel = document.querySelector('.glass-reveal-panel');
+      const mainImg = document.getElementById("bubbleRevealImg");
+
+      setTimeout(() => {
+        reveal.style.display = "none";
+        
+        // Restore visibility for next use
+        if (viewerContainer) {
+            viewerContainer.style.filter = "";
+            viewerContainer.style.opacity = "";
+            viewerContainer.style.transform = "";
+        }
+        if (revealPanel) {
+            revealPanel.style.opacity = "";
+            revealPanel.style.transform = "";
+        }
+        if (mainImg) mainImg.classList.remove("spirit-deleting");
+
+        state.__inspected_data = null;
+        state.__inspected_current_url = null;
+      }, 350);
     }
 
     function cloneActiveManifestation() {
@@ -2108,54 +2131,55 @@
       if (!data || !data.request_id) return;
       const requestId = data.request_id;
 
-      const viewerContainer = document.querySelector('.image-viewer-container');
-      const revealPanel = document.querySelector('.glass-reveal-panel');
+      openConfirm("Banish Entire Batch?", "Return all spirits in this manifestation to the void forever.", async () => {
+        const viewerContainer = document.querySelector('.image-viewer-container');
+        const revealPanel = document.querySelector('.glass-reveal-panel');
 
-      if (viewerContainer) {
-        viewerContainer.style.transition = "all 1s cubic-bezier(0.4, 0, 0.2, 1)";
-        viewerContainer.style.filter = "grayscale(1) blur(80px)";
-        viewerContainer.style.opacity = "0";
-        viewerContainer.style.transform = "scale(0.9)";
-      }
-      if (revealPanel) {
-        revealPanel.style.transition = "all 0.8s ease";
-        revealPanel.style.opacity = "0";
-        revealPanel.style.transform = "translateX(20px)";
-      }
-
-      openConfirm("Banish Entire Batch?", "Return all 4 spirits in this manifestation to the void.", async () => {
+        if (viewerContainer) {
+          viewerContainer.style.transition = "all 1s cubic-bezier(0.4, 0, 0.2, 1)";
+          viewerContainer.style.filter = "grayscale(1) blur(80px)";
+          viewerContainer.style.opacity = "0";
+          viewerContainer.style.transform = "scale(0.9)";
+        }
+        if (revealPanel) {
+          revealPanel.style.transition = "all 0.8s ease";
+          revealPanel.style.opacity = "0";
+          revealPanel.style.transform = "translateX(20px)";
+        }
         // Optimistic Exclusion: prevent ghosting during polling
         state.pendingDeletions.add(requestId);
 
         apiFetch(`/history/batch/${encodeURIComponent(requestId)}`, { method: 'DELETE' })
           .then(() => {
-            setFooterMsg("Batch banished.", "info");
+            setFooterMsg("Manifestation dissolved.", "info");
             
-            // 1. Vault Card
+            // 1. Vault Card Removal
             const vaultCard = document.getElementById(`batch-${requestId}`);
-            if (vaultCard) {
-              vaultCard.style.transition = "all 0.8s cubic-bezier(0.4, 0, 0.2, 1)";
-              vaultCard.style.opacity = "0";
-              vaultCard.style.transform = "scale(0.8) translateY(30px)";
-              setTimeout(() => vaultCard.remove(), 800);
-            }
+            if (vaultCard) vaultCard.remove();
 
-            // 2. Forge Bubbles
+            // 2. Forge Bubbles Removal
             const bubbles = document.querySelectorAll(`.bubble`);
             bubbles.forEach(b => {
-              if (state.__inspected_data?.request_id === requestId) {
-                 b.classList.add("scale-0", "opacity-0");
-                 setTimeout(() => b.remove(), 400);
-              }
+              // Check if this bubble belongs to the deleted request
+              if (b.id && b.id.includes(requestId)) b.remove();
             });
 
+            closeBubbleReveal();
             updateVaultCache();
-            setTimeout(() => { closeBubbleReveal(); }, 1000);
           })
           .catch(e => {
-            setFooterMsg("Banishment failed.", "error");
-            if (viewerContainer) { viewerContainer.style.filter = ""; viewerContainer.style.opacity = "1"; viewerContainer.style.transform = ""; }
-            if (revealPanel) { revealPanel.style.opacity = "1"; revealPanel.style.transform = ""; }
+            state.pendingDeletions.delete(requestId);
+            setFooterMsg("Dissolution failed.", "error");
+            // Restore UI if failed
+            if (viewerContainer) {
+                viewerContainer.style.filter = "";
+                viewerContainer.style.opacity = "";
+                viewerContainer.style.transform = "";
+            }
+            if (revealPanel) {
+                revealPanel.style.opacity = "";
+                revealPanel.style.transform = "";
+            }
           });
       });
     }
