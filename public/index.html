@@ -2291,47 +2291,64 @@
         const fetchUrl = `/history?limit=${state.historyLimit}${cursorParam}&uid=${state.activeUid}${hiddenParam}${cacheBuster}`;
 
         const res = await apiFetch(fetchUrl);
-        const items = res.items || [];
-        console.log(`[Vault] Received ${items.length} items from backend`, items);
-
-        state.historyHasMore = !!res.has_more;
-        state.historyCursor = res.next_cursor;
-
-        let validInBatch = 0;
+        const limit = state.historyLimit;
+        let renderedInThisPass = 0;
         let ghostCount = 0;
+        let currentItems = res.items || [];
 
-        for (const entry of items) {
-          // Only skip if the ENTIRE batch is explicitly banished (hard delete)
-          if (state.pendingDeletions.has(entry.request_id)) {
-            ghostCount++;
-            continue;
-          }
+        // Loop to ensure we actually fill the limit if we filter items out
+        while (renderedInThisPass < limit && currentItems.length > 0) {
+            for (const entry of currentItems) {
+                if (renderedInThisPass >= limit) break;
 
-          if (!entry.images || entry.images.length === 0) {
-            ghostCount++;
-            continue;
-          }
+                // GHOSTING PREVENTION: Skip if this specific batch is being banished
+                if (state.pendingDeletions.has(entry.request_id)) {
+                    ghostCount++;
+                    continue;
+                }
 
-          // DOM collision check: prevent re-adding if already in view
-          if (document.getElementById(`batch-${entry.request_id}`)) continue;
+                if (!entry.images || entry.images.length === 0) {
+                    ghostCount++;
+                    continue;
+                }
 
-          const card = createBatchCard(entry);
-          // Set an initial small delay for a staggered entrance animation
-          card.style.opacity = "0";
-          card.style.transform = "translateY(10px)";
-          dom.historyList.appendChild(card);
-          
-          requestAnimationFrame(() => {
-              card.style.transition = "all 0.4s ease";
-              card.style.opacity = "1";
-              card.style.transform = "translateY(0)";
-          });
+                if (document.getElementById(`batch-${entry.request_id}`)) continue;
 
-          renderedInThisPass++;
-          validInBatch++;
+                const card = createBatchCard(entry);
+                card.style.opacity = "0";
+                card.style.transform = "translateY(10px)";
+                dom.historyList.appendChild(card);
+                
+                requestAnimationFrame(() => {
+                    card.style.transition = "all 0.4s ease";
+                    card.style.opacity = "1";
+                    card.style.transform = "translateY(0)";
+                });
+                
+                renderedInThisPass++;
+            }
+
+            // Update global state
+            if (currentItems.length > 0) {
+                state.historyCursor = currentItems[currentItems.length - 1].image_id;
+            }
+            state.historyHasMore = !!res.has_more;
+
+            // If we didn't fill the quota because of ghosts, fetch more immediately
+            if (renderedInThisPass < limit && state.historyHasMore) {
+                console.log(`[Vault] Ghost detected (${ghostCount}). Topping up manifestations...`);
+                const nextRes = await apiFetch(`/history?limit=${limit}&before=${state.historyCursor}&uid=${state.activeUid}&realm=${state.vaultRealm || ''}&include_hidden=${state.showHiddenVault}`);
+                if (!nextRes || !nextRes.items || nextRes.items.length === 0) {
+                    state.historyHasMore = false;
+                    break;
+                }
+                currentItems = nextRes.items;
+                state.historyHasMore = nextRes.has_more;
+                res.has_more = nextRes.has_more; // Keep original reference updated
+            } else {
+                break;
+            }
         }
-
-        console.log(`[Vault] Batch Summary -> Valid: ${validInBatch}, Ghosts: ${ghostCount}`);
       } catch (err) {
         console.error("Vault load error:", err);
         if (dom.loadMoreBtn) dom.loadMoreBtn.textContent = "Error (Retry)";
