@@ -64,14 +64,20 @@ class StarManager:
 
     async def _get_json(self, client: httpx.AsyncClient, url: str, headers: dict):
         try:
-            resp = await client.get(url, headers=headers)
+            resp = await client.get(url, headers=headers, timeout=60.0)
+            if resp.status_code in (502, 503, 504):
+                self.logger.warning("star api temporary error %d, will retry...", resp.status_code)
+                return "RETRY"
             resp.raise_for_status()
             return resp.json()
-        except:
+        except Exception as e:
+            self.logger.debug("star get_json exception: %s", e)
             return None
 
-    async def _sleep_backoff(self, attempt: int, base: float = 40.0, cap: float = 40.0):
-        await asyncio.sleep(min(cap, base * (1.0 ** attempt)))
+    async def _sleep_backoff(self, attempt: int, base: float = 5.0, cap: float = 40.0):
+        # Dynamically grow from 5s to 40s (5, 10, 20, 40...)
+        delay = min(cap, base * (2.0 ** (attempt // 2)))
+        await asyncio.sleep(delay)
 
     async def start(self):
         if self.page: return
@@ -91,20 +97,28 @@ class StarManager:
 
     async def _poll_task(self, client, tuid, headers, batch_prefix, idx, request_id):
         # Silenced polling logs
-        for attempt in range(90):
+        for attempt in range(120): # Increased attempts for slow cinematic renders
             if request_id and request_id in self.cancelled_jobs:
                 self.logger.warning("star task poll cancelled: %s", request_id)
                 return None
+            
             poll_data = await self._get_json(client, star_api.URL_GENERATE_TASK.format(task_uuid=tuid), headers)
+            
+            if poll_data == "RETRY":
+                await asyncio.sleep(3) # Short wait for 504/502
+                continue
+
             if not poll_data:
                 if attempt in (0, 5, 15, 30, 60):
                     await self._capture_debug(f"poll_wait_{request_id or 'noid'}_{idx}_{attempt}")
                 await self._sleep_backoff(attempt)
                 continue
+
             resp_obj = poll_data.get("response") or poll_data
             img_path = resp_obj.get("no_watermark_image_url") or resp_obj.get("image_url")
             if img_path:
                 return f"https://r.imagine.red/{img_path.lstrip('/')}"
+            
             if attempt in (0, 5, 15, 30, 60):
                 await self._capture_debug(f"poll_empty_{request_id or 'noid'}_{idx}_{attempt}")
             await self._sleep_backoff(attempt)
