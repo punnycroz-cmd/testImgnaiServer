@@ -2377,7 +2377,9 @@
     }
 
     async function refillVaultGap(count = 1) {
-      if (count <= 0) return;
+      if (count <= 0 || state.loadingHistory) return;
+      
+      state.loadingHistory = true; // Block infinite scroll while refilling
       
       // Find the last visible card to use as a cursor
       const cards = document.querySelectorAll('#historyList > div[id^="batch-"]');
@@ -2412,6 +2414,8 @@
           }
       } catch (e) {
           console.error("Vault refill failed:", e);
+      } finally {
+          state.loadingHistory = false; // Release guard
       }
     }
 
