@@ -2105,6 +2105,8 @@
             ids.forEach(id => { const el = document.getElementById(`batch-${id}`); if (el) el.remove(); });
             toggleSelectionMode(false);
             updateVaultCache();
+            // Refill the gaps created by bulk deletion
+            refillVaultGap(count);
           }, 850);
         });
       } else if (action === 'hide') {
@@ -2253,6 +2255,8 @@
 
             closeBubbleReveal();
             updateVaultCache();
+            // Refill the gap created by single batch deletion
+            refillVaultGap(1);
           })
           .catch(e => {
             state.pendingDeletions.delete(requestId);
@@ -2370,6 +2374,45 @@
       dom.historyList.style.pointerEvents = "auto";
 
       await loadHistoryPage();
+    }
+
+    async function refillVaultGap(count = 1) {
+      if (count <= 0) return;
+      
+      // Find the last visible card to use as a cursor
+      const cards = document.querySelectorAll('#historyList > div[id^="batch-"]');
+      if (cards.length === 0) return;
+      
+      const lastCard = cards[cards.length - 1];
+      const lastIdMatch = lastCard.id.match(/batch-(.+)/);
+      if (!lastIdMatch) return;
+      
+      // We need the numeric image_id for the cursor, not the request_id
+      // So we'll look it up from the lastCard's data or attributes
+      // Since we don't store image_id in the DOM, we'll use state.historyCursor
+      const cursor = state.historyCursor;
+      if (!cursor) return;
+
+      console.log(`[Vault] Refilling ${count} manifestation(s) starting from cursor ${cursor}...`);
+      
+      try {
+          const res = await apiFetch(`/history?limit=${count}&before=${cursor}&uid=${state.activeUid}&realm=${state.vaultRealm || ''}&include_hidden=${state.showHiddenVault}`);
+          if (res && res.items && res.items.length > 0) {
+              for (const item of res.items) {
+                  const card = createBatchCard(item);
+                  card.style.opacity = "0";
+                  dom.historyList.appendChild(card);
+                  requestAnimationFrame(() => {
+                      card.style.transition = "all 0.6s ease";
+                      card.style.opacity = "1";
+                  });
+              }
+              // Update the global cursor to the new last item
+              state.historyCursor = res.next_cursor;
+          }
+      } catch (e) {
+          console.error("Vault refill failed:", e);
+      }
     }
 
     function initHistoryPolling() {
