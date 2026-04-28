@@ -74,6 +74,7 @@ async def init_db(force: bool = False):
                 result JSONB DEFAULT '{}', -- Will hold { "image_urls": [...] }
                 error TEXT,
                 last_error_text TEXT,
+                hidden_indices INTEGER[] DEFAULT ARRAY[]::INTEGER[],
                 
                 -- Timestamps
                 created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -88,6 +89,7 @@ async def init_db(force: bool = False):
         await conn.execute("ALTER TABLE generations ADD COLUMN IF NOT EXISTS is_hidden BOOLEAN DEFAULT FALSE;")
         await conn.execute("ALTER TABLE generations ADD COLUMN IF NOT EXISTS error TEXT;")
         await conn.execute("ALTER TABLE generations ADD COLUMN IF NOT EXISTS last_error_text TEXT;")
+        await conn.execute("ALTER TABLE generations ADD COLUMN IF NOT EXISTS hidden_indices INTEGER[] DEFAULT ARRAY[]::INTEGER[];")
         
         # Backfill: Assign image_id to existing rows that don't have one
         null_rows = await conn.fetch("SELECT id FROM generations WHERE image_id IS NULL ORDER BY created_at ASC")
@@ -127,7 +129,7 @@ def _normalize_result(result_obj: Any) -> Dict[str, Any]:
     return result_obj
 
 
-def _build_images(result_obj: Dict[str, Any], include_hidden: bool = False) -> List[Dict]:
+def _build_images(result_obj: Dict[str, Any], include_hidden: bool = False, hidden_indices: List[int] = None) -> List[Dict]:
     """Returns list of image objects with status metadata."""
     images = []
     
@@ -136,10 +138,12 @@ def _build_images(result_obj: Dict[str, Any], include_hidden: bool = False) -> L
     active_thumbs = result_obj.get("thumbnail_urls", [])
     
     # Active images
+    hidden_indices = hidden_indices or []
     for i, url in enumerate(active_urls):
         if url: 
             thumb = active_thumbs[i] if i < len(active_thumbs) else url
-            images.append({"r2_url": url, "thumbnail_url": thumb, "status": "active", "image_index": i})
+            status = "hidden" if i in hidden_indices else "active"
+            images.append({"r2_url": url, "thumbnail_url": thumb, "status": status, "image_index": i})
         
     # Hidden images (Archive)
     if include_hidden:
@@ -398,6 +402,7 @@ async def list_generations(limit: int = 20, offset: int = 0, realm: Optional[str
     sql = f"""
         SELECT uid, image_id, request_id, client_id, realm, prompt, model, 
                quality, aspect, count, session_uuid, result, error, 
+               is_hidden, hidden_indices,
                created_at, updated_at 
         FROM generations 
         {where_stmt}
@@ -415,9 +420,49 @@ async def list_generations(limit: int = 20, offset: int = 0, realm: Optional[str
             if d.get('updated_at'): d['updated_at'] = d['updated_at'].isoformat()
             
             result_obj = _normalize_result(d.get("result"))
-            d['images'] = _build_images(result_obj, include_hidden=include_hidden)
+            d['is_hidden'] = r.get("is_hidden")
+            d['hidden_indices'] = r.get("hidden_indices") or []
+            d['images'] = _build_images(result_obj, include_hidden=include_hidden, hidden_indices=d['hidden_indices'])
             results.append(d)
         return results
+
+async def hide_image_index(request_id: str, index: int) -> bool:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        # 1. Update the indices
+        await conn.execute("""
+            UPDATE generations 
+            SET hidden_indices = array_append(hidden_indices, $2::INTEGER),
+                updated_at = NOW()
+            WHERE request_id = $1 AND NOT ($2 = ANY(hidden_indices))
+        """, request_id, index)
+        
+        # 2. Check if all images in the batch are now hidden
+        await conn.execute("""
+            UPDATE generations
+            SET is_hidden = TRUE
+            WHERE request_id = $1 AND cardinality(hidden_indices) >= count
+        """, request_id)
+        return True
+
+async def show_image_index(request_id: str, index: int) -> bool:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        # 1. Update the indices
+        await conn.execute("""
+            UPDATE generations 
+            SET hidden_indices = array_remove(hidden_indices, $2::INTEGER),
+                updated_at = NOW()
+            WHERE request_id = $1
+        """, request_id, index)
+        
+        # 2. If at least one image is visible, ensure batch is NOT hidden
+        await conn.execute("""
+            UPDATE generations
+            SET is_hidden = FALSE
+            WHERE request_id = $1
+        """, request_id)
+        return True
 
 async def hide_generation(request_id: str):
     pool = await get_pool()
@@ -486,6 +531,8 @@ class DatabaseProxy:
     async def delete_generation(self, rid): await delete_generation(rid)
     async def hide_image(self, rid, url): await hide_image(rid, url)
     async def show_image(self, rid, url): await show_image(rid, url)
+    async def hide_image_index(self, rid, index): return await hide_image_index(rid, index)
+    async def show_image_index(self, rid, index): return await show_image_index(rid, index)
     async def delete_image(self, rid, url): return await delete_image(rid, url)
     async def mark_image_deleting(self, rid, url): return await mark_image_deleting(rid, url)
     async def finalize_image_deletion(self, rid, url): return await finalize_image_deletion(rid, url)
