@@ -91,13 +91,24 @@ class DayManager:
             try:
                 task_uuid = task_uuids[idx] if idx < len(task_uuids) else f"{idx + 1:03d}"
                 key = self.vault.build_object_key(batch_prefix, task_uuid, "jpg")
-                return await asyncio.to_thread(self.vault.upload_image, url, key)
+                from core.vault import upload_image_with_thumbnail
+                result = await asyncio.to_thread(upload_image_with_thumbnail, url, key)
+                return {
+                    "r2_url": result["full_url"],
+                    "thumbnail_url": result["thumbnail_url"]
+                }
             except Exception as e:
                 self.logger.error("Failed to vault image %d for job %s: %s", idx, request_id, e)
                 return None
 
         vault_tasks = [safe_upload(url, i) for i, url in enumerate(image_urls)]
         results = await asyncio.gather(*vault_tasks)
-        vaulted_urls = [u for u in results if u]
+        vaulted_objects = [o for o in results if o]
 
-        return {"image_urls": vaulted_urls, "client_id": req.client_id, "model": req.model, "prompt": req.prompt}
+        return {
+            "image_urls": [o["r2_url"] for o in vaulted_objects], 
+            "thumbnail_urls": [o["thumbnail_url"] for o in vaulted_objects],
+            "client_id": req.client_id, 
+            "model": req.model, 
+            "prompt": req.prompt
+        }
