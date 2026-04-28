@@ -10,6 +10,10 @@ from urllib.parse import urlparse, unquote
 import time
 import boto3
 import requests
+try:
+    from PIL import Image
+except ImportError:
+    Image = None
 
 # Global Client
 _s3_client = None
@@ -91,6 +95,60 @@ def upload_image(image_url: str, file_name: str) -> str:
                 
     logging.error("Failed to upload image %s after %d retries: %s", file_name, max_retries, last_exc)
     raise last_exc
+
+def upload_image_with_thumbnail(image_url: str, file_name: str) -> Dict[str, str]:
+    """Uploads both high-res and a 256px thumbnail to R2."""
+    s3 = get_s3_client()
+    if s3 is None:
+        raise RuntimeError(f"R2 not configured for upload: {file_name}")
+
+    # 1. Fetch original image
+    resp = requests.get(image_url, timeout=25)
+    resp.raise_for_status()
+    original_data = resp.content
+
+    # 2. Upload original
+    s3.put_object(
+        Bucket=_bucket_name,
+        Key=file_name,
+        Body=BytesIO(original_data),
+        ContentType="image/jpeg",
+    )
+    full_url = f"{_public_url}/{file_name.lstrip('/')}"
+    
+    # 3. Generate and upload thumbnail if Pillow is available
+    thumb_url = full_url # Fallback to full resolution
+    if Image:
+        try:
+            with Image.open(BytesIO(original_data)) as img:
+                # Square crop and resize to 256x256
+                width, height = img.size
+                size = min(width, height)
+                left = (width - size) // 2
+                top = (height - size) // 2
+                right = (width + size) // 2
+                bottom = (height + size) // 2
+                
+                thumb = img.crop((left, top, right, bottom))
+                thumb.thumbnail((256, 256), Image.Resampling.LANCZOS)
+                
+                thumb_io = BytesIO()
+                thumb.save(thumb_io, format="JPEG", quality=85)
+                thumb_data = thumb_io.getvalue()
+                
+                thumb_key = file_name.replace(".jpg", "_thumb.jpg").replace(".jpeg", "_thumb.jpg")
+                s3.put_object(
+                    Bucket=_bucket_name,
+                    Key=thumb_key,
+                    Body=BytesIO(thumb_data),
+                    ContentType="image/jpeg",
+                )
+                thumb_url = f"{_public_url}/{thumb_key.lstrip('/')}"
+                logging.info("vaulted thumbnail uploaded key=%s", thumb_key)
+        except Exception as e:
+            logging.error("Failed to generate thumbnail for %s: %s", file_name, e)
+
+    return {"full_url": full_url, "thumbnail_url": thumb_url}
 
 def list_images(prefix: str = "vault/") -> List[Dict]:
     s3 = get_s3_client()

@@ -1971,7 +1971,7 @@
                 // Using a div-based placeholder while image loads
                 return `
                   <div class="art-frame shimmer relative ${isHidden ? 'ring-1 ring-red-400/60 opacity-70' : ''} ${isDeleting ? 'spirit-deleting' : ''}">
-                    <img src="${img.r2_url}" 
+                    <img src="${img.thumbnail_url || img.r2_url}" 
                          class="w-full aspect-square object-cover relative z-10 opacity-0 transition-opacity duration-500" 
                          loading="lazy"
                          onload="this.style.opacity='1'; this.parentElement.classList.remove('shimmer');">

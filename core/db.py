@@ -131,18 +131,32 @@ def _build_images(result_obj: Dict[str, Any], include_hidden: bool = False) -> L
     """Returns list of image objects with status metadata."""
     images = []
     
+    # Map lists for easy lookup
+    active_urls = result_obj.get("image_urls", [])
+    active_thumbs = result_obj.get("thumbnail_urls", [])
+    
     # Active images
-    for i, url in enumerate(result_obj.get("image_urls", [])):
-        if url: images.append({"r2_url": url, "status": "active", "image_index": i})
+    for i, url in enumerate(active_urls):
+        if url: 
+            thumb = active_thumbs[i] if i < len(active_thumbs) else url
+            images.append({"r2_url": url, "thumbnail_url": thumb, "status": "active", "image_index": i})
         
     # Hidden images (Archive)
     if include_hidden:
-        for i, url in enumerate(result_obj.get("hidden_image_urls", [])):
-            if url: images.append({"r2_url": url, "status": "hidden", "image_index": i})
+        hidden_urls = result_obj.get("hidden_image_urls", [])
+        hidden_thumbs = result_obj.get("hidden_thumbnail_urls", [])
+        for i, url in enumerate(hidden_urls):
+            if url: 
+                thumb = hidden_thumbs[i] if i < len(hidden_thumbs) else url
+                images.append({"r2_url": url, "thumbnail_url": thumb, "status": "hidden", "image_index": i})
             
     # Deleting images (Transient state for UI blurring)
-    for i, url in enumerate(result_obj.get("deleting_image_urls", [])):
-        if url: images.append({"r2_url": url, "status": "deleting", "image_index": i})
+    deleting_urls = result_obj.get("deleting_image_urls", [])
+    deleting_thumbs = result_obj.get("deleting_thumbnail_urls", [])
+    for i, url in enumerate(deleting_urls):
+        if url: 
+            thumb = deleting_thumbs[i] if i < len(deleting_thumbs) else url
+            images.append({"r2_url": url, "thumbnail_url": thumb, "status": "deleting", "image_index": i})
         
     return images
 
