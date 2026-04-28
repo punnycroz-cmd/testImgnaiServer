@@ -388,28 +388,42 @@ async def delete_batch(request_id: str):
 
 
 @app.post("/history/image/{request_id}/hide")
-async def hide_image(request: Request, request_id: str, url: Optional[str] = Query(None)):
-    # 🔍 Manual extraction to be 100% sure we don't miss it
-    idx_raw = request.query_params.get("index")
-    if idx_raw is not None:
+async def hide_image(request_id: str, request: Request, url: Optional[str] = Query(None)):
+    # 🔍 Nuclear search for index (Query -> Header -> Body)
+    idx = request.query_params.get("index") or request.headers.get("X-Image-Index")
+    
+    if idx is None:
         try:
-            index = int(idx_raw)
+            body = await request.json()
+            idx = body.get("index")
+        except: pass
+
+    if idx is not None:
+        try:
+            index = int(idx)
             ok = await DB.hide_image_index(request_id, index)
             return {"status": "ok" if ok else "error", "hidden": ok, "request_id": request_id, "index": index}
         except ValueError: pass
 
+    # Fallback to URL-based logic
     resolved_url = await _extract_image_url(request, url)
     ok = await DB.hide_image(request_id, resolved_url)
     return {"status": "ok" if ok else "error", "hidden": ok, "request_id": request_id, "url": resolved_url}
 
 
 @app.post("/history/image/{request_id}/show")
-async def show_image(request: Request, request_id: str, url: Optional[str] = Query(None)):
-    # 🔍 Manual extraction
-    idx_raw = request.query_params.get("index")
-    if idx_raw is not None:
+async def show_image(request_id: str, request: Request, url: Optional[str] = Query(None)):
+    # 🔍 Nuclear search
+    idx = request.query_params.get("index") or request.headers.get("X-Image-Index")
+    if idx is None:
         try:
-            index = int(idx_raw)
+            body = await request.json()
+            idx = body.get("index")
+        except: pass
+
+    if idx is not None:
+        try:
+            index = int(idx)
             ok = await DB.show_image_index(request_id, index)
             return {"status": "ok" if ok else "error", "shown": ok, "request_id": request_id, "index": index}
         except ValueError: pass
