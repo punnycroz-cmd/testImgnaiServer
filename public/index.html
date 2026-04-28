@@ -1863,6 +1863,14 @@
         }
         if (downloadEl) downloadEl.href = url;
         state.__inspected_current_url = url;
+        
+        // Find the index of this URL in the batch
+        if (batchUrls && batchUrls.length > 0) {
+          state.__inspected_current_index = batchUrls.indexOf(url);
+        } else {
+          state.__inspected_current_index = 0;
+        }
+
         const imgObj = (data.images || []).find(i => i.r2_url === url);
         const isHidden = imgObj?.status === 'hidden';
         state.__inspected_current_hidden = isHidden;
@@ -1942,14 +1950,26 @@
       const requestId = data?.request_id;
       const url = state.__inspected_current_url;
       const index = state.__inspected_current_index;
-      if (!requestId || index === undefined) return;
+      
+      console.log("🔍 Visibility Toggle Check:", { requestId, url, index, hidden });
+
+      if (!requestId) {
+        setFooterMsg("Cannot toggle visibility: missing ID", "error");
+        return;
+      }
+      
+      if (index === undefined || index === null) {
+        setFooterMsg("Cannot toggle visibility: missing index", "error");
+        console.error("Missing index for visibility toggle. State:", { requestId, url, index, data });
+        return;
+      }
 
       const endpoint = hidden ? "hide" : "show";
       try {
         await apiFetch(`/history/image/${encodeURIComponent(requestId)}/${endpoint}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ index })
+          body: JSON.stringify({ index: parseInt(index, 10) })
         });
         
         // Optimistic State Update
@@ -2007,15 +2027,30 @@
       const data = state.__inspected_data;
       const requestId = data?.request_id;
       if (!requestId) return;
-      const nextHidden = !data.is_hidden;
+
+      const images = data?.images || [];
+      // If any image is active, we hide the whole batch. Otherwise we show.
+      const hasVisible = images.some(img => img.status !== 'hidden' && img.status !== 'deleting');
+      const nextHidden = hasVisible;
       const endpoint = nextHidden ? "hide" : "show";
+
       try {
         await apiFetch(`/history/batch/${encodeURIComponent(requestId)}/${endpoint}`, { method: "POST" });
+        
+        // Optimistic UI update
         data.is_hidden = nextHidden;
+        if (data.images) {
+            data.images.forEach(img => {
+                if (img.status !== 'deleting') {
+                    img.status = nextHidden ? 'hidden' : 'active';
+                }
+            });
+        }
+
         setFooterMsg(nextHidden ? "Batch hidden." : "Batch restored.", "info");
-        reloadHistory(true);
-} catch (err) {
-        setFooterMsg("Batch visibility failed.", "error");
+        reloadHistory();
+      } catch (err) {
+        setFooterMsg("Batch visibility failed: " + err.message, "error");
       }
     }
 
