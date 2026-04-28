@@ -1142,6 +1142,10 @@
            const match = finalUrl.match(/[?&]before=([^&]+)/);
            if (match) fetchOpts.headers["X-Debug-Cursor"] = match[1];
         }
+        if (finalUrl.includes("include_hidden=")) {
+           const match = finalUrl.match(/[?&]include_hidden=([^&]+)/);
+           if (match) fetchOpts.headers["X-Include-Hidden"] = match[1];
+        }
         
         // Option 4: ETag Support
         const etag = state.etagCache[finalUrl];

@@ -304,12 +304,16 @@ async def vault_stats(realm: Optional[str] = None):
 
 @app.get("/history")
 async def get_history(request: Request, response: Response, limit: int = 20, realm: Optional[str] = None, before: Optional[str] = None, uid: str = "uid_0", include_hidden: bool = False):
-    # Fallback for proxies that strip query params
     cursor = before or request.headers.get("X-Debug-Cursor")
     b_id = None
     if cursor and cursor != "null" and cursor != "undefined":
         try: b_id = int(float(cursor))
         except: pass
+
+    # Proxy fallback for include_hidden
+    header_hidden = request.headers.get("X-Include-Hidden")
+    if header_hidden is not None:
+        include_hidden = str(header_hidden).lower() == "true"
 
     page_items = await DB.list_generations(limit=limit, realm=realm, before_id=b_id, uid=uid, include_hidden=include_hidden)
     
