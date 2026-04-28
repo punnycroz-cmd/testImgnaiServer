@@ -282,12 +282,16 @@
 
     /* Hiding Logic Visuals */
     #bubbleRevealImg[data-hidden="true"] {
-      opacity: 0.4;
-      filter: blur(12px) grayscale(0.5);
-      transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      display: none;
     }
     
-    .art-frame.hidden {
+    .spirit-hidden {
+      display: block !important;
+      opacity: 0.75 !important;
+      filter: grayscale(0.5) blur(2px) !important;
+    }
+    
+    .hidden-collapsed {
       display: none !important;
     }
 
@@ -1848,12 +1852,15 @@
         if (imgEl) {
           imgEl.src = url;
           const imgObj = (data.images || []).find(i => i.r2_url === url);
-          imgEl.dataset.hidden = (imgObj?.status === 'hidden') ? "true" : "false";
+          const isHidden = imgObj?.status === 'hidden';
+          imgEl.dataset.hidden = isHidden ? "true" : "false";
+          imgEl.classList.toggle('spirit-hidden', isHidden && state.showHiddenVault);
         }
         if (downloadEl) downloadEl.href = url;
         state.__inspected_current_url = url;
         const imgObj = (data.images || []).find(i => i.r2_url === url);
-        state.__inspected_current_hidden = (imgObj?.status === 'hidden');
+        const isHidden = imgObj?.status === 'hidden';
+        state.__inspected_current_hidden = isHidden;
         populateInspector(data);
 
         // Populate Thumbs if batch exists
@@ -1865,9 +1872,9 @@
              const imgObj = (data.images || []).find(i => i.r2_url === u);
              const isHidden = imgObj?.status === 'hidden';
              return `
-               <button class="art-frame overflow-hidden border-2 transition-all ${u === url ? 'border-[var(--accent)]' : 'border-transparent'} ${isHidden ? 'ring-1 ring-red-400/60' : ''}" 
+               <button class="art-frame overflow-hidden border-2 transition-all ${u === url ? 'border-[var(--accent)]' : 'border-transparent'} ${isHidden ? 'ring-1 ring-red-400/60' : ''} ${isHidden && !state.showHiddenVault ? 'hidden-collapsed' : ''}" 
                        onclick="event.stopPropagation(); openHistoryGroup(state.__inspected_data, '${u}')">
-                  <img src="${u}" class="w-full aspect-square object-cover ${isHidden ? 'opacity-70' : ''}" loading="lazy">
+                  <img src="${u}" class="w-full aspect-square object-cover ${isHidden ? 'spirit-hidden' : ''}" loading="lazy">
                </button>
              `;
           }).join("");
@@ -1947,18 +1954,36 @@
         }
 
         const img = document.getElementById("bubbleRevealImg");
-        if (img) img.dataset.hidden = hidden ? "true" : "false";
         
-        setFooterMsg(hidden ? "Spirit hidden." : "Spirit restored.", "info");
+        if (hidden && !state.showHiddenVault) {
+            // Hiding while "Show Hidden" is OFF -> Move to next available spirit
+            const remaining = data.images.filter(i => i.status !== 'hidden' && i.status !== 'deleting');
+            if (remaining.length > 0) {
+                const nextImg = remaining.find(i => i.image_index > index) || remaining[0];
+                openHistoryGroup(data, nextImg.r2_url);
+                setFooterMsg("Spirit hidden. Shifting focus...", "info");
+            } else {
+                closeBubbleReveal();
+                setFooterMsg("Last spirit hidden.", "info");
+            }
+        } else {
+            // Just update visuals for current spirit
+            if (img) {
+                img.dataset.hidden = hidden ? "true" : "false";
+                img.classList.toggle('spirit-hidden', hidden && state.showHiddenVault);
+            }
+            // Update thumbnails grid to show/hide/ghost correctly
+            openHistoryGroup(data, url);
+            setFooterMsg(hidden ? "Spirit hidden." : "Spirit restored.", "info");
+        }
         
-        // Surgical UI Update (without full reload if possible)
+        // Surgical UI Update for the Vault card
         const vaultCard = document.getElementById(`batch-${requestId}`);
         if (vaultCard) {
             const newCard = createBatchCard(data);
             vaultCard.parentNode.replaceChild(newCard, vaultCard);
         }
         
-        // Still reload in background for server truth
         reloadHistory(true);
       } catch (err) {
         setFooterMsg("Visibility change failed.", "error");
@@ -2007,9 +2032,12 @@
       // Use the provided focusUrl, or the first active URL, or the first image overall as fallback
       const targetUrl = focusUrl || urls[0] || images[0]?.r2_url;
       const targetImgObj = images.find(i => i.r2_url === targetUrl) || images[0];
+      const isHidden = targetImgObj?.status === 'hidden';
 
       img.src = targetUrl;
-      img.dataset.hidden = (targetImgObj?.status === 'hidden') ? "true" : "false";
+      img.dataset.hidden = isHidden ? "true" : "false";
+      img.classList.toggle('spirit-hidden', isHidden && state.showHiddenVault);
+      
       if (targetImgObj?.status === 'deleting') img.classList.add("spirit-deleting");
       else img.classList.remove("spirit-deleting");
 
@@ -2031,9 +2059,9 @@
             const isDeleting = imgData.status === 'deleting';
             const isTarget = imgData.r2_url === targetUrl;
             return `
-               <button class="art-frame overflow-hidden border-2 transition-all ${isTarget ? 'border-[var(--accent)]' : 'border-transparent'} ${isHidden ? 'ring-1 ring-red-400/60' : ''} ${isDeleting ? 'spirit-deleting' : ''}" 
+               <button class="art-frame overflow-hidden border-2 transition-all ${isTarget ? 'border-[var(--accent)]' : 'border-transparent'} ${isHidden ? 'ring-1 ring-red-400/60' : ''} ${isDeleting ? 'spirit-deleting' : ''} ${isHidden && !state.showHiddenVault ? 'hidden-collapsed' : ''}" 
                        onclick="event.stopPropagation(); openHistoryGroup(state.__inspected_data, '${imgData.r2_url}')">
-                  <img src="${imgData.r2_url}" class="w-full aspect-square object-cover ${isHidden ? 'opacity-70' : ''}" loading="lazy">
+                  <img src="${imgData.r2_url}" class="w-full aspect-square object-cover ${isHidden ? 'spirit-hidden' : ''}" loading="lazy">
                </button>
             `;
         }).join("");
@@ -2088,11 +2116,11 @@
                 const isHidden = img.status === 'hidden';
                 const isDeleting = img.status === 'deleting';
                 return `
-                  <div class="art-frame shimmer relative ${isHidden ? 'ring-1 ring-red-400/60' : ''} ${isDeleting ? 'spirit-deleting' : ''} ${isHidden && !state.showHiddenVault ? 'hidden' : ''}">
+                  <div class="art-frame shimmer relative ${isHidden ? 'ring-1 ring-red-400/60' : ''} ${isDeleting ? 'spirit-deleting' : ''} ${isHidden && !state.showHiddenVault ? 'hidden-collapsed' : ''}">
                     <img src="${img.thumbnail_url || img.r2_url}" 
-                         class="w-full aspect-square object-cover relative z-10 opacity-0 transition-opacity duration-500 ${isHidden ? 'opacity-70' : ''}" 
+                         class="w-full aspect-square object-cover relative z-10 opacity-0 transition-opacity duration-500 ${isHidden ? 'spirit-hidden' : ''}" 
                          loading="lazy"
-                         onload="this.style.opacity= ('${isHidden}' === 'true' ? '0.7' : '1'); this.parentElement.classList.remove('shimmer');">
+                         onload="this.style.opacity= ('${isHidden}' === 'true' ? '0.75' : '1'); this.parentElement.classList.remove('shimmer');">
                   </div>`;
             }).join("")}
           </div>
@@ -2692,11 +2720,31 @@
     async function copyRequestId(id) { if (id) { await navigator.clipboard.writeText(id); setFooterMsg("Copied ID.", "info"); } }
     function escapeHtml(v) { return String(v).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;"); }
     async function checkBackend() { try { const res = await apiFetch("/health"); dom.backendStatus.textContent = res.status === "ok" ? "Backend Online" : "Backend Latency"; } catch { dom.backendStatus.textContent = "Backend Offline"; } }
+    
+    const ROUTE_MAP = {
+      'forge': 'generate',
+      'vault': 'history',
+      'tasks': 'tasks',
+      'generate': 'generate',
+      'history': 'history'
+    };
 
-    function setView(v) {
+    function handleRouting() {
+      const hash = window.location.hash.replace('#', '') || 'forge';
+      const view = ROUTE_MAP[hash] || 'generate';
+      setView(view, false);
+    }
+
+    function setView(v, updateHash = true) {
       document.querySelectorAll(".view").forEach(el => el.classList.add("hidden"));
       const viewEl = document.getElementById(`view-${v}`);
       if (viewEl) viewEl.classList.remove("hidden");
+      
+      if (updateHash) {
+        const hash = Object.keys(ROUTE_MAP).find(k => ROUTE_MAP[k] === v);
+        if (hash) window.location.hash = hash;
+      }
+
       document.querySelectorAll("[data-view]").forEach(b => {
         const isMatch = b.dataset.view === v;
         b.classList.toggle("active", isMatch);
@@ -2734,6 +2782,7 @@
       }
     }
 
+    window.addEventListener('hashchange', handleRouting);
     document.querySelectorAll("[data-view]").forEach(btn => btn.addEventListener("click", (e) => setView(e.currentTarget.dataset.view)));
     document.querySelectorAll("[data-mode]").forEach(btn => btn.addEventListener("click", () => applyMode(btn.dataset.mode)));
     dom.generateBtn.addEventListener("click", runGeneration);
@@ -2741,7 +2790,8 @@
     try {
       applyMode(state.activeMode);
       renderActiveRequest();
-      checkBackend(); // Only one check on load
+      checkBackend(); 
+      handleRouting(); // Start the router
     } catch (e) {
       console.error("Initialization error:", e);
       setFooterMsg("Connect to Server for full functionality.", "info");
