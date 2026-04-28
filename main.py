@@ -388,14 +388,22 @@ async def delete_batch(request_id: str):
 
 
 @app.post("/history/image/{request_id}/hide")
-async def hide_image(request: Request, request_id: str, url: Optional[str] = None):
+async def hide_image(request_id: str, index: Optional[int] = Query(None), url: Optional[str] = Query(None), request: Request = None):
+    if index is not None:
+        ok = await DB.hide_image_index(request_id, index)
+        return {"status": "ok" if ok else "error", "hidden": ok, "request_id": request_id, "index": index}
+    
     resolved_url = await _extract_image_url(request, url)
     ok = await DB.hide_image(request_id, resolved_url)
     return {"status": "ok" if ok else "error", "hidden": ok, "request_id": request_id, "url": resolved_url}
 
 
 @app.post("/history/image/{request_id}/show")
-async def show_image(request: Request, request_id: str, url: Optional[str] = None):
+async def show_image(request_id: str, index: Optional[int] = Query(None), url: Optional[str] = Query(None), request: Request = None):
+    if index is not None:
+        ok = await DB.show_image_index(request_id, index)
+        return {"status": "ok" if ok else "error", "shown": ok, "request_id": request_id, "index": index}
+        
     resolved_url = await _extract_image_url(request, url)
     ok = await DB.show_image(request_id, resolved_url)
     return {"status": "ok" if ok else "error", "shown": ok, "request_id": request_id, "url": resolved_url}
