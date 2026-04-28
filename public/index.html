@@ -295,6 +295,10 @@
       border-color: var(--accent);
     }
 
+    .filter-btn-active {
+      box-shadow: 0 0 0 2px var(--accent) inset !important;
+    }
+
     /* Modern Lightbox Redesign */
     #bubbleReveal {
       position: fixed;
@@ -656,14 +660,25 @@
     <section id="view-history" class="view hidden px-4 sm:px-8">
       <div class="max-w-7xl mx-auto min-h-[400px] relative">
         <div class="flex flex-col sm:flex-row items-center justify-between gap-6 mb-10">
-          <div class="flex items-center gap-2 bg-black/10 p-1.5 rounded-2xl border border-white/5">
-            <div
-              class="px-6 py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all bg-[var(--accent)] text-white shadow-lg">
-              All Batches
-            </div>
-          </div>
-
           <div class="flex items-center gap-4">
+            <!-- Realm Filter Buttons -->
+            <div class="flex items-center gap-1 bg-black/10 p-1 rounded-xl border border-white/5">
+              <button onclick="filterVaultByRealm('all')" id="filterRealmAll"
+                class="px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-all bg-[var(--accent)] text-white shadow-sm">
+                All
+              </button>
+              <button onclick="filterVaultByRealm('day')" id="filterRealmDay"
+                class="px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-all opacity-50 hover:opacity-100">
+                Day
+              </button>
+              <button onclick="filterVaultByRealm('star')" id="filterRealmStar"
+                class="px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-all opacity-50 hover:opacity-100">
+                Star
+              </button>
+            </div>
+
+            <div class="w-px h-4 bg-white/10"></div>
+            
             <button onclick="toggleHiddenVault()" id="toggleHiddenVaultBtn"
               class="text-[10px] font-bold uppercase tracking-widest opacity-60 hover:opacity-100">Show Hidden</button>
             <button onclick="toggleSelectionMode()" id="toggleSelectBtn"
@@ -895,13 +910,16 @@
       isTabVisible: true,
       activePolls: new Set(),
       vaultRealm: null,
+      vaultRealmFilter: 'all',
       showHiddenVault: false,
       selectionMode: false,
       selectedIds: new Set(),
       matrixPaused: false,
       matrixCancelled: false,
       activeUid: "uid_0",
-      etagCache: {}
+      etagCache: {},
+      vaultObserver: null,
+      __inspected_current_index: 0
     };
 
     const dom = {
@@ -923,6 +941,11 @@
       activeRequestBadge: document.getElementById("activeRequestBadge"),
       backendStatus: document.getElementById("backendStatus"),
       matrixBtn: document.getElementById("matrixBtn"),
+      toggleHiddenVaultBtn: document.getElementById("toggleHiddenVaultBtn"),
+      toggleSelectBtn: document.getElementById("toggleSelectBtn"),
+      filterRealmAll: document.getElementById("filterRealmAll"),
+      filterRealmDay: document.getElementById("filterRealmDay"),
+      filterRealmStar: document.getElementById("filterRealmStar"),
       btnMatrixText: document.getElementById("btnMatrixText"),
       btnMatrixLoader: document.getElementById("btnMatrixLoader")
     };
@@ -946,9 +969,64 @@
 
     function toggleHiddenVault() {
       state.showHiddenVault = !state.showHiddenVault;
-      const btn = document.getElementById("toggleHiddenVaultBtn");
-      if (btn) btn.textContent = state.showHiddenVault ? "Hide Hidden" : "Show Hidden";
-      reloadHistory(true);
+      dom.toggleHiddenVaultBtn.classList.toggle("text-[var(--accent)]", state.showHiddenVault);
+      dom.toggleHiddenVaultBtn.classList.toggle("opacity-60", !state.showHiddenVault);
+      reloadHistory();
+    }
+
+    function filterVaultByRealm(realm) {
+      // Update state
+      state.vaultRealmFilter = realm;
+      
+      // Update button visuals
+      ['all', 'day', 'star'].forEach(r => {
+        const btn = document.getElementById(`filterRealm${r.charAt(0).toUpperCase() + r.slice(1)}`);
+        if (btn) {
+          if (r === realm) {
+            btn.classList.remove('opacity-50', 'hover:opacity-100');
+            btn.classList.add('bg-[var(--accent)]', 'text-white', 'shadow-sm', 'filter-btn-active');
+          } else {
+            btn.classList.add('opacity-50', 'hover:opacity-100');
+            btn.classList.remove('bg-[var(--accent)]', 'text-white', 'shadow-sm', 'filter-btn-active');
+          }
+        }
+      });
+      
+      // Filter DOM elements using data-realm attribute
+      const cards = document.querySelectorAll('#historyList > div[id^="batch-"]');
+      let visibleCount = 0;
+      
+      cards.forEach(card => {
+        const cardRealm = card.dataset.realm || 'day';
+        
+        // Show/hide based on filter with smooth transition
+        if (realm === 'all' || cardRealm === realm) {
+          card.style.display = '';
+          // Trigger reflow for animation
+          void card.offsetWidth;
+          card.style.opacity = '1';
+          card.style.transform = 'scale(1)';
+          visibleCount++;
+        } else {
+          card.style.opacity = '0';
+          card.style.transform = 'scale(0.95)';
+          setTimeout(() => {
+            if (card.style.opacity === '0') {
+              card.style.display = 'none';
+            }
+          }, 300); // Match transition duration
+        }
+      });
+      
+      // Update footer status
+      const totalCards = cards.length;
+      if (realm !== 'all') {
+        setFooterMsg(`Showing ${visibleCount} ${realm} manifestations (filtered from ${totalCards} total)`, "info");
+      } else {
+        setFooterMsg(`Showing all ${visibleCount} manifestations`, "info");
+      }
+      
+      console.log(`[Vault Filter] Showing ${realm} realm: ${visibleCount}/${totalCards} manifestations visible`);
     }
 
     function setLoading(loading) {
@@ -1831,14 +1909,13 @@
       const data = state.__inspected_data;
       const requestId = data?.request_id;
       const url = state.__inspected_current_url;
-      if (!requestId || !url) return;
+      const index = state.__inspected_current_index;
+      if (!requestId || index === undefined) return;
 
       const endpoint = hidden ? "hide" : "show";
       try {
-        await apiFetch(`/history/image/${encodeURIComponent(requestId)}/${endpoint}?url=${encodeURIComponent(url)}`, {
-          method: "POST",
-          headers: { "X-Image-Url": url },
-          body: JSON.stringify({ url })
+        await apiFetch(`/history/image/${encodeURIComponent(requestId)}/${endpoint}?index=${index}`, {
+          method: "POST"
         });
         state.__inspected_current_hidden = hidden;
         const img = document.getElementById("bubbleRevealImg");
@@ -1905,6 +1982,7 @@
       }
       
       state.__inspected_current_url = targetUrl;
+      state.__inspected_current_index = targetImgObj?.image_index ?? 0;
       state.__inspected_current_hidden = (targetImgObj?.status === 'hidden');
       populateInspector(entry);
 
@@ -1934,6 +2012,7 @@
     function createBatchCard(entry) {
       const wrap = document.createElement("div");
       wrap.id = `batch-${entry.request_id}`;
+      wrap.dataset.realm = entry.realm || "day"; // ✅ Store realm for easy filtering
       wrap.className = "glass-panel p-4 pb-5 cursor-pointer group relative transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_20px_50px_rgba(0,0,0,0.4)] border-white/5 hover:border-white/20";
       if (state.selectedIds.has(entry.request_id)) wrap.classList.add("border-[var(--accent)]", "bg-[var(--accent)]/10");
       if (entry.is_hidden) wrap.classList.add("opacity-65");
@@ -1953,7 +2032,9 @@
           <div class="flex items-center justify-between gap-2 mb-3">
             <div class="min-w-0">
               <div class="flex items-center gap-2 mb-1">
-                <div class="text-[9px] uppercase tracking-widest text-[var(--accent)] font-black">${entry.realm || "day"}</div>
+                <div class="text-[9px] uppercase tracking-widest font-black px-2 py-0.5 rounded ${entry.realm === 'star' ? 'bg-purple-500/20 text-purple-400' : 'bg-emerald-500/20 text-emerald-600'}">
+                  ${entry.realm || "day"}
+                </div>
                 <div class="text-[9px] font-bold opacity-40 bg-white/5 px-1 rounded">ID #${entry.image_id || "..."}</div>
                 <div class="text-[9px] font-bold opacity-40 bg-white/5 px-1 rounded">${entry.uid || "uid_0"}</div>
                 ${entry.is_hidden ? '<div class="text-[9px] font-black uppercase tracking-widest bg-red-500/15 text-red-400 px-1 rounded">Hidden</div>' : ''}
@@ -2317,17 +2398,29 @@
                 if (document.getElementById(`batch-${entry.request_id}`)) continue;
 
                 const card = createBatchCard(entry);
-                card.style.opacity = "0";
-                card.style.transform = "translateY(10px)";
+                const matchesFilter = state.vaultRealmFilter === 'all' || (entry.realm || 'day') === state.vaultRealmFilter;
+
+                // Apply active filter immediately to new cards
+                if (!matchesFilter) {
+                    card.style.display = 'none';
+                    card.style.opacity = '0';
+                } else {
+                    card.style.opacity = "0";
+                    card.style.transform = "translateY(10px)";
+                    renderedInThisPass++; // Only count towards quota if visible!
+                }
+
                 dom.historyList.appendChild(card);
                 
-                requestAnimationFrame(() => {
-                    card.style.transition = "all 0.4s ease";
-                    card.style.opacity = "1";
-                    card.style.transform = "translateY(0)";
-                });
-                
-                renderedInThisPass++;
+                if (matchesFilter) {
+                    const delay = renderedInThisPass * 40; // 40ms stagger between manifestations
+                    requestAnimationFrame(() => {
+                        card.style.transition = "all 0.6s cubic-bezier(0.2, 0.8, 0.2, 1)";
+                        card.style.transitionDelay = `${delay}ms`;
+                        card.style.opacity = "1";
+                        card.style.transform = "translateY(0)";
+                    });
+                }
             }
 
             // Update global state
@@ -2339,7 +2432,7 @@
             // If we didn't fill the quota because of ghosts, fetch more immediately
             if (renderedInThisPass < limit && state.historyHasMore) {
                 console.log(`[Vault] Ghost detected (${ghostCount}). Topping up manifestations...`);
-                const nextRes = await apiFetch(`/history?limit=${limit}&before=${state.historyCursor}&uid=${state.activeUid}&realm=${state.vaultRealm || ''}&include_hidden=${state.showHiddenVault}`);
+                const nextRes = await apiFetch(`/history?limit=${limit}&before=${state.historyCursor}&uid=${state.activeUid}&include_hidden=${state.showHiddenVault}`);
                 if (!nextRes || !nextRes.items || nextRes.items.length === 0) {
                     state.historyHasMore = false;
                     break;
@@ -2395,32 +2488,31 @@
       await loadHistoryPage();
     }
 
-    async function refillVaultGap(count = 1, force = false) {
-      if (count <= 0) return;
+    async function refillVaultGap(deletedCount = 1, force = false) {
+      if (deletedCount <= 0) return;
       if (!force && state.loadingHistory) return;
       
       state.loadingHistory = true; // Block infinite scroll while refilling
       
-      // Find the last visible card to use as a cursor
-      const cards = document.querySelectorAll('#historyList > div[id^="batch-"]');
-      if (cards.length === 0) return;
-      
-      const lastCard = cards[cards.length - 1];
-      const lastIdMatch = lastCard.id.match(/batch-(.+)/);
-      if (!lastIdMatch) return;
-      
-      // We need the numeric image_id for the cursor, not the request_id
-      // So we'll look it up from the lastCard's data or attributes
-      // Since we don't store image_id in the DOM, we'll use state.historyCursor
-      const cursor = state.historyCursor;
-      if (!cursor) return;
+      // ✅ SIMPLE LOGIC: Replace exactly what was deleted
+      const needed = deletedCount;
 
-      console.log(`[Vault] Refilling ${count} manifestation(s) starting from cursor ${cursor}...`);
+      const cursor = state.historyCursor;
+      if (!cursor) {
+          setTimeout(() => { state.loadingHistory = false; }, 500);
+          return;
+      }
+
+      console.log(`[Vault] Refilling ${needed} manifestation(s) to maintain stable page count...`);
       
       try {
-          const res = await apiFetch(`/history?limit=${count}&before=${cursor}&uid=${state.activeUid}&realm=${state.vaultRealm || ''}&include_hidden=${state.showHiddenVault}`);
+          const realmParam = state.vaultRealmFilter !== 'all' ? `&realm=${state.vaultRealmFilter}` : '';
+          const res = await apiFetch(`/history?limit=${needed}&before=${cursor}&uid=${state.activeUid}${realmParam}&include_hidden=${state.showHiddenVault}`);
           if (res && res.items && res.items.length > 0) {
-              for (const item of res.items) {
+              // ✅ Only render up to 'needed' items (defensive)
+              const itemsToRender = res.items.slice(0, needed);
+
+              for (const item of itemsToRender) {
                   const card = createBatchCard(item);
                   card.style.opacity = "0";
                   dom.historyList.appendChild(card);
@@ -2429,13 +2521,16 @@
                       card.style.opacity = "1";
                   });
               }
-              // Update the global cursor to the new last item
-              state.historyCursor = res.next_cursor;
+              // Update cursor to last item we actually rendered
+              if (itemsToRender.length > 0) {
+                  state.historyCursor = itemsToRender[itemsToRender.length - 1].image_id;
+              }
+              state.historyHasMore = !!res.has_more;
           }
       } catch (e) {
           console.error("Vault refill failed:", e);
       } finally {
-          // USER IDEA: Delay releasing the lock to prevent race conditions with scroll-based auto-loading
+          // USER IDEA: 1.5s cooldown to let layout stabilize
           setTimeout(() => {
               state.loadingHistory = false;
           }, 1500);
@@ -2572,7 +2667,29 @@
         b.classList.toggle("opacity-100", isMatch);
         b.classList.toggle("opacity-60", !isMatch);
       });
-      if (v === "history") renderHistory();
+      if (v === "history") {
+        renderHistory();
+        
+        // ✨ Initialize Observer when entering history
+        if (!state.vaultObserver && dom.loadMoreBtn) {
+          state.vaultObserver = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting && !state.loadingHistory && state.historyHasMore) {
+              loadHistoryPage();
+            }
+          }, {
+            root: document.querySelector('main'),
+            rootMargin: '300px',
+            threshold: 0.1
+          });
+          state.vaultObserver.observe(dom.loadMoreBtn);
+        }
+      } else {
+        // 🛑 Disconnect Observer when leaving history
+        if (state.vaultObserver) {
+          state.vaultObserver.disconnect();
+          state.vaultObserver = null;
+        }
+      }
 
       // Auto-minimize on mobile for non-forge tabs
       if (window.innerWidth < 1024 && (v === "history" || v === "tasks")) {
@@ -2581,7 +2698,6 @@
     }
 
     document.querySelectorAll("[data-view]").forEach(btn => btn.addEventListener("click", (e) => setView(e.currentTarget.dataset.view)));
-
     document.querySelectorAll("[data-mode]").forEach(btn => btn.addEventListener("click", () => applyMode(btn.dataset.mode)));
     dom.generateBtn.addEventListener("click", runGeneration);
 
