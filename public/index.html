@@ -1934,8 +1934,10 @@
 
       const endpoint = hidden ? "hide" : "show";
       try {
-        await apiFetch(`/history/image/${encodeURIComponent(requestId)}/${endpoint}?index=${index}`, {
-          method: "POST"
+        await apiFetch(`/history/image/${encodeURIComponent(requestId)}/${endpoint}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ index })
         });
         
         // Optimistic State Update
