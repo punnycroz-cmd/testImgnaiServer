@@ -288,13 +288,31 @@ async def mark_image_deleting(request_id: str, image_url: str) -> bool:
 
     def mutator(result_obj):
         changed = False
-        # Remove from active or hidden
+        target_idx = -1
+        target_key = None
+
+        # 1. Find the index and which list it belongs to
         for key in ["image_urls", "hidden_image_urls"]:
-            old_list = result_obj.get(key, [])
-            new_list = [u for u in old_list if u and _normalize_image_url(u) != image_url]
-            if len(new_list) < len(old_list):
-                result_obj[key] = new_list
-                changed = True
+            urls = result_obj.get(key, [])
+            for i, u in enumerate(urls):
+                if u and _normalize_image_url(u) == image_url:
+                    target_idx = i
+                    target_key = key
+                    break
+            if target_idx != -1: break
+            
+        if target_idx == -1:
+            return result_obj, False
+
+        # 2. Clear at that index in the primary list AND its corresponding thumbnail list
+        thumb_key = "thumbnail_urls" if target_key == "image_urls" else "hidden_thumbnail_urls"
+        
+        for key in [target_key, thumb_key]:
+            lst = result_obj.get(key)
+            if isinstance(lst, list) and target_idx < len(lst):
+                if lst[target_idx] != "":
+                    lst[target_idx] = ""
+                    changed = True
         
         if changed:
             deleting = [u for u in result_obj.get("deleting_image_urls", []) if u]
@@ -367,9 +385,10 @@ async def get_generation(request_id: str, include_hidden: bool = False) -> Optio
         row = await conn.fetchrow("SELECT * FROM generations WHERE request_id = $1", request_id)
         if row:
             d = dict(row)
-            if d.get('id'): d['id'] = str(d['id'])
+            d['id'] = str(d['id'])
             result_obj = _normalize_result(d.get("result"))
-            d['images'] = _build_images(result_obj, include_hidden=include_hidden)
+            d['hidden_indices'] = d.get('hidden_indices') or []
+            d['images'] = _build_images(result_obj, include_hidden=include_hidden, hidden_indices=d['hidden_indices'])
             return d
         return None
 
@@ -437,11 +456,15 @@ async def hide_image_index(request_id: str, index: int) -> bool:
             WHERE request_id = $1 AND NOT ($2 = ANY(hidden_indices))
         """, request_id, index)
         
-        # 2. Check if all images in the batch are now hidden
+        # 2. Check if all remaining images in the batch are now hidden
+        # We look for any image that is NOT empty and NOT in hidden_indices
         await conn.execute("""
             UPDATE generations
             SET is_hidden = TRUE
-            WHERE request_id = $1 AND cardinality(hidden_indices) >= count
+            WHERE request_id = $1 AND NOT EXISTS (
+                SELECT 1 FROM jsonb_array_elements_text(result->'image_urls') WITH ORDINALITY AS arr(url, idx)
+                WHERE url <> '' AND NOT (idx-1 = ANY(hidden_indices))
+            )
         """, request_id)
         return True
 

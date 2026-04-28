@@ -280,6 +280,17 @@
       transition: all 8s cubic-bezier(0.4, 0, 0.2, 1) !important;
     }
 
+    /* Hiding Logic Visuals */
+    #bubbleRevealImg[data-hidden="true"] {
+      opacity: 0.4;
+      filter: blur(12px) grayscale(0.5);
+      transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .art-frame.hidden {
+      display: none !important;
+    }
+
     .art-frame {
       border-radius: 1.25rem;
       overflow: hidden;
@@ -969,8 +980,11 @@
 
     function toggleHiddenVault() {
       state.showHiddenVault = !state.showHiddenVault;
-      dom.toggleHiddenVaultBtn.classList.toggle("text-[var(--accent)]", state.showHiddenVault);
-      dom.toggleHiddenVaultBtn.classList.toggle("opacity-60", !state.showHiddenVault);
+      const btn = dom.toggleHiddenVaultBtn;
+      if (btn) {
+        btn.classList.toggle("text-[var(--accent)]", state.showHiddenVault);
+        btn.classList.toggle("opacity-60", !state.showHiddenVault);
+      }
       reloadHistory();
     }
 
@@ -1833,11 +1847,13 @@
         const downloadEl = document.getElementById("bubbleRevealDownload");
         if (imgEl) {
           imgEl.src = url;
-          imgEl.dataset.hidden = data?.hidden ? "true" : "false";
+          const imgObj = (data.images || []).find(i => i.r2_url === url);
+          imgEl.dataset.hidden = (imgObj?.status === 'hidden') ? "true" : "false";
         }
         if (downloadEl) downloadEl.href = url;
         state.__inspected_current_url = url;
-        state.__inspected_current_hidden = !!data?.hidden;
+        const imgObj = (data.images || []).find(i => i.r2_url === url);
+        state.__inspected_current_hidden = (imgObj?.status === 'hidden');
         populateInspector(data);
 
         // Populate Thumbs if batch exists
@@ -1845,12 +1861,16 @@
         const thumbsGrid = document.getElementById("bubbleRevealThumbs");
         if (batchUrls.length > 1) {
           thumbsSection.style.display = "flex";
-          thumbsGrid.innerHTML = batchUrls.map(u => `
-             <button class="art-frame overflow-hidden border-2 border-transparent hover:border-[var(--accent)] transition-all ${u === url ? 'border-[var(--accent)]' : ''}" 
-                     onclick="event.stopPropagation(); document.getElementById('bubbleRevealImg').src='${u}'; document.getElementById('bubbleRevealImg').dataset.hidden='false'; document.getElementById('bubbleRevealDownload').href='${u}'; state.__inspected_current_url='${u}'; state.__inspected_current_hidden=false;">
-                <img src="${u}" class="w-full aspect-square object-cover" loading="lazy">
-             </button>
-           `).join("");
+          thumbsGrid.innerHTML = batchUrls.map((u, idx) => {
+             const imgObj = (data.images || []).find(i => i.r2_url === u);
+             const isHidden = imgObj?.status === 'hidden';
+             return `
+               <button class="art-frame overflow-hidden border-2 transition-all ${u === url ? 'border-[var(--accent)]' : 'border-transparent'} ${isHidden ? 'ring-1 ring-red-400/60' : ''}" 
+                       onclick="event.stopPropagation(); openHistoryGroup(state.__inspected_data, '${u}')">
+                  <img src="${u}" class="w-full aspect-square object-cover ${isHidden ? 'opacity-70' : ''}" loading="lazy">
+               </button>
+             `;
+          }).join("");
         } else {
           thumbsSection.style.display = "none";
         }
@@ -1917,10 +1937,26 @@
         await apiFetch(`/history/image/${encodeURIComponent(requestId)}/${endpoint}?index=${index}`, {
           method: "POST"
         });
+        
+        // Optimistic State Update
         state.__inspected_current_hidden = hidden;
+        if (data.images && data.images[index]) {
+            data.images[index].status = hidden ? 'hidden' : 'active';
+        }
+
         const img = document.getElementById("bubbleRevealImg");
         if (img) img.dataset.hidden = hidden ? "true" : "false";
+        
         setFooterMsg(hidden ? "Spirit hidden." : "Spirit restored.", "info");
+        
+        // Surgical UI Update (without full reload if possible)
+        const vaultCard = document.getElementById(`batch-${requestId}`);
+        if (vaultCard) {
+            const newCard = createBatchCard(data);
+            vaultCard.parentNode.replaceChild(newCard, vaultCard);
+        }
+        
+        // Still reload in background for server truth
         reloadHistory(true);
       } catch (err) {
         setFooterMsg("Visibility change failed.", "error");
@@ -2049,13 +2085,12 @@
             ${(entry.images || []).slice(0, 4).map(img => {
                 const isHidden = img.status === 'hidden';
                 const isDeleting = img.status === 'deleting';
-                // Using a div-based placeholder while image loads
                 return `
-                  <div class="art-frame shimmer relative ${isHidden ? 'ring-1 ring-red-400/60 opacity-70' : ''} ${isDeleting ? 'spirit-deleting' : ''}">
+                  <div class="art-frame shimmer relative ${isHidden ? 'ring-1 ring-red-400/60' : ''} ${isDeleting ? 'spirit-deleting' : ''} ${isHidden && !state.showHiddenVault ? 'hidden' : ''}">
                     <img src="${img.thumbnail_url || img.r2_url}" 
-                         class="w-full aspect-square object-cover relative z-10 opacity-0 transition-opacity duration-500" 
+                         class="w-full aspect-square object-cover relative z-10 opacity-0 transition-opacity duration-500 ${isHidden ? 'opacity-70' : ''}" 
                          loading="lazy"
-                         onload="this.style.opacity='1'; this.parentElement.classList.remove('shimmer');">
+                         onload="this.style.opacity= ('${isHidden}' === 'true' ? '0.7' : '1'); this.parentElement.classList.remove('shimmer');">
                   </div>`;
             }).join("")}
           </div>
@@ -2370,7 +2405,7 @@
       try {
         const cacheBuster = `&_t=${Date.now()}`;
         const cursorParam = state.historyCursor ? `&before=${state.historyCursor}` : "";
-        const hiddenParam = state.showHiddenVault ? "&include_hidden=true" : "";
+        const hiddenParam = `&include_hidden=${state.showHiddenVault ? 'true' : 'false'}`;
         const fetchUrl = `/history?limit=${state.historyLimit}${cursorParam}&uid=${state.activeUid}${hiddenParam}${cacheBuster}`;
 
         const res = await apiFetch(fetchUrl);
