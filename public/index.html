@@ -2101,12 +2101,13 @@
           }
 
           setFooterMsg(`Banishing ${count} manifestations...`, "info");
+          state.loadingHistory = true; // Lock immediately to prevent scroll triggers
           setTimeout(() => {
             ids.forEach(id => { const el = document.getElementById(`batch-${id}`); if (el) el.remove(); });
             toggleSelectionMode(false);
             updateVaultCache();
             // Refill the gaps created by bulk deletion
-            refillVaultGap(count);
+            refillVaultGap(count, true); // Pass true to skip internal guard check
           }, 850);
         });
       } else if (action === 'hide') {
@@ -2253,10 +2254,11 @@
               if (b.id && b.id.includes(requestId)) b.remove();
             });
 
+            state.loadingHistory = true; // Lock immediately
             closeBubbleReveal();
             updateVaultCache();
             // Refill the gap created by single batch deletion
-            refillVaultGap(1);
+            refillVaultGap(1, true); // Pass true to skip internal guard check
           })
           .catch(e => {
             state.pendingDeletions.delete(requestId);
@@ -2393,8 +2395,9 @@
       await loadHistoryPage();
     }
 
-    async function refillVaultGap(count = 1) {
-      if (count <= 0 || state.loadingHistory) return;
+    async function refillVaultGap(count = 1, force = false) {
+      if (count <= 0) return;
+      if (!force && state.loadingHistory) return;
       
       state.loadingHistory = true; // Block infinite scroll while refilling
       
@@ -2432,7 +2435,10 @@
       } catch (e) {
           console.error("Vault refill failed:", e);
       } finally {
-          state.loadingHistory = false; // Release guard
+          // USER IDEA: Delay releasing the lock to prevent race conditions with scroll-based auto-loading
+          setTimeout(() => {
+              state.loadingHistory = false;
+          }, 1500);
       }
     }
 
