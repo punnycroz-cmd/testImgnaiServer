@@ -988,6 +988,7 @@
       if (btn) {
         btn.classList.toggle("text-[var(--accent)]", state.showHiddenVault);
         btn.classList.toggle("opacity-60", !state.showHiddenVault);
+        btn.textContent = state.showHiddenVault ? "Hide Hidden" : "Show Hidden";
       }
       reloadHistory();
     }
@@ -2714,6 +2715,7 @@
     function reloadHistory() {
       state.historyLoaded = false;
       state.historyPage = 0;
+      state.historyCursor = null; // 🚀 CRITICAL FIX: Reset cursor to start from the top
       dom.historyList.innerHTML = "";
       renderHistory();
     }

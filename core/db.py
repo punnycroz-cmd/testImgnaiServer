@@ -495,7 +495,7 @@ async def hide_generation(request_id: str):
 async def show_generation(request_id: str):
     pool = await get_pool()
     async with pool.acquire() as conn:
-        await conn.execute("UPDATE generations SET is_hidden = false WHERE request_id = $1", request_id)
+        await conn.execute("UPDATE generations SET is_hidden = false, hidden_indices = ARRAY[]::INTEGER[] WHERE request_id = $1", request_id)
 
 async def delete_generation(request_id: str) -> Optional[Dict]:
     pool = await get_pool()
