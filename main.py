@@ -5,10 +5,11 @@ import os
 import uuid
 import traceback
 import json
+import hashlib
 from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Request, Depends, Query
+from fastapi import FastAPI, HTTPException, Request, Depends, Query, Response
 from fastapi.middleware.cors import CORSMiddleware
 
 from config.schemas import GenerateRequest
@@ -173,27 +174,21 @@ async def _run_generation(job_id: str, req: GenerateRequest):
 
 
 
-@app.get("/job-status/{request_id}")
-async def job_status(request_id: str):
-    async with job_lock:
-        job = job_store.get(request_id)
+@app.get("/job-status/{job_id}")
+async def get_job_status(request: Request, response: Response, job_id: str):
+    res = await DB.get_generation(job_id)
+    if not res:
+        raise HTTPException(status_code=404, detail="Job not found")
+        
+    # Option 4: ETag for job status
+    content_str = json.dumps(res, sort_keys=True)
+    etag = f'W/"{hashlib.md5(content_str.encode()).hexdigest()}"'
     
-    row = await DB.get_generation(request_id)
-    if not row:
-        if not job:
-            raise HTTPException(status_code=404, detail="job not found")
-        return {"request_id": request_id, **job}
-    
-    return {
-        "request_id": request_id,
-        "status": row["status"],
-        "client_id": row["client_id"],
-        "prompt": row["prompt"],
-        "realm": row["realm"],
-        "images": row.get("images", []),
-        "result": row.get("result"),
-        "error": row.get("error")
-    }
+    if request.headers.get("If-None-Match") == etag:
+        return Response(status_code=304)
+        
+    response.headers["ETag"] = etag
+    return res
 
 from pydantic import BaseModel
 from typing import List
@@ -307,7 +302,7 @@ async def vault_stats(realm: Optional[str] = None):
 
 
 @app.get("/history")
-async def history(request: Request, limit: int = 20, realm: Optional[str] = None, before: Optional[str] = None, uid: str = "uid_0", include_hidden: bool = False):
+async def get_history(request: Request, response: Response, limit: int = 20, realm: Optional[str] = None, before: Optional[str] = None, uid: str = "uid_0", include_hidden: bool = False):
     # Fallback for proxies that strip query params
     cursor = before or request.headers.get("X-Debug-Cursor")
     b_id = None
@@ -317,12 +312,22 @@ async def history(request: Request, limit: int = 20, realm: Optional[str] = None
 
     page_items = await DB.list_generations(limit=limit, realm=realm, before_id=b_id, uid=uid, include_hidden=include_hidden)
     
-    return {
+    result = {
         "items": page_items,
         "limit": limit,
         "has_more": len(page_items) == limit,
         "next_cursor": page_items[-1]["image_id"] if page_items else None
     }
+
+    # Option 4: ETag Generation
+    content_str = json.dumps(result, sort_keys=True)
+    etag = f'W/"{hashlib.md5(content_str.encode()).hexdigest()}"'
+    
+    if request.headers.get("If-None-Match") == etag:
+        return Response(status_code=304)
+        
+    response.headers["ETag"] = etag
+    return result
 
 
 @app.get("/diag/db")

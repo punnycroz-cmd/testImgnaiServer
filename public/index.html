@@ -891,15 +891,17 @@
       historyHasMore: true,
       historyLoaded: false,
       loadingHistory: false,
-      currentPoll: null,
       pendingDeletions: new Set(),
+      isTabVisible: true,
+      activePolls: new Set(),
       vaultRealm: null,
       showHiddenVault: false,
       selectionMode: false,
       selectedIds: new Set(),
       matrixPaused: false,
       matrixCancelled: false,
-      activeUid: "uid_0"
+      activeUid: "uid_0",
+      etagCache: {}
     };
 
     const dom = {
@@ -1044,13 +1046,26 @@
            if (match) fetchOpts.headers["X-Debug-Cursor"] = match[1];
         }
         
+        // Option 4: ETag Support
+        const etag = state.etagCache[finalUrl];
+        if (etag) fetchOpts.headers["If-None-Match"] = etag;
+
         const resp = await fetch(finalUrl, fetchOpts);
+        
+        // Save new ETag
+        const newEtag = resp.headers.get("ETag");
+        if (newEtag) state.etagCache[finalUrl] = newEtag;
+
+        if (resp.status === 304) {
+            console.log(`[Cache] ${finalUrl} has not changed.`);
+            return null; // Signal that no update is needed
+        }
+
         const text = await resp.text();
         let data = null;
         try { data = text ? JSON.parse(text) : null; } catch { data = { raw: text }; }
         if (!resp.ok) {
           const err = new Error(data?.detail || data?.error || `HTTP ${resp.status}`);
-          err.status = resp.status;
           err.data = data;
           throw err;
         }
@@ -1463,6 +1478,56 @@
         state.isGenerating = false; // Release internal updates
         if (window.innerWidth < 1024) toggleConsole("minimize");
       }
+    }
+
+    async function pollJobStatus(jobId, quality = "fast") {
+      if (state.activePolls.has(jobId)) return;
+      state.activePolls.add(jobId);
+
+      // Initial silent period
+      const initialDelay = (quality === "high") ? 50000 : 30000;
+      console.log(`[Forge] Initializing poll for ${jobId} in ${initialDelay/1000}s...`);
+      await new Promise(r => setTimeout(r, initialDelay));
+
+      let currentDelay = 3000; // Start at 3s
+      const maxDelay = 30000;  // Cap at 30s
+
+      const runPoll = async () => {
+        if (!state.isTabVisible) {
+            setTimeout(runPoll, 5000); 
+            return;
+        }
+
+        try {
+          const res = await apiFetch(`/job-status/${jobId}`);
+          
+          // Option 4: 304 Not Modified handler
+          if (res === null) {
+              setTimeout(runPoll, currentDelay);
+              return;
+          }
+
+          if (res.status === "done") {
+            handleSuccess(res.urls, jobId, res.payload, res.meta);
+            state.activePolls.delete(jobId);
+            return;
+          } else if (res.status === "failed") {
+            handleError(jobId, res.error || "Generation fractured.");
+            state.activePolls.delete(jobId);
+            return;
+          }
+          
+          // Option 3: Exponential Backoff
+          currentDelay = Math.min(currentDelay * 1.5, maxDelay);
+          console.log(`[Forge] Job ${jobId} still processing. Next poll in ${Math.round(currentDelay/1000)}s`);
+          setTimeout(runPoll, currentDelay);
+        } catch (e) {
+          console.error("Poll failed:", e);
+          setTimeout(runPoll, 10000);
+        }
+      };
+
+      runPoll();
     }
 
     async function pollUntilDone(requestId, payload, maxAttempts = 120) {
@@ -2306,6 +2371,27 @@
 
       await loadHistoryPage();
     }
+
+    function initHistoryPolling() {
+      setInterval(() => {
+        const isVaultActive = document.querySelector('[data-view="history"]').classList.contains("active");
+        if (isVaultActive && state.isTabVisible) {
+            console.log("[Vault] Periodic sync check...");
+            renderHistory();
+        }
+      }, 60000); 
+    }
+
+    // Visibility Guardian: Stop everything when user leaves tab
+    document.addEventListener("visibilitychange", () => {
+      state.isTabVisible = !document.hidden;
+      console.log(`[Studio] Visibility changed: ${state.isTabVisible ? 'Active' : 'Dormant'}`);
+      if (state.isTabVisible) {
+          // Immediate refresh on return if in Vault
+          const isVaultActive = document.querySelector('[data-view="history"]').classList.contains("active");
+          if (isVaultActive) renderHistory();
+      }
+    });
 
     // The Oracle Module
     const ORACLE_PROMPTS = [
