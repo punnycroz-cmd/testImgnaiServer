@@ -403,7 +403,9 @@ async def hide_image(request_id: str, request: Request, url: Optional[str] = Que
             index = int(idx)
             ok = await DB.hide_image_index(request_id, index)
             return {"status": "ok" if ok else "error", "hidden": ok, "request_id": request_id, "index": index}
-        except ValueError: pass
+        except Exception as e:
+            logger.error(f"Hide image error: {str(e)}\n{traceback.format_exc()}")
+            return {"status": "error", "detail": str(e), "request_id": request_id}
 
     # Fallback to URL-based logic
     resolved_url = await _extract_image_url(request, url)
@@ -426,7 +428,9 @@ async def show_image(request_id: str, request: Request, url: Optional[str] = Que
             index = int(idx)
             ok = await DB.show_image_index(request_id, index)
             return {"status": "ok" if ok else "error", "shown": ok, "request_id": request_id, "index": index}
-        except ValueError: pass
+        except Exception as e:
+            logger.error(f"Show image error: {str(e)}\n{traceback.format_exc()}")
+            return {"status": "error", "detail": str(e), "request_id": request_id}
         
     resolved_url = await _extract_image_url(request, url)
     ok = await DB.show_image(request_id, resolved_url)
