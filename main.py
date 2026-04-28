@@ -181,7 +181,8 @@ async def get_job_status(request: Request, response: Response, job_id: str):
         raise HTTPException(status_code=404, detail="Job not found")
         
     # Option 4: ETag for job status
-    content_str = json.dumps(res, sort_keys=True)
+    # Note: We use default=str to handle datetime objects in the record
+    content_str = json.dumps(res, sort_keys=True, default=str)
     etag = f'W/"{hashlib.md5(content_str.encode()).hexdigest()}"'
     
     if request.headers.get("If-None-Match") == etag:
@@ -320,7 +321,8 @@ async def get_history(request: Request, response: Response, limit: int = 20, rea
     }
 
     # Option 4: ETag Generation
-    content_str = json.dumps(result, sort_keys=True)
+    # Note: We use default=str to handle datetime objects in the record
+    content_str = json.dumps(result, sort_keys=True, default=str)
     etag = f'W/"{hashlib.md5(content_str.encode()).hexdigest()}"'
     
     if request.headers.get("If-None-Match") == etag:
