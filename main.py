@@ -112,8 +112,8 @@ async def auth_google(request: Request, response: Response):
             key="aether_session",
             value=session_token,
             httponly=True,
-            secure=request.url.scheme == "https",
-            samesite="lax",
+            secure=True, # Required for samesite="none"
+            samesite="none",
             max_age=60 * 60 * 24 * 30 # 30 days
         )
 
@@ -124,11 +124,16 @@ async def auth_google(request: Request, response: Response):
 
 @app.get("/auth/me")
 async def auth_me(request: Request):
+    session_cookie = request.cookies.get("aether_session")
+    print(f"DEBUG: /auth/me - session_cookie present: {session_cookie is not None}")
+    
     uid = get_uid_from_session(request)
     if not uid:
+        print("DEBUG: /auth/me - uid not found in session")
         return {"user": None}
     
     user = await DB.get_user(uid)
+    print(f"DEBUG: /auth/me - found user: {user['name'] if user else 'None'}")
     return {"user": user}
 
 @app.post("/auth/logout")
