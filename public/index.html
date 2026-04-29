@@ -2858,7 +2858,7 @@
             if (state.discoveryCursor === null) list.innerHTML = "";
             
             res.items.forEach(item => {
-                const card = createHistoryCard(item, false); 
+                const card = createBatchCard(item); 
                 list.appendChild(card);
             });
             
