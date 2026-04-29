@@ -2211,8 +2211,6 @@
                 <div class="text-[9px] uppercase tracking-widest font-black px-2 py-0.5 rounded ${entry.realm === 'star' ? 'bg-purple-500/20 text-purple-400' : 'bg-emerald-500/20 text-emerald-600'}">
                   ${entry.realm || "day"}
                 </div>
-                <div class="text-[9px] font-bold opacity-40 bg-white/5 px-1 rounded">ID #${entry.image_id || "..."}</div>
-                <div class="text-[9px] font-bold opacity-40 bg-white/5 px-1 rounded">${entry.uid || "uid_0"}</div>
                 ${entry.is_hidden ? '<div class="text-[9px] font-black uppercase tracking-widest bg-red-500/15 text-red-400 px-1 rounded">Hidden</div>' : ''}
                 <div class="public-badge ${entry.is_public ? '' : 'hidden'} text-[9px] font-black uppercase tracking-widest bg-violet-500/20 text-violet-400 px-1 rounded">Shared</div>
               </div>

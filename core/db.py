@@ -473,7 +473,8 @@ async def list_generations(limit: int = 20, offset: int = 0, realm: Optional[str
             if d.get('updated_at'): d['updated_at'] = d['updated_at'].isoformat()
             
             result_obj = _normalize_result(d.get("result"))
-            d['is_hidden'] = r.get("is_hidden")
+            d['is_hidden'] = bool(r.get("is_hidden"))
+            d['is_public'] = bool(r.get("is_public"))
             d['hidden_indices'] = r.get("hidden_indices") or []
             d['images'] = _build_images(result_obj, include_hidden=include_hidden, hidden_indices=d['hidden_indices'])
             results.append(d)
@@ -633,8 +634,14 @@ async def list_public_generations(limit: int = 20, before_id: Optional[int] = No
         results = []
         for r in rows:
             d = dict(r)
-            # We don't filter individual images for public view yet, just the batch
-            d['images'] = _build_images(r, include_hidden=False, hidden_indices=d['hidden_indices'])
+            if d.get('created_at'): d['created_at'] = d['created_at'].isoformat()
+            if d.get('updated_at'): d['updated_at'] = d['updated_at'].isoformat()
+            
+            result_obj = _normalize_result(d.get("result"))
+            d['is_public'] = True # Always True here by query
+            d['hidden_indices'] = r.get("hidden_indices") or []
+            # In public view, we NEVER show hidden images
+            d['images'] = _build_images(result_obj, include_hidden=False, hidden_indices=d['hidden_indices'])
             results.append(d)
         return results
 
