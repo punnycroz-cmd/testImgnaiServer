@@ -44,7 +44,7 @@
       margin: 0;
       min-height: 100vh;
       overflow: hidden;
-      transition: background-color 0.6s ease, color 0.3s ease;
+      transition: background-color 0.8s cubic-bezier(0.4, 0, 0.2, 1), color 0.4s ease;
     }
 
     h1,
@@ -61,6 +61,7 @@
       border: 1px solid var(--panel-border);
       box-shadow: 0 20px 40px var(--panel-shadow);
       border-radius: 2rem;
+      transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.4s ease, border-color 0.4s ease;
     }
 
     .nav-pill {
@@ -69,10 +70,17 @@
       cursor: pointer;
     }
 
+    .nav-pill:hover:not(.active) {
+      color: var(--text-main);
+      transform: translateY(-1px);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
     .nav-pill.active {
       color: var(--accent-text);
       background: var(--accent);
       box-shadow: 0 10px 25px var(--accent-glow);
+      transform: scale(1.05);
     }
 
     textarea,
@@ -111,6 +119,36 @@
       opacity: 0.65;
       cursor: not-allowed;
       transform: none;
+    }
+
+    .btn-magic:active:not(:disabled) {
+      transform: scale(0.96);
+    }
+
+    .view {
+      transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .view.hidden {
+      display: none;
+      opacity: 0;
+      transform: translateY(10px);
+    }
+
+    .view.active {
+      display: block;
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .art-frame {
+      transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.5s ease;
+    }
+
+    .art-frame:hover {
+      transform: scale(1.02) translateY(-4px);
+      box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+      z-index: 20;
     }
 
     .loader {
@@ -1161,9 +1199,14 @@
     }
 
     function setLoading(loading) {
-      dom.generateBtn.disabled = loading;
-      dom.btnText.textContent = loading ? "Weaving..." : "Manifest";
-      dom.btnLoader.classList.toggle("hidden", !loading);
+      const btns = [dom.generateBtn, dom.btnMatrixLoader, dom.publishBtn].filter(Boolean);
+      btns.forEach(b => {
+        b.disabled = loading;
+        b.classList.toggle("opacity-50", loading);
+      });
+      
+      if (dom.btnText) dom.btnText.textContent = loading ? "Weaving..." : "Manifest";
+      if (dom.btnLoader) dom.btnLoader.classList.toggle("hidden", !loading);
     }
 
     function saveActiveRequest(requestId) {
@@ -1190,6 +1233,11 @@
       state.activeMode = mode;
       document.body.dataset.mode = mode;
       state.serverUrl = resolveServerUrl(mode);
+      
+      // 🛑 Smooth transitions for UI elements
+      document.body.style.opacity = "0.9";
+      setTimeout(() => { document.body.style.opacity = "1"; }, 150);
+
       const previousModel = dom.model.value || localStorage.getItem("a_model") || "";
       const previousQuality = dom.quality.value || localStorage.getItem("a_quality") || "";
       const previousAspect = dom.aspect.value || localStorage.getItem("a_aspect") || "";
@@ -1207,6 +1255,10 @@
       localStorage.setItem("a_model", dom.model.value);
       localStorage.setItem("a_quality", dom.quality.value);
       localStorage.setItem("a_aspect", dom.aspect.value);
+
+      // Update color scheme
+      const accent = mode === "nsfw" ? "#8b5cf6" : "#10b981";
+      document.documentElement.style.setProperty('--accent', accent);
 
       refreshCurrentJob();
     }
@@ -2280,11 +2332,11 @@
                 const isHidden = img.status === 'hidden';
                 const isDeleting = img.status === 'deleting';
                 return `
-                  <div class="art-frame shimmer relative ${isHidden ? 'ring-1 ring-red-400/60' : ''} ${isDeleting ? 'spirit-deleting' : ''} ${isHidden && !state.showHiddenVault ? 'hidden-collapsed' : ''}">
+                  <div class="art-frame shimmer relative group/card ${isHidden ? 'ring-1 ring-red-400/60' : ''} ${isDeleting ? 'spirit-deleting' : ''} ${isHidden && !state.showHiddenVault ? 'hidden-collapsed' : ''}">
                     <img src="${img.thumbnail_url || img.r2_url}" 
-                         class="w-full aspect-square object-cover relative z-10 opacity-0 transition-opacity duration-500 ${isHidden ? 'spirit-hidden' : ''}" 
+                         class="w-full aspect-square object-cover relative z-10 opacity-0 transition-all duration-700 scale-105 group-hover/card:scale-110 ${isHidden ? 'spirit-hidden' : ''}" 
                          loading="lazy"
-                         onload="this.style.opacity= ('${isHidden}' === 'true' ? '0.75' : '1'); this.parentElement.classList.remove('shimmer');">
+                         onload="this.style.opacity= ('${isHidden}' === 'true' ? '0.75' : '1'); this.style.transform='scale(1)'; this.parentElement.classList.remove('shimmer');">
                   </div>`;
             }).join("")}
           </div>
@@ -3080,19 +3132,32 @@
     }
 
     function setView(v, updateHash = true) {
-      document.querySelectorAll(".view").forEach(el => el.classList.add("hidden"));
-      const viewEl = document.getElementById(`view-${v}`);
-      if (viewEl) viewEl.classList.remove("hidden");
-      
       if (updateHash) {
         const hash = Object.keys(ROUTE_MAP).find(k => ROUTE_MAP[k] === v);
         if (hash) window.location.hash = hash;
       }
 
+      // 🛑 Smooth transition: fade out current view, then show next
+      document.querySelectorAll(".view").forEach(el => {
+        el.classList.remove("active");
+        el.classList.add("hidden");
+      });
+
+      const viewEl = document.getElementById(`view-${v}`);
+      if (viewEl) {
+        viewEl.classList.remove("hidden");
+        // Force reflow for animation
+        void viewEl.offsetWidth;
+        viewEl.classList.add("active");
+        
+        // Scroll main to top
+        const mainEl = document.querySelector('main');
+        if (mainEl) mainEl.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+
       document.querySelectorAll("[data-view]").forEach(b => {
         const isMatch = b.dataset.view === v;
         b.classList.toggle("active", isMatch);
-        b.classList.toggle("bg-white/20", isMatch && !b.classList.contains("mobile-nav-item"));
         b.classList.toggle("opacity-100", isMatch);
         b.classList.toggle("opacity-60", !isMatch);
       });
