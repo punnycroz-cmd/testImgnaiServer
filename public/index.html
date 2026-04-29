@@ -946,7 +946,7 @@
     const QUALITY_CHOICES = ["Fast", "High Quality"];
 
     const state = {
-      serverUrl: "",
+      serverUrl: window.location.origin,
       activeMode: localStorage.getItem("a_mode") || "standard",
       activeRequestId: localStorage.getItem("a_active_request_id") || "",
       activeRequest: null,
@@ -2933,6 +2933,7 @@
     }
 
     // --- Initialization ---
+    applyMode(state.activeMode);
     handleRouting();
     window.addEventListener('hashchange', handleRouting);
     checkAuth();
@@ -2943,7 +2944,6 @@
     dom.generateBtn.addEventListener("click", runGeneration);
 
     try {
-      applyMode(state.activeMode);
       renderActiveRequest();
       checkBackend(); 
       handleRouting(); // Start the router
