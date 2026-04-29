@@ -99,6 +99,7 @@ async def init_db(force: bool = False):
         await conn.execute("ALTER TABLE generations ADD COLUMN IF NOT EXISTS image_id BIGINT;")
         await conn.execute("ALTER TABLE generations ADD COLUMN IF NOT EXISTS result JSONB DEFAULT '{}'::jsonb;")
         await conn.execute("ALTER TABLE generations ADD COLUMN IF NOT EXISTS is_hidden BOOLEAN DEFAULT FALSE;")
+        await conn.execute("ALTER TABLE generations ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT FALSE;")
         await conn.execute("ALTER TABLE generations ADD COLUMN IF NOT EXISTS error TEXT;")
         await conn.execute("ALTER TABLE generations ADD COLUMN IF NOT EXISTS last_error_text TEXT;")
         await conn.execute("ALTER TABLE generations ADD COLUMN IF NOT EXISTS hidden_indices INTEGER[] DEFAULT ARRAY[]::INTEGER[];")
@@ -594,5 +595,47 @@ class DatabaseProxy:
     async def delete_image(self, rid, url): return await delete_image(rid, url)
     async def mark_image_deleting(self, rid, url): return await mark_image_deleting(rid, url)
     async def finalize_image_deletion(self, rid, url): return await finalize_image_deletion(rid, url)
+    async def set_generation_public(self, rid, is_public: bool): return await set_generation_public(rid, is_public)
+    async def list_public_generations(self, limit=20, before_id=None): return await list_public_generations(limit, before_id)
+
+async def set_generation_public(request_id: str, is_public: bool) -> bool:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute("""
+            UPDATE generations 
+            SET is_public = $2, 
+                updated_at = NOW() 
+            WHERE request_id = $1
+        """, request_id, is_public)
+        return True
+
+async def list_public_generations(limit: int = 20, before_id: Optional[int] = None) -> List[Dict]:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        clauses = ["is_public = TRUE", "status = 'done'"]
+        params = []
+        
+        if before_id is not None:
+            params.append(int(before_id))
+            clauses.append(f"image_id < ${len(params)}")
+            
+        where_stmt = " WHERE " + " AND ".join(clauses)
+        params.append(int(limit))
+        
+        sql = f"""
+            SELECT * FROM generations 
+            {where_stmt}
+            ORDER BY image_id DESC 
+            LIMIT ${len(params)}
+        """
+        rows = await conn.fetch(sql, *params)
+        
+        results = []
+        for r in rows:
+            d = dict(r)
+            # We don't filter individual images for public view yet, just the batch
+            d['images'] = _build_images(r, include_hidden=False, hidden_indices=d['hidden_indices'])
+            results.append(d)
+        return results
 
 DB = DatabaseProxy()

@@ -582,6 +582,8 @@
         <!-- Queue Disabled -->
         <button data-view="history"
           class="nav-pill px-4 sm:px-5 py-2 rounded-xl font-bold uppercase text-[10px] tracking-widest">Vault</button>
+        <button data-view="discovery"
+          class="nav-pill px-4 sm:px-5 py-2 rounded-xl font-bold uppercase text-[10px] tracking-widest">Discovery</button>
       </nav>
 
       <div class="flex items-center gap-4">
@@ -657,6 +659,8 @@
           <button onclick="banishBatch()"
             class="h-12 rounded-xl bg-red-900/20 border border-red-500/30 text-red-400 hover:bg-red-600 hover:text-white transition-all text-[10px] font-black uppercase tracking-[0.15em]">Banish
             Batch</button>
+          <button id="publishBtn" onclick="togglePublishCurrentBatch()"
+            class="h-12 rounded-xl bg-violet-600/20 border border-violet-500/30 text-violet-400 hover:bg-violet-600/40 transition-all text-[10px] font-black uppercase tracking-[0.15em] col-span-2">Post to Public</button>
         </div>
         <button onclick="closeBubbleReveal()"
           class="h-12 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-[10px] font-black uppercase tracking-[0.15em] lg:hidden col-span-2">Close</button>
@@ -749,7 +753,24 @@
           data-select-mode="false"></div>
         <div class="mt-8 flex justify-center">
           <button id="loadMoreBtn" onclick="loadHistoryPage()"
-            class="btn-magic px-5 py-3 text-[10px] font-bold uppercase tracking-widest">Load More</button>
+            class="btn-magic px-8 py-3 font-bold uppercase tracking-widest text-xs hidden">Deep Dive</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Discovery View -->
+    <section id="view-discovery" class="view hidden px-4 sm:px-8">
+      <div class="max-w-7xl mx-auto min-h-[400px] relative">
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-6 mb-10">
+          <div class="flex items-center gap-4">
+            <h2 class="text-3xl font-black cinematic-text tracking-widest text-[var(--accent)]">Public Gallery</h2>
+            <div class="w-px h-4 bg-white/10"></div>
+            <button onclick="reloadDiscovery()" class="text-[10px] font-bold uppercase tracking-widest text-[var(--accent)]">Refresh</button>
+          </div>
+        </div>
+        <div id="discoveryList" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 transition-all"></div>
+        <div class="mt-8 flex justify-center">
+            <button id="loadMoreDiscoveryBtn" onclick="loadDiscoveryPage()" class="btn-magic px-8 py-3 font-bold uppercase tracking-widest text-xs hidden">Load More</button>
         </div>
       </div>
     </section>
@@ -949,13 +970,16 @@
       serverUrl: window.location.origin,
       activeMode: localStorage.getItem("a_mode") || "standard",
       activeRequestId: localStorage.getItem("a_active_request_id") || "",
-      activeRequest: null,
-      historyPage: 1,
-      historyCursor: null,
-      historyLimit: 20,
-      historyHasMore: true,
-      historyLoaded: false,
       loadingHistory: false,
+      historyHasMore: true,
+      historyCursor: null,
+      historyLoaded: false,
+      discoveryItems: [],
+      loadingDiscovery: false,
+      discoveryHasMore: true,
+      discoveryCursor: null,
+      vaultObserver: null,
+      discoveryObserver: null,
       pendingDeletions: new Set(),
       isTabVisible: true,
       activePolls: new Set(),
@@ -969,7 +993,6 @@
       activeUid: "uid_0",
       user: null,
       etagCache: {},
-      vaultObserver: null,
       __inspected_current_index: 0
     };
 
@@ -1002,7 +1025,10 @@
       filterRealmDay: document.getElementById("filterRealmDay"),
       filterRealmStar: document.getElementById("filterRealmStar"),
       btnMatrixText: document.getElementById("btnMatrixText"),
-      btnMatrixLoader: document.getElementById("btnMatrixLoader")
+      btnMatrixLoader: document.getElementById("btnMatrixLoader"),
+      discoveryList: document.getElementById("discoveryList"),
+      loadMoreDiscoveryBtn: document.getElementById("loadMoreDiscoveryBtn"),
+      publishBtn: document.getElementById("publishBtn")
     };
 
     function isUnresolved(v) {
@@ -2131,7 +2157,9 @@
       state.__inspected_current_url = targetUrl;
       state.__inspected_current_index = targetImgObj?.image_index ?? 0;
       state.__inspected_current_hidden = (targetImgObj?.status === 'hidden');
+      state.activeRequest = entry;
       populateInspector(entry);
+      updatePublishButtonUI();
 
       if (images.length > 1) {
         thumbsSection.style.display = "flex";
@@ -2185,6 +2213,7 @@
                 <div class="text-[9px] font-bold opacity-40 bg-white/5 px-1 rounded">ID #${entry.image_id || "..."}</div>
                 <div class="text-[9px] font-bold opacity-40 bg-white/5 px-1 rounded">${entry.uid || "uid_0"}</div>
                 ${entry.is_hidden ? '<div class="text-[9px] font-black uppercase tracking-widest bg-red-500/15 text-red-400 px-1 rounded">Hidden</div>' : ''}
+                <div class="public-badge ${entry.is_public ? '' : 'hidden'} text-[9px] font-black uppercase tracking-widest bg-violet-500/20 text-violet-400 px-1 rounded">Shared</div>
               </div>
               <div class="text-xs font-bold truncate opacity-80">${escapeHtml(entry.prompt || "No Inscription")}</div>
             </div>
@@ -2807,12 +2836,95 @@
     }
     async function copyRequestId(id) { if (id) { await navigator.clipboard.writeText(id); setFooterMsg("Copied ID.", "info"); } }
     function escapeHtml(v) { return String(v).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;"); }
+    function reloadDiscovery() {
+        state.loadingDiscovery = false;
+        state.discoveryHasMore = true;
+        state.discoveryCursor = null;
+        if (dom.discoveryList) {
+            dom.discoveryList.classList.add("opacity-50", "pointer-events-none");
+        }
+        renderDiscovery();
+    }
+
+    async function loadDiscoveryPage() {
+        if (state.loadingDiscovery || !state.discoveryHasMore) return;
+        state.loadingDiscovery = true;
+        
+        try {
+            const url = `/public-gallery?limit=20${state.discoveryCursor ? `&before=${state.discoveryCursor}` : ''}`;
+            const res = await apiFetch(url);
+            
+            const list = dom.discoveryList;
+            if (state.discoveryCursor === null) list.innerHTML = "";
+            
+            res.items.forEach(item => {
+                const card = createHistoryCard(item, false); 
+                list.appendChild(card);
+            });
+            
+            state.discoveryCursor = res.next_cursor;
+            state.discoveryHasMore = res.has_more;
+            
+            if (dom.loadMoreDiscoveryBtn) {
+                dom.loadMoreDiscoveryBtn.classList.toggle("hidden", !state.discoveryHasMore);
+            }
+        } catch (err) {
+            console.error("Discovery failed:", err);
+        } finally {
+            state.loadingDiscovery = false;
+            if (dom.discoveryList) {
+                dom.discoveryList.classList.remove("opacity-50", "pointer-events-none");
+            }
+        }
+    }
+
+    function renderDiscovery() {
+        loadDiscoveryPage();
+    }
+
+    async function togglePublishCurrentBatch() {
+        if (!state.activeRequest) return;
+        const rid = state.activeRequest.request_id;
+        const currentPublic = state.activeRequest.is_public || false;
+        const nextPublic = !currentPublic;
+        
+        try {
+            await apiFetch(`/history/batch/${rid}/public`, {
+                method: "POST",
+                body: JSON.stringify({ is_public: nextPublic })
+            });
+            state.activeRequest.is_public = nextPublic;
+            updatePublishButtonUI();
+            setFooterMsg(nextPublic ? "Batch published to gallery!" : "Batch removed from gallery.", "info");
+            
+            // Refresh history list item if it exists
+            const card = document.getElementById(`batch-${rid}`);
+            if (card) {
+                card.dataset.public = nextPublic;
+                const badge = card.querySelector(".public-badge");
+                if (badge) badge.classList.toggle("hidden", !nextPublic);
+            }
+        } catch (err) {
+            console.error("Publish failed:", err);
+            setFooterMsg("Failed to update public status.", "error");
+        }
+    }
+
+    function updatePublishButtonUI() {
+        if (!dom.publishBtn || !state.activeRequest) return;
+        const isPublic = state.activeRequest.is_public || false;
+        dom.publishBtn.textContent = isPublic ? "Shared in Public" : "Post to Public";
+        dom.publishBtn.classList.toggle("bg-violet-600/40", isPublic);
+        dom.publishBtn.classList.toggle("text-white", isPublic);
+    }
+
     async function checkBackend() { try { const res = await apiFetch("/health"); dom.backendStatus.textContent = res.status === "ok" ? "Backend Online" : "Backend Latency"; } catch { dom.backendStatus.textContent = "Backend Offline"; } }
     
     const ROUTE_MAP = {
       'forge': 'generate',
       'vault': 'history',
       'tasks': 'tasks',
+      'discovery': 'discovery',
       'generate': 'generate',
       'history': 'history'
     };
@@ -2856,11 +2968,31 @@
           });
           state.vaultObserver.observe(dom.loadMoreBtn);
         }
+      } else if (v === "discovery") {
+        renderDiscovery();
+        
+        // ✨ Initialize Discovery Observer
+        if (!state.discoveryObserver && dom.loadMoreDiscoveryBtn) {
+          state.discoveryObserver = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting && !state.loadingDiscovery && state.discoveryHasMore) {
+              loadDiscoveryPage();
+            }
+          }, {
+            root: document.querySelector('main'),
+            rootMargin: '300px',
+            threshold: 0.1
+          });
+          state.discoveryObserver.observe(dom.loadMoreDiscoveryBtn);
+        }
       } else {
-        // 🛑 Disconnect Observer when leaving history
+        // 🛑 Disconnect Observers
         if (state.vaultObserver) {
           state.vaultObserver.disconnect();
           state.vaultObserver = null;
+        }
+        if (state.discoveryObserver) {
+          state.discoveryObserver.disconnect();
+          state.discoveryObserver = null;
         }
       }
 

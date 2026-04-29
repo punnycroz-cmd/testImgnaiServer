@@ -140,6 +140,41 @@ async def auth_me(request: Request):
 async def auth_logout(response: Response):
     response.delete_cookie("aether_session")
     return {"status": "ok"}
+
+# --- Public Gallery ---
+@app.get("/public-gallery")
+async def get_public_gallery(limit: int = 20, before: Optional[str] = None):
+    b_id = None
+    if before and before != "null" and before != "undefined":
+        try: b_id = int(float(before))
+        except: pass
+    
+    items = await DB.list_public_generations(limit=limit, before_id=b_id)
+    
+    next_cursor = items[-1]["image_id"] if items else None
+    return {
+        "items": items,
+        "limit": limit,
+        "has_more": len(items) >= limit,
+        "next_cursor": next_cursor
+    }
+
+@app.post("/history/batch/{request_id}/public")
+async def toggle_public_batch(request_id: str, request: Request):
+    uid = get_uid_from_session(request)
+    if not uid:
+        raise HTTPException(status_code=401, detail="Authentication required")
+        
+    body = await request.json()
+    is_public = body.get("is_public", True)
+    
+    # Ownership check
+    row = await DB.get_generation(request_id)
+    if not row or row.get("uid") != uid:
+        raise HTTPException(status_code=403, detail="Permission denied")
+        
+    await DB.set_generation_public(request_id, is_public)
+    return {"status": "ok", "is_public": is_public}
     # Close DB pool
     await DB.close()
 
