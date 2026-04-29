@@ -18,6 +18,15 @@ from core.vault import R2Vault
 from engines.day import DayManager
 from engines.star import GenerateRequest as StarGenerateRequest
 from engines.star import StarManager
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
+from itsdangerous import URLSafeSerializer
+
+# --- Auth Config ---
+# In production, set these in your .env file
+GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "206665134027-80oiqn378dq1jo49lgtmaueu0p30mf9a.apps.googleusercontent.com")
+SESSION_SECRET = os.environ.get("SESSION_SECRET", "aether-spiritual-fallback-secret-2024")
+serializer = URLSafeSerializer(SESSION_SECRET, salt="aether-auth")
 
 # --- Logging Cleanup ---
 class EndpointFilter(logging.Filter):
@@ -48,6 +57,67 @@ async def lifespan(app: FastAPI):
     # Initialize DB pool
     await DB.init(force=False)
     yield
+
+# --- Authentication Helpers ---
+def get_uid_from_session(request: Request) -> Optional[str]:
+    session_token = request.cookies.get("aether_session")
+    if not session_token:
+        return None
+    try:
+        return serializer.loads(session_token)
+    except:
+        return None
+
+# --- Authentication Routes ---
+@app.post("/auth/google")
+async def auth_google(request: Request, response: Response):
+    try:
+        body = await request.json()
+        token = body.get("id_token")
+        if not token:
+            raise HTTPException(status_code=400, detail="Missing id_token")
+
+        # Verify Google Token
+        idinfo = id_token.verify_oauth2_token(token, google_requests.Request(), GOOGLE_CLIENT_ID)
+        
+        # ID token is valid. Get the user's Google ID from the decoded token.
+        userid = idinfo['sub']
+        email = idinfo.get('email')
+        name = idinfo.get('name')
+        picture = idinfo.get('picture')
+
+        # Upsert user in DB
+        user = await DB.upsert_user(userid, email, name, picture)
+
+        # Create Session
+        session_token = serializer.dumps(userid)
+        response.set_cookie(
+            key="aether_session",
+            value=session_token,
+            httponly=True,
+            secure=request.url.scheme == "https",
+            samesite="lax",
+            max_age=60 * 60 * 24 * 30 # 30 days
+        )
+
+        return {"status": "ok", "user": user}
+    except Exception as e:
+        logger.error(f"Auth failed: {traceback.format_exc()}")
+        raise HTTPException(status_code=401, detail=str(e))
+
+@app.get("/auth/me")
+async def auth_me(request: Request):
+    uid = get_uid_from_session(request)
+    if not uid:
+        return {"user": None}
+    
+    user = await DB.get_user(uid)
+    return {"user": user}
+
+@app.post("/auth/logout")
+async def auth_logout(response: Response):
+    response.delete_cookie("aether_session")
+    return {"status": "ok"}
     # Close DB pool
     await DB.close()
 
@@ -303,7 +373,16 @@ async def vault_stats(realm: Optional[str] = None):
 
 
 @app.get("/history")
-async def get_history(request: Request, response: Response, limit: int = 20, realm: Optional[str] = None, before: Optional[str] = None, uid: str = "uid_0", include_hidden: bool = False):
+async def get_history(request: Request, response: Response, limit: int = 20, realm: Optional[str] = None, before: Optional[str] = None, include_hidden: bool = False):
+    uid = get_uid_from_session(request)
+    if not uid:
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+    # Proxy fallback for include_hidden
+    header_hidden = request.headers.get("X-Include-Hidden")
+    if header_hidden is not None:
+        include_hidden = str(header_hidden).lower() == "true"
+        
     cursor = before or request.headers.get("X-Debug-Cursor")
     b_id = None
     if cursor and cursor != "null" and cursor != "undefined":
@@ -479,7 +558,11 @@ async def cancel_all_jobs():
 
 
 @app.post("/generate")
-async def generate(req: GenerateRequest):
+async def generate(req: GenerateRequest, request: Request):
+    uid = get_uid_from_session(request)
+    if not uid:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
     try:
         req.count = 4
         realm = (req.realm or "day").lower()
@@ -496,6 +579,7 @@ async def generate(req: GenerateRequest):
             seed=req.seed,
             negative_prompt=req.negative_prompt,
             count=req.count,
+            uid=uid,
             status="pending",
         )
         

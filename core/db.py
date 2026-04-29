@@ -44,10 +44,22 @@ async def init_db(force: bool = False):
         if force:
             await conn.execute("DROP TABLE IF EXISTS generations CASCADE;")
 
+        # Create Users Table
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                uid TEXT PRIMARY KEY, -- Google 'sub' ID
+                email TEXT UNIQUE NOT NULL,
+                name TEXT,
+                picture TEXT,
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                updated_at TIMESTAMPTZ DEFAULT NOW()
+            );
+        """)
+
         # Create Master History Table with requested constraints
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS generations (
-                uid TEXT DEFAULT 'uid_0',
+                uid TEXT REFERENCES users(uid) ON DELETE CASCADE,
                 image_id BIGINT,
                 id UUID PRIMARY KEY,
                 
@@ -98,6 +110,27 @@ async def init_db(force: bool = False):
             for i, row in enumerate(null_rows):
                 await conn.execute("UPDATE generations SET image_id = $1, uid = 'uid_0' WHERE id = $2", i + 1, row['id'])
             logging.info("Backfill complete!")
+
+async def upsert_user(uid: str, email: str, name: str = None, picture: str = None) -> Dict:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow("""
+            INSERT INTO users (uid, email, name, picture, updated_at)
+            VALUES ($1, $2, $3, $4, NOW())
+            ON CONFLICT (uid) DO UPDATE 
+            SET email = EXCLUDED.email, 
+                name = EXCLUDED.name, 
+                picture = EXCLUDED.picture,
+                updated_at = NOW()
+            RETURNING *
+        """, uid, email, name, picture)
+        return dict(row)
+
+async def get_user(uid: str) -> Optional[Dict]:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow("SELECT * FROM users WHERE uid = $1", uid)
+        return dict(row) if row else None
         
         # CRITICAL INDEXES (Prevents 502 errors & sorts correctly)
         await conn.execute("CREATE INDEX IF NOT EXISTS idx_generations_realm_created ON generations (realm, created_at DESC);")
@@ -554,8 +587,10 @@ class DatabaseProxy:
     async def delete_generation(self, rid): await delete_generation(rid)
     async def hide_image(self, rid, url): await hide_image(rid, url)
     async def show_image(self, rid, url): await show_image(rid, url)
-    async def hide_image_index(self, rid, index): return await hide_image_index(rid, index)
-    async def show_image_index(self, rid, index): return await show_image_index(rid, index)
+    async def hide_image_index(self, rid, idx): await hide_image_index(rid, idx)
+    async def show_image_index(self, rid, idx): await show_image_index(rid, idx)
+    async def upsert_user(self, uid, email, name=None, picture=None): return await upsert_user(uid, email, name, picture)
+    async def get_user(self, uid): return await get_user(uid)
     async def delete_image(self, rid, url): return await delete_image(rid, url)
     async def mark_image_deleting(self, rid, url): return await mark_image_deleting(rid, url)
     async def finalize_image_deletion(self, rid, url): return await finalize_image_deletion(rid, url)

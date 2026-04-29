@@ -8,6 +8,11 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800&display=swap');
+  </style>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script>
+    const GOOGLE_CLIENT_ID = "206665134027-80oiqn378dq1jo49lgtmaueu0p30mf9a.apps.googleusercontent.com";
+  </script>
 
     :root {
       --bg-base: #f1f7f4;
@@ -530,6 +535,28 @@
 </head>
 
 <body data-mode="standard">
+  <div id="auth-overlay" class="fixed inset-0 z-[1000] flex items-center justify-center bg-[#0f172a] transition-opacity duration-700 hidden">
+    <div class="glass-panel p-12 max-w-md w-full text-center space-y-8 border-violet-500/20">
+      <div class="space-y-4">
+        <h1 class="text-4xl font-black text-white tracking-tighter">AETHER <span class="text-[var(--accent)]">STUDIO</span></h1>
+        <p class="text-slate-400 text-sm font-medium">Please sign in to access your creative sanctuary.</p>
+      </div>
+      
+      <div id="g_id_onload"
+           data-client_id="206665134027-80oiqn378dq1jo49lgtmaueu0p30mf9a.apps.googleusercontent.com"
+           data-callback="handleGoogleLogin"
+           data-auto_prompt="false">
+      </div>
+      <div class="g_id_signin flex justify-center"
+           data-type="standard"
+           data-size="large"
+           data-theme="outline"
+           data-text="sign_in_with"
+           data-shape="pill"
+           data-logo_alignment="left">
+      </div>
+    </div>
+  </div>
   <canvas id="aetherCanvas" class="fixed inset-0 pointer-events-none z-[-1]"></canvas>
 
   <header class="fixed top-5 left-0 right-0 z-[110] px-4 sm:px-8">
@@ -558,7 +585,16 @@
           class="nav-pill px-4 sm:px-5 py-2 rounded-xl font-bold uppercase text-[10px] tracking-widest">Vault</button>
       </nav>
 
-      <div class="status-pill hidden sm:inline-flex" id="backendStatus">Checking backend...</div>
+      <div class="flex items-center gap-4">
+        <div id="user-profile" class="hidden items-center gap-3 bg-black/5 p-1 pr-3 rounded-2xl border border-white/5">
+            <img id="user-avatar" class="w-8 h-8 rounded-xl object-cover border border-white/10" src="" alt="">
+            <div class="hidden lg:block text-[10px] font-bold uppercase tracking-widest text-[var(--text-main)]" id="user-name"></div>
+            <button onclick="logout()" class="p-2 hover:text-red-500 transition-colors" title="Logout">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            </button>
+        </div>
+        <div class="status-pill hidden sm:inline-flex" id="backendStatus">Checking backend...</div>
+      </div>
     </div>
   </header>
 
@@ -932,6 +968,7 @@
       matrixPaused: false,
       matrixCancelled: false,
       activeUid: "uid_0",
+      user: null,
       etagCache: {},
       vaultObserver: null,
       __inspected_current_index: 0
@@ -957,6 +994,10 @@
       backendStatus: document.getElementById("backendStatus"),
       matrixBtn: document.getElementById("matrixBtn"),
       toggleHiddenVaultBtn: document.getElementById("toggleHiddenVaultBtn"),
+      userProfile: document.getElementById("user-profile"),
+      userAvatar: document.getElementById("user-avatar"),
+      userName: document.getElementById("user-name"),
+      authOverlay: document.getElementById("auth-overlay"),
       toggleSelectBtn: document.getElementById("toggleSelectBtn"),
       filterRealmAll: document.getElementById("filterRealmAll"),
       filterRealmDay: document.getElementById("filterRealmDay"),
@@ -2829,7 +2870,74 @@
       }
     }
 
+    // --- Authentication ---
+    function updateAuthUI() {
+        if (state.user) {
+            dom.authOverlay.classList.add("hidden");
+            dom.userProfile.classList.remove("hidden");
+            dom.userProfile.classList.add("flex");
+            dom.userAvatar.src = state.user.picture;
+            dom.userName.textContent = state.user.name.split(' ')[0];
+        } else {
+            dom.authOverlay.classList.remove("hidden");
+            dom.userProfile.classList.add("hidden");
+            dom.userProfile.classList.remove("flex");
+        }
+    }
+
+    window.handleGoogleLogin = async (response) => {
+        try {
+            console.log("Processing Google Login...");
+            const res = await apiFetch("/auth/google", {
+                method: "POST",
+                body: JSON.stringify({ id_token: response.credential })
+            });
+            state.user = res.user;
+            state.activeUid = res.user.uid;
+            updateAuthUI();
+            reloadHistory();
+            setFooterMsg(`Welcome back, ${res.user.name}!`, "info");
+        } catch (err) {
+            console.error("Login failed:", err);
+            setFooterMsg("Authentication failed. Please try again.", "error");
+        }
+    };
+
+    async function checkAuth() {
+        try {
+            const res = await apiFetch("/auth/me");
+            if (res.user) {
+                state.user = res.user;
+                state.activeUid = res.user.uid;
+                updateAuthUI();
+                reloadHistory();
+            } else {
+                throw new Error("Not logged in");
+            }
+        } catch (err) {
+            updateAuthUI();
+        }
+    }
+
+    async function logout() {
+        try {
+            await apiFetch("/auth/logout", { method: "POST" });
+            state.user = null;
+            state.activeUid = "uid_0";
+            updateAuthUI();
+            dom.historyList.innerHTML = "";
+            setFooterMsg("Logged out.", "info");
+        } catch (err) {
+            console.error("Logout failed:", err);
+        }
+    }
+
+    // --- Initialization ---
+    handleRouting();
     window.addEventListener('hashchange', handleRouting);
+    checkAuth();
+    checkBackend();
+    setInterval(checkBackend, 30000);
     document.querySelectorAll("[data-view]").forEach(btn => btn.addEventListener("click", (e) => setView(e.currentTarget.dataset.view)));
     document.querySelectorAll("[data-mode]").forEach(btn => btn.addEventListener("click", () => applyMode(btn.dataset.mode)));
     dom.generateBtn.addEventListener("click", runGeneration);
