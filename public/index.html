@@ -970,6 +970,7 @@
       serverUrl: window.location.origin,
       activeMode: localStorage.getItem("a_mode") || "standard",
       activeRequestId: localStorage.getItem("a_active_request_id") || "",
+      historyLimit: 20,
       loadingHistory: false,
       historyHasMore: true,
       historyCursor: null,
@@ -2539,6 +2540,7 @@
       state.loadingHistory = true;
       if (dom.loadMoreBtn) dom.loadMoreBtn.textContent = "Summoning...";
 
+      const limit = state.historyLimit || 20;
       let renderedInThisPass = 0;
       console.group("Vault Load Operation");
 
