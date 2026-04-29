@@ -175,6 +175,38 @@ async def toggle_public_batch(request_id: str, request: Request):
         
     await DB.set_generation_public(request_id, is_public)
     return {"status": "ok", "is_public": is_public}
+
+# --- Feed / Posts ---
+@app.get("/posts")
+async def get_posts(limit: int = 20, before: Optional[int] = None):
+    items = await DB.list_posts(limit=limit, before_id=before)
+    next_cursor = items[-1]["id"] if items else None
+    return {
+        "items": items,
+        "limit": limit,
+        "has_more": len(items) >= limit,
+        "next_cursor": next_cursor
+    }
+
+@app.post("/posts")
+async def create_new_post(request: Request):
+    uid = get_uid_from_session(request)
+    if not uid:
+        raise HTTPException(status_code=401, detail="Authentication required")
+        
+    body = await request.json()
+    content = body.get("content", "").strip()
+    
+    if not content:
+        raise HTTPException(status_code=400, detail="Content cannot be empty")
+        
+    if len(content) > 1000:
+        raise HTTPException(status_code=400, detail="Content too long")
+        
+    # Basic content moderation can be added here
+    
+    post = await DB.create_post(uid, content)
+    return {"status": "ok", "post": post}
     # Close DB pool
     await DB.close()
 

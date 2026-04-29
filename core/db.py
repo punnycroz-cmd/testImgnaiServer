@@ -93,6 +93,17 @@ async def init_db(force: bool = False):
                 updated_at TIMESTAMPTZ DEFAULT NOW()
             );
         """)
+        # Create Feed/Posts Table
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS posts (
+                id SERIAL PRIMARY KEY,
+                uid TEXT NOT NULL REFERENCES users(uid),
+                content TEXT NOT NULL,
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                updated_at TIMESTAMPTZ DEFAULT NOW(),
+                is_deleted BOOLEAN DEFAULT FALSE
+            );
+        """)
 
         # Self-healing: Ensure columns exist for existing tables
         await conn.execute("ALTER TABLE generations ADD COLUMN IF NOT EXISTS uid TEXT DEFAULT 'uid_0';")
@@ -598,6 +609,47 @@ class DatabaseProxy:
     async def finalize_image_deletion(self, rid, url): return await finalize_image_deletion(rid, url)
     async def set_generation_public(self, rid, is_public: bool): return await set_generation_public(rid, is_public)
     async def list_public_generations(self, limit=20, before_id=None): return await list_public_generations(limit, before_id)
+    async def create_post(self, uid, content): return await create_post(uid, content)
+    async def list_posts(self, limit=20, before_id=None): return await list_posts(limit, before_id)
+
+async def create_post(uid: str, content: str) -> Dict:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow("""
+            INSERT INTO posts (uid, content) 
+            VALUES ($1, $2) 
+            RETURNING id, created_at
+        """, uid, content)
+        return dict(row)
+
+async def list_posts(limit: int = 20, before_id: Optional[int] = None) -> List[Dict]:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        clauses = ["is_deleted = FALSE"]
+        params = []
+        if before_id:
+            params.append(int(before_id))
+            clauses.append(f"posts.id < ${len(params)}")
+        
+        where_stmt = " WHERE " + " AND ".join(clauses)
+        params.append(int(limit))
+        
+        sql = f"""
+            SELECT posts.*, users.name, users.picture 
+            FROM posts 
+            JOIN users ON posts.uid = users.uid 
+            {where_stmt}
+            ORDER BY posts.id DESC 
+            LIMIT ${len(params)}
+        """
+        rows = await conn.fetch(sql, *params)
+        results = []
+        for r in rows:
+            d = dict(r)
+            if d.get('created_at'): d['created_at'] = d['created_at'].isoformat()
+            if d.get('updated_at'): d['updated_at'] = d['updated_at'].isoformat()
+            results.append(d)
+        return results
 
 async def set_generation_public(request_id: str, is_public: bool) -> bool:
     pool = await get_pool()

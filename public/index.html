@@ -584,6 +584,8 @@
           class="nav-pill px-4 sm:px-5 py-2 rounded-xl font-bold uppercase text-[10px] tracking-widest">Vault</button>
         <button data-view="discovery"
           class="nav-pill px-4 sm:px-5 py-2 rounded-xl font-bold uppercase text-[10px] tracking-widest">Discovery</button>
+        <button data-view="feed"
+          class="nav-pill px-4 sm:px-5 py-2 rounded-xl font-bold uppercase text-[10px] tracking-widest">Feed</button>
       </nav>
 
       <div class="flex items-center gap-4">
@@ -775,6 +777,41 @@
       </div>
     </section>
 
+    <!-- Feed View -->
+    <section id="view-feed" class="view hidden px-4 sm:px-8">
+      <div class="max-w-4xl mx-auto min-h-[400px] relative">
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-6 mb-10">
+          <div class="flex items-center gap-4">
+            <h2 class="text-3xl font-black cinematic-text tracking-widest text-[var(--accent)]">Community Feed</h2>
+            <div class="w-px h-4 bg-white/10"></div>
+            <button onclick="reloadFeed()" class="text-[10px] font-bold uppercase tracking-widest text-[var(--accent)]">Refresh</button>
+          </div>
+        </div>
+
+        <!-- Post Creation Area -->
+        <div class="glass-panel p-6 mb-10 border-violet-500/20">
+            <div class="flex gap-4">
+                <img class="feed-user-avatar w-10 h-10 rounded-xl object-cover border border-white/10" src="" alt="">
+                <div class="flex-1 space-y-4">
+                    <textarea id="feed-post-content" 
+                        class="w-full bg-black/20 border border-white/5 rounded-xl p-4 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-[var(--accent)]/50 transition-all resize-none"
+                        placeholder="Share your favorite prompts or settings... (AI Art related only)"
+                        rows="3"></textarea>
+                    <div class="flex justify-between items-center">
+                        <p class="text-[9px] text-slate-500 uppercase font-bold tracking-widest">Only AI image related content allowed</p>
+                        <button onclick="createPost()" class="btn-magic px-6 py-2 font-bold uppercase tracking-widest text-[10px]">Broadcast</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="feedList" class="flex flex-col gap-6"></div>
+        
+        <div class="mt-8 flex justify-center">
+            <button id="loadMoreFeedBtn" onclick="loadFeedPage()" class="btn-magic px-8 py-3 font-bold uppercase tracking-widest text-xs hidden">Venture Deeper</button>
+        </div>
+      </div>
+    </section>
   </main>
 
   <div id="desktopConsole" class="bottom-console glass-panel p-4 border-2 border-[var(--accent)]">
@@ -979,6 +1016,10 @@
       loadingDiscovery: false,
       discoveryHasMore: true,
       discoveryCursor: null,
+      feedItems: [],
+      loadingFeed: false,
+      feedHasMore: true,
+      feedCursor: null,
       vaultObserver: null,
       discoveryObserver: null,
       pendingDeletions: new Set(),
@@ -1029,7 +1070,10 @@
       btnMatrixLoader: document.getElementById("btnMatrixLoader"),
       discoveryList: document.getElementById("discoveryList"),
       loadMoreDiscoveryBtn: document.getElementById("loadMoreDiscoveryBtn"),
-      publishBtn: document.getElementById("publishBtn")
+      publishBtn: document.getElementById("publishBtn"),
+      feedList: document.getElementById("feedList"),
+      feedPostContent: document.getElementById("feed-post-content"),
+      loadMoreFeedBtn: document.getElementById("loadMoreFeedBtn")
     };
 
     function isUnresolved(v) {
@@ -2918,6 +2962,86 @@
         dom.publishBtn.classList.toggle("text-white", isPublic);
     }
 
+    function reloadFeed() {
+        state.loadingFeed = false;
+        state.feedHasMore = true;
+        state.feedCursor = null;
+        if (dom.feedList) {
+            dom.feedList.classList.add("opacity-50", "pointer-events-none");
+        }
+        renderFeed();
+    }
+
+    async function loadFeedPage() {
+        if (state.loadingFeed || !state.feedHasMore) return;
+        state.loadingFeed = true;
+        
+        try {
+            const url = `/posts?limit=20${state.feedCursor ? `&before=${state.feedCursor}` : ''}`;
+            const res = await apiFetch(url);
+            
+            const list = dom.feedList;
+            if (state.feedCursor === null) list.innerHTML = "";
+            
+            res.items.forEach(post => {
+                const card = createPostCard(post);
+                list.appendChild(card);
+            });
+            
+            state.feedCursor = res.next_cursor;
+            state.feedHasMore = res.has_more;
+            
+            if (dom.loadMoreFeedBtn) {
+                dom.loadMoreFeedBtn.classList.toggle("hidden", !state.feedHasMore);
+            }
+        } catch (err) {
+            console.error("Feed failed:", err);
+        } finally {
+            state.loadingFeed = false;
+            if (dom.feedList) {
+                dom.feedList.classList.remove("opacity-50", "pointer-events-none");
+            }
+        }
+    }
+
+    function renderFeed() {
+        loadFeedPage();
+    }
+
+    async function createPost() {
+        const content = dom.feedPostContent.value.trim();
+        if (!content) return;
+        
+        try {
+            await apiFetch("/posts", {
+                method: "POST",
+                body: JSON.stringify({ content })
+            });
+            dom.feedPostContent.value = "";
+            reloadFeed();
+            setFooterMsg("Status broadcasted!", "info");
+        } catch (err) {
+            console.error("Post failed:", err);
+            setFooterMsg("Failed to broadcast status.", "error");
+        }
+    }
+
+    function createPostCard(post) {
+        const div = document.createElement("div");
+        div.className = "glass-panel p-6 flex gap-4 border-white/5 hover:border-[var(--accent)]/20 transition-all";
+        div.innerHTML = `
+            <img class="w-10 h-10 rounded-xl object-cover border border-white/10" src="${post.picture || ''}" alt="">
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between mb-1">
+                    <span class="font-black text-[10px] uppercase tracking-widest text-[var(--accent)]">${post.name || 'Unknown'}</span>
+                    <span class="text-[9px] opacity-40 uppercase font-bold">${new Date(post.created_at).toLocaleString()}</span>
+                </div>
+                <p class="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">${escapeHtml(post.content)}</p>
+            </div>
+        `;
+        return div;
+    }
+
     async function checkBackend() { try { const res = await apiFetch("/health"); dom.backendStatus.textContent = res.status === "ok" ? "Backend Online" : "Backend Latency"; } catch { dom.backendStatus.textContent = "Backend Offline"; } }
     
     const ROUTE_MAP = {
@@ -2925,6 +3049,7 @@
       'vault': 'history',
       'tasks': 'tasks',
       'discovery': 'discovery',
+      'feed': 'feed',
       'generate': 'generate',
       'history': 'history'
     };
@@ -2984,6 +3109,8 @@
           });
           state.discoveryObserver.observe(dom.loadMoreDiscoveryBtn);
         }
+      } else if (v === "feed") {
+        renderFeed();
       } else {
         // 🛑 Disconnect Observers
         if (state.vaultObserver) {
@@ -3010,6 +3137,7 @@
             dom.userProfile.classList.add("flex");
             dom.userAvatar.src = state.user.picture;
             dom.userName.textContent = state.user.name.split(' ')[0];
+            document.querySelectorAll(".feed-user-avatar").forEach(img => img.src = state.user.picture);
         } else {
             dom.authOverlay.classList.remove("hidden");
             dom.userProfile.classList.add("hidden");
