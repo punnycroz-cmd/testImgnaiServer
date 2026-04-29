@@ -99,6 +99,7 @@ async def init_db(force: bool = False):
                 id SERIAL PRIMARY KEY,
                 uid TEXT NOT NULL REFERENCES users(uid),
                 content TEXT NOT NULL,
+                request_id TEXT, -- Optional link to a manifestation
                 created_at TIMESTAMPTZ DEFAULT NOW(),
                 updated_at TIMESTAMPTZ DEFAULT NOW(),
                 is_deleted BOOLEAN DEFAULT FALSE
@@ -609,17 +610,17 @@ class DatabaseProxy:
     async def finalize_image_deletion(self, rid, url): return await finalize_image_deletion(rid, url)
     async def set_generation_public(self, rid, is_public: bool): return await set_generation_public(rid, is_public)
     async def list_public_generations(self, limit=20, before_id=None): return await list_public_generations(limit, before_id)
-    async def create_post(self, uid, content): return await create_post(uid, content)
+    async def create_post(self, uid, content, request_id=None): return await create_post(uid, content, request_id)
     async def list_posts(self, limit=20, before_id=None): return await list_posts(limit, before_id)
 
-async def create_post(uid: str, content: str) -> Dict:
+async def create_post(uid: str, content: str, request_id: Optional[str] = None) -> Dict:
     pool = await get_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow("""
-            INSERT INTO posts (uid, content) 
-            VALUES ($1, $2) 
+            INSERT INTO posts (uid, content, request_id) 
+            VALUES ($1, $2, $3) 
             RETURNING id, created_at
-        """, uid, content)
+        """, uid, content, request_id)
         return dict(row)
 
 async def list_posts(limit: int = 20, before_id: Optional[int] = None) -> List[Dict]:
@@ -635,9 +636,15 @@ async def list_posts(limit: int = 20, before_id: Optional[int] = None) -> List[D
         params.append(int(limit))
         
         sql = f"""
-            SELECT posts.*, users.name, users.picture 
+            SELECT 
+                posts.*, 
+                users.name, 
+                users.picture,
+                generations.result->'image_urls'->0 as preview_url,
+                generations.realm as preview_realm
             FROM posts 
             JOIN users ON posts.uid = users.uid 
+            LEFT JOIN generations ON posts.request_id = generations.request_id
             {where_stmt}
             ORDER BY posts.id DESC 
             LIMIT ${len(params)}

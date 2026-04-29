@@ -2166,6 +2166,16 @@
       }
     }
 
+    async function openHistoryGroupById(rid) {
+        try {
+            const entry = await apiFetch(`/history?request_id=${rid}`);
+            if (entry) openHistoryGroup(entry);
+        } catch (err) {
+            console.error("Failed to load group:", err);
+            setFooterMsg("Could not load manifestation details.", "error");
+        }
+    }
+
     function openHistoryGroup(entry, focusUrl = null) {
       if (!entry) return;
       state.__inspected_data = entry;
@@ -3037,6 +3047,14 @@
                     <span class="text-[9px] opacity-40 uppercase font-bold">${new Date(post.created_at).toLocaleString()}</span>
                 </div>
                 <p class="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">${escapeHtml(post.content)}</p>
+                ${post.preview_url ? `
+                    <div class="mt-4 art-frame relative group/preview cursor-pointer overflow-hidden rounded-xl border border-white/5" onclick="openHistoryGroupById('${post.request_id}')">
+                        <img src="${post.preview_url}" class="w-full h-48 object-cover transition-transform duration-700 group-hover/preview:scale-110" alt="Preview">
+                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover/preview:opacity-100 transition-opacity flex items-center justify-center">
+                            <span class="text-[9px] font-black uppercase tracking-widest text-white border border-white/20 px-3 py-1 rounded-lg">View Group</span>
+                        </div>
+                    </div>
+                ` : ''}
             </div>
         `;
         return div;

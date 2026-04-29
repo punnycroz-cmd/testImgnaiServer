@@ -174,6 +174,13 @@ async def toggle_public_batch(request_id: str, request: Request):
         raise HTTPException(status_code=403, detail="Permission denied")
         
     await DB.set_generation_public(request_id, is_public)
+    
+    if is_public:
+        # Create an announcement post
+        prompt_snippet = row.get("prompt", "a new manifestation")[:100]
+        content = f"Just shared a new manifestation in the Discovery gallery: \"{prompt_snippet}...\""
+        await DB.create_post(uid, content, request_id=request_id)
+        
     return {"status": "ok", "is_public": is_public}
 
 # --- Feed / Posts ---
@@ -458,10 +465,10 @@ async def get_history(request: Request, response: Response, limit: int = 20, rea
     if not uid:
         raise HTTPException(status_code=401, detail="Authentication required")
 
-    # Proxy fallback for include_hidden
-    header_hidden = request.headers.get("X-Include-Hidden")
-    if header_hidden is not None:
-        include_hidden = str(header_hidden).lower() == "true"
+    rid = request.query_params.get("request_id")
+    if rid:
+        row = await DB.get_generation(rid, include_hidden=True)
+        return row
         
     cursor = before or request.headers.get("X-Debug-Cursor")
     b_id = None
