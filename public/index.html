@@ -2587,6 +2587,7 @@
       state.historyCursor = null;
       state.historyHasMore = true;
       dom.historyList.innerHTML = "";
+      dom.historyList.classList.remove("opacity-50", "pointer-events-none");
       dom.historyList.style.opacity = "1";
       dom.historyList.style.pointerEvents = "auto";
 
@@ -2754,8 +2755,13 @@
     function reloadHistory() {
       state.historyLoaded = false;
       state.historyPage = 0;
-      state.historyCursor = null; // 🚀 CRITICAL FIX: Reset cursor to start from the top
-      dom.historyList.innerHTML = "";
+      state.historyCursor = null; 
+      
+      // Smooth refresh
+      if (dom.historyList) {
+        dom.historyList.classList.add("opacity-50", "pointer-events-none");
+      }
+      
       renderHistory();
     }
     async function copyRequestId(id) { if (id) { await navigator.clipboard.writeText(id); setFooterMsg("Copied ID.", "info"); } }

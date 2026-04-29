@@ -314,7 +314,7 @@ async def get_history(request: Request, response: Response, limit: int = 20, rea
     header_hidden = request.headers.get("X-Include-Hidden")
     if header_hidden is not None:
         include_hidden = str(header_hidden).lower() == "true"
-
+    
     page_items = await DB.list_generations(limit=limit, realm=realm, before_id=b_id, uid=uid, include_hidden=include_hidden)
     
     result = {
