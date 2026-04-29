@@ -1022,6 +1022,7 @@
       feedCursor: null,
       vaultObserver: null,
       discoveryObserver: null,
+      feedObserver: null,
       pendingDeletions: new Set(),
       isTabVisible: true,
       activePolls: new Set(),
@@ -3129,6 +3130,18 @@
         }
       } else if (v === "feed") {
         renderFeed();
+        if (!state.feedObserver && dom.loadMoreFeedBtn) {
+          state.feedObserver = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting && !state.loadingFeed && state.feedHasMore) {
+              loadFeedPage();
+            }
+          }, {
+            root: document.querySelector('main'),
+            rootMargin: '300px',
+            threshold: 0.1
+          });
+          state.feedObserver.observe(dom.loadMoreFeedBtn);
+        }
       } else {
         // 🛑 Disconnect Observers
         if (state.vaultObserver) {
@@ -3138,6 +3151,10 @@
         if (state.discoveryObserver) {
           state.discoveryObserver.disconnect();
           state.discoveryObserver = null;
+        }
+        if (state.feedObserver) {
+          state.feedObserver.disconnect();
+          state.feedObserver = null;
         }
       }
 
@@ -3211,20 +3228,20 @@
     }
 
     // --- Initialization ---
-    applyMode(state.activeMode);
-    handleRouting();
-    window.addEventListener('hashchange', handleRouting);
-    checkAuth();
-    checkBackend();
-    setInterval(checkBackend, 30000);
-    document.querySelectorAll("[data-view]").forEach(btn => btn.addEventListener("click", (e) => setView(e.currentTarget.dataset.view)));
-    document.querySelectorAll("[data-mode]").forEach(btn => btn.addEventListener("click", () => applyMode(btn.dataset.mode)));
-    dom.generateBtn.addEventListener("click", runGeneration);
-
     try {
+      applyMode(state.activeMode);
+      handleRouting(); // Initial route detection
+      window.addEventListener('hashchange', handleRouting);
+      
+      checkAuth(); // Check session status
+      checkBackend(); // Initial health check
+      setInterval(checkBackend, 30000); // Periodic health check
+      
+      document.querySelectorAll("[data-view]").forEach(btn => btn.addEventListener("click", (e) => setView(e.currentTarget.dataset.view)));
+      document.querySelectorAll("[data-mode]").forEach(btn => btn.addEventListener("click", () => applyMode(btn.dataset.mode)));
+      dom.generateBtn.addEventListener("click", runGeneration);
+      
       renderActiveRequest();
-      checkBackend(); 
-      handleRouting(); // Start the router
     } catch (e) {
       console.error("Initialization error:", e);
       setFooterMsg("Connect to Server for full functionality.", "info");
