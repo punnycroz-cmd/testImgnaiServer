@@ -57,6 +57,17 @@ async def lifespan(app: FastAPI):
     # Initialize DB pool
     await DB.init(force=False)
     yield
+    # Close DB pool
+    await DB.close()
+
+app = FastAPI(lifespan=lifespan)
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+
+cancelled_jobs = set()
+day_mgr = DayManager(COOKIE_DIR, "", R2_VAULT, db=DB, cancelled_jobs=cancelled_jobs)
+star_mgr = StarManager(COOKIE_DIR, "", R2_VAULT, db=DB, cancelled_jobs=cancelled_jobs)
+job_store = {}
+job_lock = asyncio.Lock()
 
 # --- Authentication Helpers ---
 def get_uid_from_session(request: Request) -> Optional[str]:
@@ -120,15 +131,6 @@ async def auth_logout(response: Response):
     return {"status": "ok"}
     # Close DB pool
     await DB.close()
-
-app = FastAPI(lifespan=lifespan)
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
-
-cancelled_jobs = set()
-day_mgr = DayManager(COOKIE_DIR, "", R2_VAULT, db=DB, cancelled_jobs=cancelled_jobs)
-star_mgr = StarManager(COOKIE_DIR, "", R2_VAULT, db=DB, cancelled_jobs=cancelled_jobs)
-job_store = {}
-job_lock = asyncio.Lock()
 
 
 def classify_error(message: str) -> str:
