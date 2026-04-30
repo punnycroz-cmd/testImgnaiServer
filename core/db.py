@@ -753,6 +753,17 @@ class DatabaseProxy:
         return await list_generations(limit=limit, offset=offset, realm=realm, before_id=before_id, uid=uid, include_hidden=include_hidden)
     async def hide_generation(self, rid): await hide_generation(rid)
     async def show_generation(self, rid): await show_generation(rid)
+    
+    # Generic helper methods for scripts
+    async def fetch(self, query: str, *args):
+        pool = await get_pool()
+        async with pool.acquire() as conn:
+            return await conn.fetch(query, *args)
+    
+    async def execute(self, query: str, *args):
+        pool = await get_pool()
+        async with pool.acquire() as conn:
+            return await conn.execute(query, *args)
     async def delete_generation(self, rid): await delete_generation(rid)
     async def hide_image(self, rid, url): await hide_image(rid, url)
     async def show_image(self, rid, url): await show_image(rid, url)
