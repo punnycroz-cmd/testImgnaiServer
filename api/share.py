@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from typing import Optional
 from core.db import DB
-from main import get_uid_from_session # Import from main since it's defined there
+from core.auth import get_uid_from_session
 
 router = APIRouter()
 

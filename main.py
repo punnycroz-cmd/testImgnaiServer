@@ -21,13 +21,8 @@ from engines.star import StarManager
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 from itsdangerous import URLSafeSerializer
+from core.auth import serializer, get_uid_from_session
 from api import share, analytics
-
-# --- Auth Config ---
-# In production, set these in your .env file
-GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "206665134027-80oiqn378dq1jo49lgtmaueu0p30mf9a.apps.googleusercontent.com")
-SESSION_SECRET = os.environ.get("SESSION_SECRET", "aether-spiritual-fallback-secret-2024")
-serializer = URLSafeSerializer(SESSION_SECRET, salt="aether-auth")
 
 # --- Logging Cleanup ---
 class EndpointFilter(logging.Filter):
@@ -78,16 +73,6 @@ job_lock = asyncio.Lock()
 
 app.include_router(share.router, prefix="/api")
 app.include_router(analytics.router, prefix="/api")
-
-# --- Authentication Helpers ---
-def get_uid_from_session(request: Request) -> Optional[str]:
-    session_token = request.cookies.get("aether_session")
-    if not session_token:
-        return None
-    try:
-        return serializer.loads(session_token)
-    except:
-        return None
 
 # --- Authentication Routes ---
 @app.post("/auth/google")
