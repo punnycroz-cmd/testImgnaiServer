@@ -86,10 +86,10 @@ export function createForgeView(state, api, toast) {
     if (!visible.length) { gallery.innerHTML = '<div class="col-span-full py-24 text-xl opacity-20 uppercase tracking-widest text-center font-data">TARGET PURGED FROM CACHE</div>'; return; }
     gallery.innerHTML = visible.map((img, idx) => `
       <div class="hud-panel aspect-square relative group overflow-hidden ${img.status === 'deleting' ? 'opacity-20' : ''}" id="img-${requestId}-${idx}">
-        ${(img.r2_url.includes('.r2.dev') || img.r2_url.includes('cloudflare')) ? '<span class="hud-data absolute top-2 right-2 bg-[var(--neon-purple)]/20 text-[var(--neon-purple)] px-2 z-20 border border-[var(--neon-purple)]">VAULTED</span>' : ''}
+        ${(img.r2_url.includes('.r2.dev') || img.r2_url.includes('cloudflare')) ? '<span class="hud-data absolute top-2 right-2 bg-neon-purple/20 text-neon-purple px-2 z-20 border border-neon-purple">VAULTED</span>' : ''}
         <img src="${img.r2_url}" alt="Image ${idx + 1}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" style="clip-path: var(--clip-corner)">
         <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity z-10 flex items-center justify-center pointer-events-none">
-          <span class="hud-data bg-[var(--accent)] text-black px-4 py-2 opacity-80">ASSET IN VIEWPORT</span>
+          <span class="hud-data bg-accent text-black px-4 py-2 opacity-80">ASSET IN VIEWPORT</span>
         </div>
       </div>`).join('');
     return visible;
@@ -130,7 +130,7 @@ export function createForgeView(state, api, toast) {
     setLoading(true);
     state.set('app.isGenerating', true);
     const gallery = dom.gallery();
-    if (gallery) { gallery.style.display = ''; gallery.innerHTML = '<div class="col-span-full py-24 animate-pulse opacity-50 text-2xl uppercase tracking-[0.4em] text-[var(--accent)] text-center font-data">UPLINKING ASSETS...</div>'; }
+    if (gallery) { gallery.style.display = ''; gallery.innerHTML = '<div class="col-span-full py-24 animate-pulse opacity-50 text-2xl uppercase tracking-[0.4em] text-accent text-center font-data">UPLINKING ASSETS...</div>'; }
     try {
       const res = await api.apiFetch('/generate', { method: 'POST', body: JSON.stringify(payload) });
       state.set('app.activeRequestId', res.request_id);

@@ -11,10 +11,10 @@ export function createVaultView(state, api, toast, openHistoryGroup) {
     const wrap = document.createElement('div');
     wrap.id = `batch-${entry.request_id}`;
     wrap.dataset.realm = entry.realm || 'day';
-    wrap.className = 'hud-panel p-4 pb-5 cursor-pointer group relative transition-all duration-300 hover:border-[var(--accent)]';
+    wrap.className = 'hud-panel p-4 pb-5 cursor-pointer group relative transition-all duration-300 hover:border-accent';
     const selIds = state.get('vault.selectedIds');
-    if (selIds && selIds.has(entry.request_id)) wrap.classList.add('border-[var(--accent)]', 'bg-[var(--accent)]/10');
-    if (entry.is_hidden) wrap.classList.add('opacity-50', 'border-[var(--neon-orange)]');
+    if (selIds && selIds.has(entry.request_id)) wrap.classList.add('border-accent', 'bg-accent/10');
+    if (entry.is_hidden) wrap.classList.add('opacity-50', 'border-neon-orange');
 
     wrap.onclick = (e) => {
       if (e.target.closest('button')) return;
@@ -30,13 +30,13 @@ export function createVaultView(state, api, toast, openHistoryGroup) {
       <div class="flex items-center justify-between gap-2 mb-3 border-b border-[var(--hud-border)] pb-2">
         <div class="min-w-0">
           <div class="flex items-center gap-2 mb-1">
-            <div class="hud-data px-1 ${entry.realm === 'star' ? 'bg-[var(--neon-purple)]/20 text-[var(--neon-purple)]' : 'bg-[var(--accent)]/20 text-[var(--accent)]'}">${entry.realm || 'day'}</div>
-            ${entry.is_hidden ? '<div class="hud-data bg-[var(--neon-orange)]/20 text-[var(--neon-orange)] px-1">ENCRYPTED</div>' : ''}
+            <div class="hud-data px-1 ${entry.realm === 'star' ? 'bg-neon-purple/20 text-neon-purple' : 'bg-accent/20 text-accent'}">${entry.realm || 'day'}</div>
+            ${entry.is_hidden ? '<div class="hud-data bg-neon-orange/20 text-neon-orange px-1">ENCRYPTED</div>' : ''}
             <div class="public-badge ${entry.is_public ? '' : 'hidden'} hud-data bg-white/10 text-white px-1">PUBLIC</div>
           </div>
           <div class="text-[12px] font-hud uppercase tracking-widest truncate text-white">${escapeHtml(entry.prompt || 'NO DESIGNATION')}</div>
         </div>
-        <div class="selection-indicator ${state.get('vault.selectionMode') ? 'flex' : 'hidden'} w-6 h-6 border border-[var(--hud-border)] items-center justify-center ${isSelected ? 'bg-[var(--neon-orange)] border-[var(--neon-orange)]' : ''}" style="clip-path: var(--clip-corner-sm)">
+        <div class="selection-indicator ${state.get('vault.selectionMode') ? 'flex' : 'hidden'} w-6 h-6 border border-[var(--hud-border)] items-center justify-center ${isSelected ? 'bg-neon-orange border-neon-orange' : ''}" style="clip-path: var(--clip-corner-sm)">
           ${isSelected ? '<span class="text-black font-black leading-none">X</span>' : ''}
         </div>
       </div>
@@ -44,7 +44,7 @@ export function createVaultView(state, api, toast, openHistoryGroup) {
         ${(entry.images || []).slice(0, 4).map(img => {
           const isH = img.status === 'hidden';
           const isD = img.status === 'deleting';
-          return `<div class="art-frame shimmer relative group/card ${isH ? 'border border-[var(--neon-orange)]' : ''} ${isD ? 'spirit-deleting' : ''} ${isH && !showHidden ? 'hidden-collapsed' : ''}" style="clip-path: var(--clip-corner-sm)">
+          return `<div class="art-frame shimmer relative group/card ${isH ? 'border border-neon-orange' : ''} ${isD ? 'spirit-deleting' : ''} ${isH && !showHidden ? 'hidden-collapsed' : ''}" style="clip-path: var(--clip-corner-sm)">
             <img src="${img.thumbnail_url || img.r2_url}" class="w-full aspect-square object-cover relative z-10 opacity-0 transition-all duration-500 group-hover/card:scale-105 ${isH ? 'spirit-hidden filter grayscale' : ''}" loading="lazy"
               onload="this.style.opacity=('${isH}'==='true'?'0.75':'1');this.style.transform='scale(1)';this.parentElement.classList.remove('shimmer');">
           </div>`;
@@ -60,11 +60,11 @@ export function createVaultView(state, api, toast, openHistoryGroup) {
     const el = document.getElementById(`batch-${id}`);
     if (el) {
       const isSel = sel.has(id);
-      el.classList.toggle('border-[var(--accent)]', isSel);
+      el.classList.toggle('border-accent', isSel);
       const ind = el.querySelector('.selection-indicator');
       if (ind) {
-        ind.classList.toggle('bg-[var(--accent)]', isSel);
-        ind.classList.toggle('border-[var(--accent)]', isSel);
+        ind.classList.toggle('bg-accent', isSel);
+        ind.classList.toggle('border-accent', isSel);
         ind.innerHTML = isSel ? '<svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg>' : '';
       }
     }
@@ -88,7 +88,7 @@ export function createVaultView(state, api, toast, openHistoryGroup) {
     document.querySelectorAll('#historyList > div').forEach(card => {
       const ind = card.querySelector('.selection-indicator');
       if (ind) { ind.classList.toggle('hidden', !next); ind.classList.toggle('flex', next); }
-      if (!next) { card.classList.remove('border-[var(--accent)]'); if (ind) { ind.classList.remove('bg-[var(--accent)]'); ind.innerHTML = ''; } }
+      if (!next) { card.classList.remove('border-accent'); if (ind) { ind.classList.remove('bg-accent'); ind.innerHTML = ''; } }
     });
     updateSelectionUI();
   }
@@ -98,8 +98,8 @@ export function createVaultView(state, api, toast, openHistoryGroup) {
     ['all', 'day', 'star'].forEach(r => {
       const btn = document.getElementById(`filterRealm${r.charAt(0).toUpperCase() + r.slice(1)}`);
       if (!btn) return;
-      if (r === realm) { btn.classList.remove('opacity-50'); btn.classList.add('bg-[var(--accent)]', 'text-white', 'shadow-sm'); }
-      else { btn.classList.add('opacity-50'); btn.classList.remove('bg-[var(--accent)]', 'text-white', 'shadow-sm'); }
+      if (r === realm) { btn.classList.remove('opacity-50'); btn.classList.add('bg-accent', 'text-white', 'shadow-sm'); }
+      else { btn.classList.add('opacity-50'); btn.classList.remove('bg-accent', 'text-white', 'shadow-sm'); }
     });
     document.querySelectorAll('#historyList > div[id^="batch-"]').forEach(card => {
       const cr = card.dataset.realm || 'day';
@@ -112,7 +112,7 @@ export function createVaultView(state, api, toast, openHistoryGroup) {
     const next = !state.get('vault.showHidden');
     state.set('vault.showHidden', next);
     const btn = document.getElementById('toggleHiddenVaultBtn');
-    if (btn) { btn.classList.toggle('text-[var(--accent)]', next); btn.classList.toggle('opacity-60', !next); btn.textContent = next ? 'Hide Hidden' : 'Show Hidden'; }
+    if (btn) { btn.classList.toggle('text-accent', next); btn.classList.toggle('opacity-60', !next); btn.textContent = next ? 'Hide Hidden' : 'Show Hidden'; }
     reload();
   }
 

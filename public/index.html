@@ -11,6 +11,11 @@
     tailwind.config = {
       theme: {
         extend: {
+          colors: {
+            accent: '#00E5FF',
+            'neon-orange': '#FF3D00',
+            'neon-purple': '#B000FF',
+          },
           fontFamily: {
             hud: ['Rajdhani', 'sans-serif'],
             data: ['Share Tech Mono', 'monospace'],
@@ -22,7 +27,7 @@
   <style type="text/tailwindcss">
     @layer base {
       body {
-        @apply bg-[var(--bg-void)] text-[var(--text-main)] font-hud selection:bg-[var(--accent)] selection:text-black overflow-x-hidden;
+        @apply bg-[var(--bg-void)] text-[var(--text-main)] font-hud selection:bg-accent selection:text-black overflow-x-hidden;
         margin: 0;
         min-height: 100vh;
       }
@@ -37,11 +42,11 @@
 
       .hud-panel::before {
         content: '';
-        @apply absolute top-0 left-0 w-full h-[2px] bg-[var(--accent)] opacity-50;
+        @apply absolute top-0 left-0 w-full h-[2px] bg-accent opacity-50;
       }
 
       .hud-panel-inner {
-        @apply p-6 border-t border-[var(--hud-border-active)] bg-gradient-to-b from-[var(--accent)]/5 to-transparent;
+        @apply p-6 border-t border-[var(--hud-border-active)] bg-gradient-to-b from-accent/5 to-transparent;
       }
 
       /* Data Readouts */
@@ -56,13 +61,13 @@
       }
 
       .btn-hud:hover, .btn-hud.active {
-        @apply bg-[var(--accent)]/10 border-[var(--accent)] text-[var(--accent)];
+        @apply bg-accent/10 border-accent text-accent;
         box-shadow: inset var(--hud-glow);
       }
 
       .btn-hud::after {
         content: '';
-        @apply absolute bottom-0 left-0 w-full h-0.5 bg-[var(--accent)] scale-x-0 transition-transform origin-left;
+        @apply absolute bottom-0 left-0 w-full h-0.5 bg-accent scale-x-0 transition-transform origin-left;
       }
       
       .btn-hud:hover::after, .btn-hud.active::after {
@@ -71,13 +76,13 @@
 
       /* Warning/Action Buttons */
       .btn-action {
-        @apply relative bg-[var(--neon-orange)]/20 border-2 border-[var(--neon-orange)] text-[var(--neon-orange)] font-black uppercase tracking-[0.3em] hover:bg-[var(--neon-orange)] hover:text-black transition-all shadow-[var(--hud-glow-alert)];
+        @apply relative bg-neon-orange/20 border-2 border-neon-orange text-neon-orange font-black uppercase tracking-[0.3em] hover:bg-neon-orange hover:text-black transition-all shadow-[var(--hud-glow-alert)];
         clip-path: var(--clip-corner-sm);
       }
 
       /* The Main Manifest Button */
       .btn-manifest {
-        @apply relative bg-[var(--accent)]/10 border-l-4 border-[var(--accent)] text-[var(--accent)] font-black uppercase tracking-[0.4em] text-lg hover:bg-[var(--accent)] hover:text-black transition-all;
+        @apply relative bg-accent/10 border-l-4 border-accent text-accent font-black uppercase tracking-[0.4em] text-lg hover:bg-accent hover:text-black transition-all;
         clip-path: polygon(20px 0, 100% 0, 100% 100%, 0 100%, 0 20px);
         box-shadow: inset var(--hud-glow);
       }
@@ -93,7 +98,7 @@
 
       /* Inputs */
       .hud-input {
-        @apply bg-black/50 border border-[var(--hud-border)] text-[var(--text-main)] font-data focus:border-[var(--accent)] focus:outline-none transition-colors w-full;
+        @apply bg-black/50 border border-[var(--hud-border)] text-[var(--text-main)] font-data focus:border-accent focus:outline-none transition-colors w-full;
         clip-path: var(--clip-corner-sm);
       }
     }
@@ -140,7 +145,7 @@
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 
-<body class="bg-[var(--bg-void)] text-[var(--text-main)] font-hud selection:bg-[var(--accent)] selection:text-black overflow-x-hidden" data-mode="standard">
+<body class="bg-[var(--bg-void)] text-[var(--text-main)] font-hud selection:bg-accent selection:text-black overflow-x-hidden" data-mode="standard">
   <!-- Sci-Fi FX Overlays -->
   <div class="bg-grid"></div>
   <div class="scanlines"></div>
@@ -152,7 +157,7 @@
       
       <!-- Logo / System Status -->
       <div class="hud-panel border-l-0 border-t-0 p-4 pl-6 flex items-center gap-4 shadow-lg min-w-[300px]">
-        <div class="w-10 h-10 border border-[var(--accent)] flex items-center justify-center animate-pulse-hud">
+        <div class="w-10 h-10 border border-accent flex items-center justify-center animate-pulse-hud">
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2">
             <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"></polygon>
             <polyline points="12 22 12 12"></polyline>
@@ -162,7 +167,7 @@
         </div>
         <div class="flex flex-col">
           <h1 class="text-2xl font-black tracking-[0.3em] uppercase text-white m-0 leading-none">AETHER</h1>
-          <span class="hud-data text-[var(--accent)]">SYS.CORE // ONLINE</span>
+          <span class="hud-data text-accent">SYS.CORE // ONLINE</span>
         </div>
       </div>
 
@@ -179,14 +184,14 @@
         <div id="user-profile" class="hidden items-center gap-3">
             <img id="user-avatar" class="w-8 h-8 object-cover border border-[var(--hud-border)]" src="" alt="" style="clip-path: var(--clip-corner-sm)">
             <div class="flex flex-col text-right">
-              <span class="hud-data text-[var(--accent)]" id="user-name"></span>
+              <span class="hud-data text-accent" id="user-name"></span>
               <span class="text-[8px] uppercase tracking-widest text-white/50">Operator</span>
             </div>
-            <button data-action="logout" class="ml-2 text-[var(--neon-orange)] hover:text-white transition-colors">
+            <button data-action="logout" class="ml-2 text-neon-orange hover:text-white transition-colors">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
             </button>
         </div>
-        <div class="hud-data border border-[var(--accent)] px-2 py-1 text-[8px]" id="backendStatus">Uplink OK</div>
+        <div class="hud-data border border-accent px-2 py-1 text-[8px]" id="backendStatus">Uplink OK</div>
       </div>
 
     </div>
@@ -202,7 +207,7 @@
           <div id="galleryEmpty" class="col-span-full py-20 text-center">
             <div class="inline-block border border-[var(--hud-border)] p-6 bg-black/50" style="clip-path: var(--clip-corner)">
               <span class="hud-data block mb-2 text-white/50">NO TARGET SPECIFIED</span>
-              <span class="text-2xl font-black uppercase tracking-[0.3em] text-[var(--accent)]">AWAITING MANIFEST SEQUENCE</span>
+              <span class="text-2xl font-black uppercase tracking-[0.3em] text-accent">AWAITING MANIFEST SEQUENCE</span>
             </div>
           </div>
         </div>
@@ -210,8 +215,8 @@
         <!-- Matrix Data (Hidden) -->
         <div id="matrixControls" class="hidden mt-8 hud-panel p-4 flex justify-between items-center">
           <div class="flex items-center gap-4">
-            <span class="w-3 h-3 bg-[var(--neon-orange)] shadow-[var(--hud-glow-alert)] rounded-none animate-pulse"></span>
-            <span class="hud-data text-[var(--neon-orange)]">MATRIX ITERATION ENGAGED</span>
+            <span class="w-3 h-3 bg-neon-orange shadow-[var(--hud-glow-alert)] rounded-none animate-pulse"></span>
+            <span class="hud-data text-neon-orange">MATRIX ITERATION ENGAGED</span>
           </div>
           <button data-action="cancelMatrix" class="btn-action px-6 py-2 text-xs">ABORT</button>
         </div>
@@ -226,18 +231,18 @@
           <div class="hud-panel-inner flex flex-col md:flex-row justify-between items-center gap-4">
             <div class="flex items-center gap-4">
               <span class="text-3xl font-black uppercase tracking-[0.4em] text-white">VAULT //</span>
-              <span class="hud-data text-[var(--accent)] mt-1">ARCHIVE.ACCESS</span>
+              <span class="hud-data text-accent mt-1">ARCHIVE.ACCESS</span>
             </div>
             
             <div class="flex items-center gap-4">
               <div class="flex bg-black/50 border border-[var(--hud-border)] p-1" style="clip-path: var(--clip-corner-sm)">
-                <button data-action="filterRealm" data-realm="all" id="filterRealmAll" class="px-4 py-1 font-data text-xs uppercase tracking-widest bg-[var(--accent)] text-black">ALL</button>
-                <button data-action="filterRealm" data-realm="day" id="filterRealmDay" class="px-4 py-1 font-data text-xs uppercase tracking-widest text-white hover:text-[var(--accent)]">DAY</button>
-                <button data-action="filterRealm" data-realm="star" id="filterRealmStar" class="px-4 py-1 font-data text-xs uppercase tracking-widest text-white hover:text-[var(--accent)]">STAR</button>
+                <button data-action="filterRealm" data-realm="all" id="filterRealmAll" class="px-4 py-1 font-data text-xs uppercase tracking-widest bg-accent text-black">ALL</button>
+                <button data-action="filterRealm" data-realm="day" id="filterRealmDay" class="px-4 py-1 font-data text-xs uppercase tracking-widest text-white hover:text-accent">DAY</button>
+                <button data-action="filterRealm" data-realm="star" id="filterRealmStar" class="px-4 py-1 font-data text-xs uppercase tracking-widest text-white hover:text-accent">STAR</button>
               </div>
               
               <button data-action="toggleHiddenVault" id="toggleHiddenVaultBtn" class="hud-data text-white/50 hover:text-white">DECRYPT HIDDEN</button>
-              <button data-action="toggleSelectionMode" id="toggleSelectBtn" class="hud-data text-[var(--neon-orange)] hover:text-white">OVERRIDE SELECT</button>
+              <button data-action="toggleSelectionMode" id="toggleSelectBtn" class="hud-data text-neon-orange hover:text-white">OVERRIDE SELECT</button>
               <button data-action="reloadHistory" class="btn-hud px-4 py-1 text-[10px]">SYNC</button>
             </div>
           </div>
@@ -257,7 +262,7 @@
           <div class="hud-panel-inner flex justify-between items-center">
              <div class="flex items-center gap-4">
                 <span class="text-3xl font-black uppercase tracking-[0.4em] text-white">DISCOVERY //</span>
-                <span class="hud-data text-[var(--accent)] mt-1">PUBLIC.GRID</span>
+                <span class="hud-data text-accent mt-1">PUBLIC.GRID</span>
              </div>
              <button data-action="reloadDiscovery" class="btn-hud px-6 py-2">PING GRID</button>
           </div>
@@ -277,7 +282,7 @@
           <div class="hud-panel-inner flex justify-between items-center">
              <div class="flex items-center gap-4">
                 <span class="text-3xl font-black uppercase tracking-[0.4em] text-white">COMM-LINK //</span>
-                <span class="hud-data text-[var(--accent)] mt-1">SEC.CHANNEL</span>
+                <span class="hud-data text-accent mt-1">SEC.CHANNEL</span>
              </div>
              <button data-action="reloadFeed" class="btn-hud px-6 py-2">REFRESH SIGNAL</button>
           </div>
@@ -286,11 +291,11 @@
         <!-- Post Creation Area -->
         <div class="hud-panel mb-10">
           <div class="hud-panel-inner flex gap-4">
-            <img class="feed-user-avatar w-12 h-12 object-cover border border-[var(--accent)]" src="" alt="" style="clip-path: var(--clip-corner-sm)">
+            <img class="feed-user-avatar w-12 h-12 object-cover border border-accent" src="" alt="" style="clip-path: var(--clip-corner-sm)">
             <div class="flex-1 space-y-4">
               <textarea id="feed-post-content" class="hud-input p-4 min-h-[100px] text-lg resize-none" placeholder="BROADCAST SIGNAL TO NETWORK... (IMG DATA ONLY)"></textarea>
               <div class="flex justify-between items-center">
-                <span class="hud-data text-[var(--neon-orange)]">! RESTRICTED TO SYSTEM GENERATED ASSETS</span>
+                <span class="hud-data text-neon-orange">! RESTRICTED TO SYSTEM GENERATED ASSETS</span>
                 <button id="submit-post-btn" data-action="createPost" class="btn-action px-8 py-2">TRANSMIT</button>
               </div>
             </div>
@@ -320,7 +325,7 @@
         <!-- SYS.PARAMS (Left Panel) -->
         <div class="lg:w-1/3 flex flex-col gap-4 border-r border-[var(--hud-border)]/30 pr-6">
           <div class="flex items-center gap-2 mb-2">
-            <div class="w-2 h-2 bg-[var(--accent)]"></div>
+            <div class="w-2 h-2 bg-accent"></div>
             <span class="hud-data">SYS.PARAMETERS</span>
           </div>
 
@@ -360,13 +365,13 @@
           <div class="flex-1 flex flex-col space-y-2">
             <div class="flex justify-between items-center px-1">
               <div class="flex items-center gap-2">
-                <div class="w-2 h-2 bg-[var(--accent)]"></div>
+                <div class="w-2 h-2 bg-accent"></div>
                 <span class="hud-data">TARGET.DESIGNATION</span>
               </div>
               <div class="flex gap-4">
                 <button data-action="clearPrompt" class="hud-data text-[var(--neon-red)] hover:text-white">FLUSH</button>
-                <button data-action="pastePrompt" class="hud-data text-[var(--accent)] hover:text-white">LINK</button>
-                <button data-action="magicPrompt" class="hud-data text-[var(--neon-purple)] flex items-center gap-1 border border-[var(--neon-purple)] px-2">
+                <button data-action="pastePrompt" class="hud-data text-accent hover:text-white">LINK</button>
+                <button data-action="magicPrompt" class="hud-data text-neon-purple flex items-center gap-1 border border-neon-purple px-2">
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3L21 12L12 21L3 12L12 3Z"/></svg>
                   ORACLE
                 </button>
@@ -384,7 +389,7 @@
             <button id="generateBtn" class="btn-manifest w-48 h-12 flex items-center justify-center gap-2">
               <span id="btnText">INITIATE</span>
               <div id="btnLoader" class="hidden">
-                <div class="w-4 h-4 border-2 border-t-transparent border-[var(--accent)] animate-spin"></div>
+                <div class="w-4 h-4 border-2 border-t-transparent border-accent animate-spin"></div>
               </div>
             </button>
           </div>
@@ -399,7 +404,7 @@
     <div class="scanlines"></div>
     <div class="absolute top-8 left-8 flex flex-col">
       <span class="text-4xl font-black text-white uppercase tracking-[0.4em]">INSPECTION</span>
-      <span class="hud-data text-[var(--accent)]">ASSET // VIEWPORT</span>
+      <span class="hud-data text-accent">ASSET // VIEWPORT</span>
     </div>
     <button data-action="closeLightbox" class="absolute top-8 right-8 text-white hover:text-[var(--neon-red)]">
       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
@@ -408,10 +413,10 @@
     <div class="flex w-full h-full p-24 gap-8">
       <!-- Image Area -->
       <div class="flex-1 flex items-center justify-center relative border border-[var(--hud-border)] bg-black/50 p-4" style="clip-path: var(--clip-corner)">
-        <div class="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-[var(--accent)]"></div>
-        <div class="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2 border-[var(--accent)]"></div>
-        <div class="absolute bottom-2 left-2 w-4 h-4 border-b-2 border-l-2 border-[var(--accent)]"></div>
-        <div class="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-[var(--accent)]"></div>
+        <div class="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-accent"></div>
+        <div class="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2 border-accent"></div>
+        <div class="absolute bottom-2 left-2 w-4 h-4 border-b-2 border-l-2 border-accent"></div>
+        <div class="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-accent"></div>
         <img id="bubbleRevealImg" src="" alt="" class="max-h-full max-w-full object-contain filter drop-shadow-[var(--hud-glow)]">
       </div>
       
@@ -424,7 +429,7 @@
           </div>
           <div>
              <span class="hud-data block text-white/50 mb-1">ENGINE.CFG</span>
-             <div class="flex flex-col gap-1 text-xs font-data text-[var(--accent)]">
+             <div class="flex flex-col gap-1 text-xs font-data text-accent">
                <div>MDL: <span id="bubbleRevealModel" class="text-white"></span></div>
                <div>RLM: <span id="bubbleRevealRealm" class="text-white uppercase"></span></div>
              </div>
@@ -441,10 +446,10 @@
   </div>
 
   <!-- MULTI-SELECT OVERRIDE HUD -->
-  <div id="selectionBar" class="hidden fixed bottom-32 left-1/2 -translate-x-1/2 z-[var(--z-overlay)] hud-panel p-4 flex gap-8 shadow-[var(--hud-glow-alert)] border-[var(--neon-orange)] before:bg-[var(--neon-orange)]">
+  <div id="selectionBar" class="hidden fixed bottom-32 left-1/2 -translate-x-1/2 z-[var(--z-overlay)] hud-panel p-4 flex gap-8 shadow-[var(--hud-glow-alert)] border-neon-orange before:bg-neon-orange">
     <div class="hud-panel-inner flex items-center gap-8 py-2">
       <div class="flex flex-col text-right border-r border-[var(--hud-border)] pr-8">
-        <span id="selectCount" class="text-3xl font-black text-[var(--neon-orange)] leading-none">0</span>
+        <span id="selectCount" class="text-3xl font-black text-neon-orange leading-none">0</span>
         <span class="hud-data text-white">TARGETS ACQUIRED</span>
       </div>
       <div class="flex gap-4">
@@ -460,11 +465,11 @@
   <!-- CONFIRM OVERLAY -->
   <div id="confirmModal" class="fixed inset-0 z-[var(--z-overlay)] hidden bg-black/90 backdrop-blur flex items-center justify-center">
     <div class="scanlines"></div>
-    <div class="hud-panel max-w-md w-full border-[var(--neon-orange)] before:bg-[var(--neon-orange)]">
+    <div class="hud-panel max-w-md w-full border-neon-orange before:bg-neon-orange">
       <div class="hud-panel-inner p-8 text-center flex flex-col gap-6 relative z-10">
         <div class="flex justify-center">
-          <div class="w-16 h-16 border-2 border-[var(--neon-orange)] flex items-center justify-center shadow-[var(--hud-glow-alert)] rotate-45">
-            <span class="font-black text-2xl text-[var(--neon-orange)] -rotate-45">!</span>
+          <div class="w-16 h-16 border-2 border-neon-orange flex items-center justify-center shadow-[var(--hud-glow-alert)] rotate-45">
+            <span class="font-black text-2xl text-neon-orange -rotate-45">!</span>
           </div>
         </div>
         <div>
@@ -481,15 +486,15 @@
 
   <!-- PROGRESS MATRIX -->
   <div id="progressMatrix" class="fixed top-0 left-0 right-0 h-1 z-[var(--z-overlay)] opacity-0 flex gap-1 pointer-events-none transition-opacity">
-    <div class="progress-step bg-[var(--accent)] h-full flex-1 shadow-[var(--hud-glow)]"></div>
-    <div class="progress-step bg-[var(--accent)] h-full flex-1 shadow-[var(--hud-glow)]"></div>
-    <div class="progress-step bg-[var(--accent)] h-full flex-1 shadow-[var(--hud-glow)]"></div>
-    <div class="progress-step bg-[var(--accent)] h-full flex-1 shadow-[var(--hud-glow)]"></div>
+    <div class="progress-step bg-accent h-full flex-1 shadow-[var(--hud-glow)]"></div>
+    <div class="progress-step bg-accent h-full flex-1 shadow-[var(--hud-glow)]"></div>
+    <div class="progress-step bg-accent h-full flex-1 shadow-[var(--hud-glow)]"></div>
+    <div class="progress-step bg-accent h-full flex-1 shadow-[var(--hud-glow)]"></div>
   </div>
 
   <!-- STATUS POPUP -->
-  <div id="footerStatus" class="fixed bottom-10 right-10 z-[var(--z-overlay)] hud-panel border-[var(--accent)] px-6 py-3 transition-transform translate-x-48 opacity-0">
-    <span class="hud-data text-[var(--accent)]"></span>
+  <div id="footerStatus" class="fixed bottom-10 right-10 z-[var(--z-overlay)] hud-panel border-accent px-6 py-3 transition-transform translate-x-48 opacity-0">
+    <span class="hud-data text-accent"></span>
   </div>
 
   <script type="module" src="/js/main.js"></script>
