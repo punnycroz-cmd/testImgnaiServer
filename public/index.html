@@ -1392,6 +1392,14 @@
                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
               </svg>
             </button>
+            <button class="px-3 py-2.5 rounded-xl bg-emerald-600/20 text-emerald-500 hover:bg-emerald-600/30 transition-colors flex items-center gap-2 font-bold uppercase text-[10px] tracking-widest" onclick="shareCurrentImage()" title="Share Publicly">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
+                <polyline points="16 6 12 2 8 6"></polyline>
+                <line x1="12" y1="2" x2="12" y2="15"></line>
+              </svg>
+              Share
+            </button>
             ${!isDone && !isError ? `
             <button class="px-3 py-2.5 rounded-xl border border-red-500/20 text-red-500 hover:bg-red-500/10 transition-colors" onclick="cancelJob('${job?.request_id}')" title="Cancel">
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -2942,6 +2950,39 @@
       renderHistory();
     }
     async function copyRequestId(id) { if (id) { await navigator.clipboard.writeText(id); setFooterMsg("Copied ID.", "info"); } }
+
+    async function shareCurrentImage() {
+        const data = state.inspectedData;
+        if (!data || !state.inspectedUrl) return;
+        
+        // Find index of the currently viewed image
+        const idx = data.images.findIndex(i => i.r2_url === state.inspectedUrl || i.thumbnail_url === state.inspectedUrl);
+        if (idx === -1) {
+            setFooterMsg("Unable to identify current image index.", "error");
+            return;
+        }
+
+        try {
+            const res = await apiFetch('/api/share', {
+                method: 'POST',
+                body: JSON.stringify({ 
+                    request_id: data.request_id, 
+                    image_index: idx,
+                    title: data.prompt ? data.prompt.substring(0, 100) : "AI Manifestation"
+                })
+            });
+
+            if (res.share_url) {
+                await navigator.clipboard.writeText(res.share_url);
+                setFooterMsg("🔗 Public share link copied to clipboard!", "success");
+            } else {
+                setFooterMsg("Failed to generate share link.", "error");
+            }
+        } catch (err) {
+            console.error("Share failed:", err);
+            setFooterMsg("Sharing failed. Are you logged in?", "error");
+        }
+    }
     function escapeHtml(v) { return String(v).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;"); }
     function reloadDiscovery() {
         state.loadingDiscovery = false;
@@ -3140,15 +3181,25 @@
     };
 
     function handleRouting() {
-      const hash = window.location.hash.replace('#', '') || 'forge';
-      const view = ROUTE_MAP[hash] || 'generate';
+      const path = window.location.pathname.replace(/^\//, '') || 'forge';
+      const segments = path.split('/');
+      const baseView = segments[0];
+      
+      const view = ROUTE_MAP[baseView] || 'generate';
       setView(view, false);
+
+      // Deep Linking for /view/{id}
+      if (baseView === 'view' && segments[1]) {
+          openHistoryGroupById(segments[1]);
+      }
     }
 
-    function setView(v, updateHash = true) {
-      if (updateHash) {
-        const hash = Object.keys(ROUTE_MAP).find(k => ROUTE_MAP[k] === v);
-        if (hash) window.location.hash = hash;
+    function setView(v, pushState = true) {
+      if (pushState) {
+        const path = Object.keys(ROUTE_MAP).find(k => ROUTE_MAP[k] === v) || v;
+        if (path !== window.location.pathname.replace(/^\//, '')) {
+          history.pushState({ view: v }, '', '/' + path);
+        }
       }
 
       // 🛑 Smooth transition: fade out current view, then show next
@@ -3310,7 +3361,9 @@
     try {
       applyMode(state.activeMode);
       handleRouting(); // Initial route detection
-      window.addEventListener('hashchange', handleRouting);
+      window.addEventListener("popstate", (e) => {
+        handleRouting();
+      });
       
       checkAuth(); // Check session status
       checkBackend(); // Initial health check

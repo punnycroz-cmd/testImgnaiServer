@@ -21,6 +21,7 @@ from engines.star import StarManager
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 from itsdangerous import URLSafeSerializer
+from api import share, analytics
 
 # --- Auth Config ---
 # In production, set these in your .env file
@@ -74,6 +75,9 @@ day_mgr = DayManager(COOKIE_DIR, "", R2_VAULT, db=DB, cancelled_jobs=cancelled_j
 star_mgr = StarManager(COOKIE_DIR, "", R2_VAULT, db=DB, cancelled_jobs=cancelled_jobs)
 job_store = {}
 job_lock = asyncio.Lock()
+
+app.include_router(share.router, prefix="/api")
+app.include_router(analytics.router, prefix="/api")
 
 # --- Authentication Helpers ---
 def get_uid_from_session(request: Request) -> Optional[str]:
@@ -708,6 +712,77 @@ async def retry_job(request_id: str):
     asyncio.create_task(_run_generation(request_id, GenerateRequest(**payload)))
     return {"status": "ok", "request_id": request_id, "queued": True}
 
+
+
+# --- Social Share Preview ---
+@app.get("/view/{request_id}")
+async def share_preview(request_id: str):
+    """Serves a page with OpenGraph tags for social previews, then redirects to the main app."""
+    try:
+        gen = await DB.get_generation(request_id)
+        if not gen:
+            return Response(content="Manifestation not found", status_code=404)
+        
+        # Extract metadata
+        prompt = gen.get("prompt", "Aether Manifestation")
+        # Get the first image URL (robustly)
+        result = gen.get("result", {})
+        if isinstance(result, str):
+            try: result = json.loads(result)
+            except: result = {}
+        
+        image_url = ""
+        urls = result.get("image_urls", [])
+        if urls and len(urls) > 0:
+            image_url = urls[0]
+            if not image_url.startswith("http"):
+                image_url = f"https://pub-b770478fe936495c8d44e69fb02d2943.r2.dev/{image_url.lstrip('/')}"
+        
+        # Build HTML with OpenGraph tags
+        html = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Aether Studio | {prompt[:50]}</title>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            
+            <!-- OpenGraph / Facebook -->
+            <meta property="og:type" content="website">
+            <meta property="og:url" content="https://promptpromax.pages.dev/view/{request_id}">
+            <meta property="og:title" content="Aether Studio Manifestation">
+            <meta property="og:description" content="{prompt}">
+            <meta property="og:image" content="{image_url}">
+
+            <!-- Twitter -->
+            <meta property="twitter:card" content="summary_large_image">
+            <meta property="twitter:url" content="https://promptpromax.pages.dev/view/{request_id}">
+            <meta property="twitter:title" content="Aether Studio Manifestation">
+            <meta property="twitter:description" content="{prompt}">
+            <meta property="twitter:image" content="{image_url}">
+
+            <style>
+                body {{ background: #0a0a0a; color: #fff; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }}
+                .loader {{ border: 2px solid #333; border-top: 2px solid #8b5cf6; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }}
+                @keyframes spin {{ 0% {{ transform: rotate(0deg); }} 100% {{ transform: rotate(360deg); }} }}
+            </style>
+        </head>
+        <body>
+            <div style="text-align: center;">
+                <div class="loader" style="margin: 0 auto 20px;"></div>
+                <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 2px; opacity: 0.5;">Manifesting...</div>
+            </div>
+            <script>
+                // Redirect to the main app's path routing
+                window.location.href = "https://promptpromax.pages.dev/view/{request_id}";
+            </script>
+        </body>
+        </html>
+        """
+        return Response(content=html, media_type="text/html")
+    except Exception as e:
+        logger.error(f"Share preview failed: {e}")
+        return Response(content="Error generating preview", status_code=500)
 
 if __name__ == "__main__":
     import uvicorn

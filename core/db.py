@@ -106,6 +106,97 @@ async def init_db(force: bool = False):
             );
         """)
 
+        # --- New Relational Schema ---
+        
+        # 1. Individual images table
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS generation_images (
+                image_id            BIGSERIAL PRIMARY KEY,
+                generation_id       TEXT NOT NULL REFERENCES generations(request_id) ON DELETE CASCADE,
+                uid                 TEXT NOT NULL,
+                image_index         INTEGER NOT NULL CHECK (image_index >= 0),
+                r2_key              TEXT NOT NULL,
+                thumbnail_r2_key    TEXT,
+                status              TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','hidden','deleting','deleted')),
+                seed_used           BIGINT,
+                generation_duration_ms INTEGER,
+                created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                deleted_at          TIMESTAMPTZ,
+                UNIQUE (generation_id, image_index)
+            );
+        """)
+
+        # 2. Audit log for image status changes
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS image_status_log (
+                log_id      BIGSERIAL PRIMARY KEY,
+                image_id    BIGINT NOT NULL REFERENCES generation_images(image_id) ON DELETE CASCADE,
+                old_status  TEXT,
+                new_status  TEXT NOT NULL,
+                changed_by  TEXT NOT NULL DEFAULT 'user',
+                reason      TEXT,
+                created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            );
+        """)
+
+        # 3. Materialised cache table for fast vault/discovery queries
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS image_summaries (
+                request_id      TEXT PRIMARY KEY REFERENCES generations(request_id) ON DELETE CASCADE,
+                uid             TEXT NOT NULL,
+                realm           TEXT NOT NULL,
+                model           TEXT NOT NULL,
+                prompt          TEXT NOT NULL,
+                total_images    INTEGER NOT NULL DEFAULT 0,
+                visible_images  INTEGER NOT NULL DEFAULT 0,
+                first_thumbnail TEXT,
+                is_hidden       BOOLEAN NOT NULL DEFAULT FALSE,
+                is_public       BOOLEAN NOT NULL DEFAULT FALSE,
+                image_id_seq    BIGINT NOT NULL,
+                created_at      TIMESTAMPTZ NOT NULL,
+                updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            );
+        """)
+
+        # 4. Share links table (shortcode -> private R2 key)
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS share_links (
+                shortcode   TEXT PRIMARY KEY,
+                request_id  TEXT NOT NULL REFERENCES generations(request_id) ON DELETE CASCADE,
+                image_index INTEGER NOT NULL,
+                r2_key      TEXT NOT NULL,
+                title       TEXT,
+                created_by  TEXT NOT NULL REFERENCES users(uid),
+                created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                expires_at  TIMESTAMPTZ
+            );
+        """)
+        await conn.execute("CREATE INDEX IF NOT EXISTS idx_share_request ON share_links (request_id, image_index);")
+
+        # 5. Optional analytics for link clicks
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS share_clicks (
+                click_id   BIGSERIAL PRIMARY KEY,
+                shortcode  TEXT NOT NULL REFERENCES share_links(shortcode) ON DELETE CASCADE,
+                ip_hash    TEXT NOT NULL,
+                user_agent TEXT,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            );
+        """)
+        await conn.execute("CREATE INDEX IF NOT EXISTS idx_clicks_shortcode ON share_clicks (shortcode);")
+
+        # Extra columns for generations
+        await conn.execute("ALTER TABLE generations ADD COLUMN IF NOT EXISTS image_id_seq BIGSERIAL;")
+        
+        # Additional Indexes for performance
+        await conn.execute("CREATE INDEX IF NOT EXISTS idx_generations_uid_seq ON generations (uid, image_id_seq DESC);")
+        await conn.execute("CREATE INDEX IF NOT EXISTS idx_generations_public_seq ON generations (is_public, realm, image_id_seq DESC) WHERE is_public = TRUE AND status = 'done';")
+        await conn.execute("CREATE INDEX IF NOT EXISTS idx_images_generation ON generation_images (generation_id, image_index);")
+        await conn.execute("CREATE INDEX IF NOT EXISTS idx_images_uid_status ON generation_images (uid, created_at DESC) WHERE status != 'deleted';")
+        await conn.execute("CREATE INDEX IF NOT EXISTS idx_summaries_uid_seq ON image_summaries (uid, image_id_seq DESC);")
+        await conn.execute("CREATE INDEX IF NOT EXISTS idx_summaries_public_seq ON image_summaries (is_public, realm, image_id_seq DESC) WHERE is_public = TRUE AND visible_images > 0;")
+
         # Self-healing: Ensure columns exist for existing tables
         await conn.execute("ALTER TABLE generations ADD COLUMN IF NOT EXISTS uid TEXT DEFAULT 'uid_0';")
         await conn.execute("ALTER TABLE generations ADD COLUMN IF NOT EXISTS image_id BIGINT;")
@@ -245,14 +336,9 @@ async def _mutate_result_images(request_id: str, mutator) -> Tuple[Optional[Dict
 async def create_generation(data: Dict[str, Any]) -> str:
     pool = await get_pool()
     
-    # User and Image ID logic
     if "uid" not in data:
         data["uid"] = "uid_0"
     
-    if "image_id" not in data:
-        data["image_id"] = await get_next_image_id(data["uid"])
-    
-    # Generate ID in Python to avoid DB extension issues
     if "id" not in data:
         data["id"] = str(uuid4())
         
@@ -267,9 +353,25 @@ async def create_generation(data: Dict[str, Any]) -> str:
         else:
             values.append(v)
     
-    query = f"INSERT INTO generations ({', '.join(cols)}) VALUES ({', '.join(placeholders)}) RETURNING request_id"
+    query = f"INSERT INTO generations ({', '.join(cols)}) VALUES ({', '.join(placeholders)}) RETURNING request_id, image_id_seq"
+    
     async with pool.acquire() as conn:
-        return await conn.fetchval(query, *values)
+        row = await conn.fetchrow(query, *values)
+        request_id = row["request_id"]
+        
+        # Initial image_summaries entry (pending status)
+        await conn.execute(
+            """
+            INSERT INTO image_summaries 
+            (request_id, uid, realm, model, prompt, total_images, visible_images, is_hidden, is_public, image_id_seq, created_at)
+            VALUES ($1, $2, $3, $4, $5, $6, 0, FALSE, $7, $8, NOW())
+            ON CONFLICT (request_id) DO NOTHING
+            """,
+            request_id, data["uid"], data.get("realm", "day"), data.get("model", ""), 
+            data.get("prompt", ""), data.get("count", 4), data.get("is_public", False), row["image_id_seq"]
+        )
+        
+        return request_id
 
 
 async def hide_image(request_id: str, image_url: str) -> bool:
@@ -423,7 +525,46 @@ async def update_generation(request_id: str, **fields: Any):
     
     pool = await get_pool()
     async with pool.acquire() as conn:
-        await conn.execute(query, *values)
+        async with conn.transaction():
+            await conn.execute(query, *values)
+            
+            # If status updated to done or result updated, sync relational tables
+            if fields.get("status") == "done" or "result" in fields:
+                row = await conn.fetchrow("SELECT uid, result, is_public FROM generations WHERE request_id = $1", request_id)
+                if row:
+                    uid = row["uid"]
+                    res_obj = _normalize_result(row["result"])
+                    is_pub = row["is_public"]
+                    
+                    img_urls = res_obj.get("image_urls", [])
+                    thumb_urls = res_obj.get("thumbnail_urls", [])
+                    
+                    # Sync generation_images
+                    for idx, url in enumerate(img_urls):
+                        thumb = thumb_urls[idx] if idx < len(thumb_urls) else None
+                        await conn.execute(
+                            """
+                            INSERT INTO generation_images (generation_id, uid, image_index, r2_key, thumbnail_r2_key, status)
+                            VALUES ($1, $2, $3, $4, $5, 'active')
+                            ON CONFLICT (generation_id, image_index) DO UPDATE 
+                            SET r2_key = EXCLUDED.r2_key, thumbnail_r2_key = EXCLUDED.thumbnail_r2_key, updated_at = NOW()
+                            """,
+                            request_id, uid, idx, url, thumb
+                        )
+                    
+                    # Update image_summaries
+                    await conn.execute(
+                        """
+                        UPDATE image_summaries 
+                        SET total_images = $2, 
+                            visible_images = (SELECT COUNT(*) FROM generation_images WHERE generation_id = $1 AND status = 'active'),
+                            first_thumbnail = $3,
+                            is_public = $4,
+                            updated_at = NOW()
+                        WHERE request_id = $1
+                        """,
+                        request_id, len(img_urls), thumb_urls[0] if thumb_urls else None, is_pub
+                    )
 
 async def get_generation(request_id: str, include_hidden: bool = False) -> Optional[Dict]:
     pool = await get_pool()
@@ -443,8 +584,8 @@ async def get_generation(request_id: str, include_hidden: bool = False) -> Optio
 async def list_generations(limit: int = 20, offset: int = 0, realm: Optional[str] = None, before_id: Optional[int] = None, uid: str = "uid_0", include_hidden: bool = False) -> List[Dict]:
     pool = await get_pool()
     
-    # Build where clauses explicitly
-    clauses = ["status = 'done'", "(uid = $1 OR (is_public = TRUE AND uid = 'uid_0'))"]
+    # We query from image_summaries for speed
+    clauses = ["(uid = $1 OR (is_public = TRUE AND uid = 'uid_0'))"]
     params = [uid] # $1
 
     if not include_hidden:
@@ -457,27 +598,23 @@ async def list_generations(limit: int = 20, offset: int = 0, realm: Optional[str
     if before_id is not None:
         try:
             params.append(int(before_id))
-            clauses.append(f"image_id < ${len(params)}")
+            clauses.append(f"image_id_seq < ${len(params)}")
         except: pass
         
     where_stmt = " WHERE " + " AND ".join(clauses)
     
-    # Final Query
     params.append(int(limit))
     sql = f"""
-        SELECT uid, image_id, request_id, client_id, realm, prompt, model, 
-               quality, aspect, count, session_uuid, result, error, 
-               is_hidden, is_public, hidden_indices,
-               created_at, updated_at 
-        FROM generations 
+        SELECT s.*, g.client_id, g.session_uuid, g.result, g.error, g.hidden_indices
+        FROM image_summaries s
+        JOIN generations g ON s.request_id = g.request_id
         {where_stmt}
-        ORDER BY image_id DESC 
+        ORDER BY s.image_id_seq DESC 
         LIMIT ${len(params)}
     """
     
     async with pool.acquire() as conn:
         rows = await conn.fetch(sql, *params)
-            
         results = []
         for r in rows:
             d = dict(r)
@@ -485,9 +622,6 @@ async def list_generations(limit: int = 20, offset: int = 0, realm: Optional[str
             if d.get('updated_at'): d['updated_at'] = d['updated_at'].isoformat()
             
             result_obj = _normalize_result(d.get("result"))
-            d['is_hidden'] = bool(r.get("is_hidden"))
-            d['is_public'] = bool(r.get("is_public"))
-            d['hidden_indices'] = r.get("hidden_indices") or []
             d['images'] = _build_images(result_obj, include_hidden=include_hidden, hidden_indices=d['hidden_indices'])
             results.append(d)
         return results
@@ -503,15 +637,27 @@ async def hide_image_index(request_id: str, index: int) -> bool:
             WHERE request_id = $1 AND NOT ($2 = ANY(hidden_indices))
         """, request_id, index)
         
-        # 2. Check if all remaining images in the batch are now hidden
-        # We look for any image that is NOT empty and NOT in hidden_indices
+        # 2. Update individual image status in relational table
         await conn.execute("""
-            UPDATE generations
-            SET is_hidden = TRUE
-            WHERE request_id = $1 AND NOT EXISTS (
-                SELECT 1 FROM jsonb_array_elements_text(result->'image_urls') WITH ORDINALITY AS arr(url, idx)
-                WHERE url <> '' AND NOT (idx-1 = ANY(hidden_indices))
-            )
+            UPDATE generation_images 
+            SET status = 'hidden', updated_at = NOW()
+            WHERE generation_id = $1 AND image_index = $2
+        """, request_id, index)
+
+        # 3. Write to audit log
+        await conn.execute("""
+            INSERT INTO image_status_log (image_id, old_status, new_status, changed_by)
+            SELECT image_id, 'active', 'hidden', 'user'
+            FROM generation_images WHERE generation_id = $1 AND image_index = $2
+        """, request_id, index)
+
+        # 4. Refresh summary
+        await conn.execute("""
+            UPDATE image_summaries
+            SET visible_images = (SELECT COUNT(*) FROM generation_images WHERE generation_id = $1 AND status = 'active'),
+                is_hidden = ((SELECT COUNT(*) FROM generation_images WHERE generation_id = $1 AND status = 'active') = 0),
+                updated_at = NOW()
+            WHERE request_id = $1
         """, request_id)
         return True
 
@@ -526,10 +672,19 @@ async def show_image_index(request_id: str, index: int) -> bool:
             WHERE request_id = $1
         """, request_id, index)
         
-        # 2. If at least one image is visible, ensure batch is NOT hidden
+        # 2. Update individual image status
         await conn.execute("""
-            UPDATE generations
-            SET is_hidden = FALSE
+            UPDATE generation_images 
+            SET status = 'active', updated_at = NOW()
+            WHERE generation_id = $1 AND image_index = $2
+        """, request_id, index)
+
+        # 3. Refresh summary
+        await conn.execute("""
+            UPDATE image_summaries
+            SET visible_images = (SELECT COUNT(*) FROM generation_images WHERE generation_id = $1 AND status = 'active'),
+                is_hidden = FALSE,
+                updated_at = NOW()
             WHERE request_id = $1
         """, request_id)
         return True
@@ -626,7 +781,7 @@ async def create_post(uid: str, content: str, request_id: Optional[str] = None) 
 async def list_posts(limit: int = 20, before_id: Optional[int] = None) -> List[Dict]:
     pool = await get_pool()
     async with pool.acquire() as conn:
-        clauses = ["is_deleted = FALSE"]
+        clauses = ["posts.is_deleted = FALSE"]
         params = []
         if before_id:
             params.append(int(before_id))
@@ -640,23 +795,12 @@ async def list_posts(limit: int = 20, before_id: Optional[int] = None) -> List[D
                 posts.*, 
                 users.name, 
                 users.picture,
-                COALESCE(
-                    CASE 
-                        WHEN generations.result->'thumbnail_urls'->>0 LIKE 'http%' THEN generations.result->'thumbnail_urls'->>0
-                        WHEN generations.result->'thumbnail_urls'->>0 IS NOT NULL THEN 'https://pub-b770478fe936495c8d44e69fb02d2943.r2.dev/' || LTRIM(generations.result->'thumbnail_urls'->>0, '/')
-                        ELSE NULL 
-                    END,
-                    CASE 
-                        WHEN generations.result->'image_urls'->>0 LIKE 'http%' THEN generations.result->'image_urls'->>0
-                        WHEN generations.result->'image_urls'->>0 IS NOT NULL THEN 'https://pub-b770478fe936495c8d44e69fb02d2943.r2.dev/' || LTRIM(generations.result->'image_urls'->>0, '/')
-                        ELSE NULL 
-                    END
-                ) as preview_url,
-                generations.realm as preview_realm,
-                generations.is_public
+                s.first_thumbnail as preview_url,
+                s.realm as preview_realm,
+                s.is_public
             FROM posts 
             JOIN users ON posts.uid = users.uid 
-            LEFT JOIN generations ON posts.request_id = generations.request_id
+            LEFT JOIN image_summaries s ON posts.request_id = s.request_id
             {where_stmt}
             ORDER BY posts.id DESC 
             LIMIT ${len(params)}
@@ -668,7 +812,7 @@ async def list_posts(limit: int = 20, before_id: Optional[int] = None) -> List[D
             if d.get('created_at'): d['created_at'] = d['created_at'].isoformat()
             if d.get('updated_at'): d['updated_at'] = d['updated_at'].isoformat()
             
-            # Ensure preview_url is correctly handled if CASE failed for some reason
+            # Ensure preview_url is correctly handled (absolute R2 URL)
             if d.get('preview_url') and not d['preview_url'].startswith('http'):
                  d['preview_url'] = 'https://pub-b770478fe936495c8d44e69fb02d2943.r2.dev/' + d['preview_url'].lstrip('/')
             
@@ -678,31 +822,41 @@ async def list_posts(limit: int = 20, before_id: Optional[int] = None) -> List[D
 async def set_generation_public(request_id: str, is_public: bool) -> bool:
     pool = await get_pool()
     async with pool.acquire() as conn:
-        await conn.execute("""
-            UPDATE generations 
-            SET is_public = $2, 
-                updated_at = NOW() 
-            WHERE request_id = $1
-        """, request_id, is_public)
-        return True
+        async with conn.transaction():
+            await conn.execute("""
+                UPDATE generations 
+                SET is_public = $2, 
+                    updated_at = NOW() 
+                WHERE request_id = $1
+            """, request_id, is_public)
+            
+            await conn.execute("""
+                UPDATE image_summaries
+                SET is_public = $2,
+                    updated_at = NOW()
+                WHERE request_id = $1
+            """, request_id, is_public)
+            return True
 
 async def list_public_generations(limit: int = 20, before_id: Optional[int] = None) -> List[Dict]:
     pool = await get_pool()
     async with pool.acquire() as conn:
-        clauses = ["is_public = TRUE", "status = 'done'"]
+        clauses = ["is_public = TRUE", "visible_images > 0"]
         params = []
         
         if before_id is not None:
             params.append(int(before_id))
-            clauses.append(f"image_id < ${len(params)}")
+            clauses.append(f"image_id_seq < ${len(params)}")
             
         where_stmt = " WHERE " + " AND ".join(clauses)
         params.append(int(limit))
         
         sql = f"""
-            SELECT * FROM generations 
+            SELECT s.*, g.result, g.hidden_indices
+            FROM image_summaries s
+            JOIN generations g ON s.request_id = g.request_id
             {where_stmt}
-            ORDER BY image_id DESC 
+            ORDER BY s.image_id_seq DESC 
             LIMIT ${len(params)}
         """
         rows = await conn.fetch(sql, *params)
@@ -714,9 +868,6 @@ async def list_public_generations(limit: int = 20, before_id: Optional[int] = No
             if d.get('updated_at'): d['updated_at'] = d['updated_at'].isoformat()
             
             result_obj = _normalize_result(d.get("result"))
-            d['is_public'] = True # Always True here by query
-            d['hidden_indices'] = r.get("hidden_indices") or []
-            # In public view, we NEVER show hidden images
             d['images'] = _build_images(result_obj, include_hidden=False, hidden_indices=d['hidden_indices'])
             results.append(d)
         return results
