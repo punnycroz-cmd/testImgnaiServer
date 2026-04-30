@@ -598,7 +598,7 @@ async def list_generations(limit: int = 20, offset: int = 0, realm: Optional[str
     if before_id is not None:
         try:
             params.append(int(before_id))
-            clauses.append(f"image_id_seq < ${len(params)}")
+            clauses.append(f"s.image_id_seq < ${len(params)}")
         except: pass
         
     where_stmt = " WHERE " + " AND ".join(clauses)
@@ -857,7 +857,7 @@ async def list_public_generations(limit: int = 20, before_id: Optional[int] = No
         
         if before_id is not None:
             params.append(int(before_id))
-            clauses.append(f"image_id_seq < ${len(params)}")
+            clauses.append(f"s.image_id_seq < ${len(params)}")
             
         where_stmt = " WHERE " + " AND ".join(clauses)
         params.append(int(limit))
