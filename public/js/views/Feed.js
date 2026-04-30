@@ -10,20 +10,20 @@ export function createFeedView(state, api, toast) {
 
   function createPostCard(post) {
     const div = document.createElement('div');
-    div.className = 'glass-panel p-6 flex gap-4 border-white/5 hover:border-[var(--accent)]/20 transition-all';
+    div.className = 'glass-card p-6 flex gap-4';
     div.innerHTML = `
-      <img class="w-10 h-10 rounded-xl object-cover border border-white/10" src="${post.picture || ''}" alt="">
+      <img class="w-10 h-10 rounded-[var(--radius-sm)] object-cover shadow-sm" src="${post.picture || ''}" alt="">
       <div class="flex-1 min-w-0">
         <div class="flex items-center justify-between mb-1">
-          <span class="font-black text-[10px] uppercase tracking-widest text-[var(--accent)]">${post.name || 'Unknown'}</span>
-          <span class="text-[9px] opacity-40 uppercase font-bold">${new Date(post.created_at).toLocaleString()}</span>
+          <span class="font-bold text-[11px] tracking-wide text-[var(--accent)]">${post.name || 'Unknown'}</span>
+          <span class="text-[10px] font-medium text-[var(--text-muted)]">${new Date(post.created_at).toLocaleString()}</span>
         </div>
-        <p class="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap mb-3">${escapeHtml(post.content)}</p>
+        <p class="text-[13px] text-[var(--text-main)] font-medium leading-relaxed whitespace-pre-wrap mb-4">${escapeHtml(post.content)}</p>
         ${post.preview_url ? `
           <div class="relative group/feed-img cursor-pointer max-w-sm" onclick="window.Studio.vault.openById('${post.request_id}')">
-            <img class="rounded-2xl border border-white/10 shadow-2xl transition-transform group-hover/feed-img:scale-[1.02]" src="${post.preview_url}" alt="">
-            <div class="absolute inset-0 bg-black/20 group-hover/feed-img:bg-transparent transition-all rounded-2xl flex items-center justify-center">
-               <span class="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest text-white opacity-0 group-hover/feed-img:opacity-100 transition-opacity">Inspect</span>
+            <img class="rounded-[var(--radius-md)] border border-[#E2E8F0] shadow-sm transition-transform group-hover/feed-img:scale-[1.02]" src="${post.preview_url}" alt="">
+            <div class="absolute inset-0 bg-[#F8FAFC]/30 group-hover/feed-img:bg-transparent transition-all rounded-[var(--radius-md)] flex items-center justify-center">
+               <span class="bg-white/90 backdrop-blur-md px-4 py-2 rounded-full text-[10px] font-bold tracking-wide text-[var(--text-main)] opacity-0 group-hover/feed-img:opacity-100 transition-opacity shadow-md border border-[#E2E8F0]">Inspect</span>
             </div>
           </div>
         ` : ''}

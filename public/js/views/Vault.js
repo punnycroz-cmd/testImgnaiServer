@@ -11,9 +11,9 @@ export function createVaultView(state, api, toast, openHistoryGroup) {
     const wrap = document.createElement('div');
     wrap.id = `batch-${entry.request_id}`;
     wrap.dataset.realm = entry.realm || 'day';
-    wrap.className = 'glass-panel p-4 pb-5 cursor-pointer group relative transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_20px_50px_rgba(0,0,0,0.4)] border-white/5 hover:border-white/20';
+    wrap.className = 'glass-card p-4 pb-5 cursor-pointer group relative transition-all duration-300 hover:scale-[1.02] border border-[#E2E8F0]';
     const selIds = state.get('vault.selectedIds');
-    if (selIds && selIds.has(entry.request_id)) wrap.classList.add('border-[var(--accent)]', 'bg-[var(--accent)]/10');
+    if (selIds && selIds.has(entry.request_id)) wrap.classList.add('border-[var(--accent)]', 'bg-[#F1F5F9]');
     if (entry.is_hidden) wrap.classList.add('opacity-65');
 
     wrap.onclick = (e) => {
@@ -30,13 +30,13 @@ export function createVaultView(state, api, toast, openHistoryGroup) {
       <div class="flex items-center justify-between gap-2 mb-3">
         <div class="min-w-0">
           <div class="flex items-center gap-2 mb-1">
-            <div class="text-[9px] uppercase tracking-widest font-black px-2 py-0.5 rounded ${entry.realm === 'star' ? 'bg-purple-500/20 text-purple-400' : 'bg-emerald-500/20 text-emerald-600'}">${entry.realm || 'day'}</div>
-            ${entry.is_hidden ? '<div class="text-[9px] font-black uppercase tracking-widest bg-red-500/15 text-red-400 px-1 rounded">Hidden</div>' : ''}
-            <div class="public-badge ${entry.is_public ? '' : 'hidden'} text-[9px] font-black uppercase tracking-widest bg-violet-500/20 text-violet-400 px-1 rounded">Shared</div>
+            <div class="text-[9px] uppercase tracking-wide font-black px-2 py-0.5 rounded-[var(--radius-sm)] ${entry.realm === 'star' ? 'bg-[#EEF2FF] text-[#6366F1]' : 'bg-[#ECFDF5] text-[#10B981]'}">${entry.realm || 'day'}</div>
+            ${entry.is_hidden ? '<div class="text-[9px] font-black uppercase tracking-wide bg-red-50 text-red-500 px-2 py-0.5 rounded-[var(--radius-sm)]">Hidden</div>' : ''}
+            <div class="public-badge ${entry.is_public ? '' : 'hidden'} text-[9px] font-black uppercase tracking-wide bg-violet-50 text-violet-500 px-2 py-0.5 rounded-[var(--radius-sm)]">Shared</div>
           </div>
-          <div class="text-xs font-bold truncate opacity-80">${escapeHtml(entry.prompt || 'No Inscription')}</div>
+          <div class="text-[12px] font-semibold truncate text-[var(--text-main)]">${escapeHtml(entry.prompt || 'No Inscription')}</div>
         </div>
-        <div class="selection-indicator ${state.get('vault.selectionMode') ? 'flex' : 'hidden'} w-5 h-5 rounded-full border-2 border-white/20 items-center justify-center ${isSelected ? 'bg-[var(--accent)] border-[var(--accent)]' : ''}">
+        <div class="selection-indicator ${state.get('vault.selectionMode') ? 'flex' : 'hidden'} w-5 h-5 rounded-full border-2 border-[#E2E8F0] items-center justify-center ${isSelected ? 'bg-[var(--accent)] border-[var(--accent)]' : ''}">
           ${isSelected ? '<svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg>' : ''}
         </div>
       </div>
@@ -44,8 +44,8 @@ export function createVaultView(state, api, toast, openHistoryGroup) {
         ${(entry.images || []).slice(0, 4).map(img => {
           const isH = img.status === 'hidden';
           const isD = img.status === 'deleting';
-          return `<div class="art-frame shimmer relative group/card ${isH ? 'ring-1 ring-red-400/60' : ''} ${isD ? 'spirit-deleting' : ''} ${isH && !showHidden ? 'hidden-collapsed' : ''}">
-            <img src="${img.thumbnail_url || img.r2_url}" class="w-full aspect-square object-cover relative z-10 opacity-0 transition-all duration-700 scale-105 group-hover/card:scale-110 ${isH ? 'spirit-hidden' : ''}" loading="lazy"
+          return `<div class="art-frame shimmer relative group/card ${isH ? 'ring-1 ring-red-400/60' : ''} ${isD ? 'spirit-deleting' : ''} ${isH && !showHidden ? 'hidden-collapsed' : ''} rounded-[var(--radius-sm)] overflow-hidden shadow-sm">
+            <img src="${img.thumbnail_url || img.r2_url}" class="w-full aspect-square object-cover relative z-10 opacity-0 transition-all duration-500 scale-100 group-hover/card:scale-105 ${isH ? 'spirit-hidden' : ''}" loading="lazy"
               onload="this.style.opacity=('${isH}'==='true'?'0.75':'1');this.style.transform='scale(1)';this.parentElement.classList.remove('shimmer');">
           </div>`;
         }).join('')}

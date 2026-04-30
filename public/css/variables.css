@@ -1,25 +1,27 @@
 /* ============================================
-   Aether Studio — Design Tokens (Premium)
+   Aether Studio — Howard UI Design Tokens
    ============================================ */
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
 :root {
-  /* Core Palette — Nebula Obsidian */
-  --bg-deep: #020204;
-  --bg-surface: rgba(8, 8, 12, 0.8);
+  /* Core Palette — Clean Light UI */
+  --bg-deep: #F8FAFC; /* Slate 50 */
+  --bg-surface: #FFFFFF;
   
-  --accent: #00f2ff; /* Electric Cyan */
-  --accent-secondary: #bd00ff; /* Supernova Purple */
-  --accent-glow: rgba(0, 242, 255, 0.4);
-  --accent-text: #000000;
+  --accent: #10B981; /* Emerald 500 */
+  --accent-secondary: #6366F1; /* Indigo 500 */
+  --accent-glow: rgba(16, 185, 129, 0.2);
+  --accent-text: #FFFFFF;
   
-  --text-main: #ffffff;
-  --text-muted: rgba(255, 255, 255, 0.6);
-  --text-dim: rgba(255, 255, 255, 0.2);
+  --text-main: #0F172A; /* Slate 900 */
+  --text-muted: #64748B; /* Slate 500 */
+  --text-dim: #CBD5E1; /* Slate 300 */
 
   /* Glassmorphism Refined */
-  --glass-bg: rgba(255, 255, 255, 0.03);
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --glass-blur: 32px;
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(0, 0, 0, 0.05);
+  --glass-blur: 24px;
   
   /* Spacing System */
   --space-2xs: 0.25rem;
@@ -30,24 +32,25 @@
   --space-xl: 2rem;
   --space-2xl: 4rem;
 
-  /* Border Radius */
-  --radius-sm: 0.5rem;
-  --radius-md: 1rem;
-  --radius-lg: 1.5rem;
-  --radius-xl: 2.5rem;
+  /* Border Radius - Squarcles */
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
   --radius-full: 9999px;
 
   /* Typography Stack */
-  --font-body: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-display: 'Space Grotesk', 'Outfit', sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: 'Inter', sans-serif;
   
   /* Transitions */
   --ease-premium: cubic-bezier(0.16, 1, 0.3, 1);
-  --duration-normal: 0.4s;
+  --duration-normal: 0.3s;
   
   /* Shadows & Glows */
-  --shadow-bloom: 0 0 50px rgba(0, 242, 255, 0.15);
-  --shadow-deep: 0 30px 60px rgba(0, 0, 0, 0.9);
+  --shadow-bloom: 0 10px 30px rgba(16, 185, 129, 0.15);
+  --shadow-deep: 0 20px 40px rgba(0, 0, 0, 0.05);
+  --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.03);
   
   /* Z-Index */
   --z-header: 1000;
@@ -58,6 +61,6 @@
 
 [data-mode="nsfw"] {
   --accent: var(--accent-secondary);
-  --accent-glow: rgba(189, 0, 255, 0.4);
-  --shadow-bloom: 0 0 50px rgba(189, 0, 255, 0.15);
+  --accent-glow: rgba(99, 102, 241, 0.2);
+  --shadow-bloom: 0 10px 30px rgba(99, 102, 241, 0.15);
 }
