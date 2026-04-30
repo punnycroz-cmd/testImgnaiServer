@@ -140,7 +140,7 @@ async def get_public_gallery(limit: int = 20, before: Optional[str] = None):
     
     items = await DB.list_public_generations(limit=limit, before_id=b_id)
     
-    next_cursor = items[-1]["image_id"] if items else None
+    next_cursor = items[-1]["image_id_seq"] if items else None
     return {
         "items": items,
         "limit": limit,
