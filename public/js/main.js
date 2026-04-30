@@ -208,6 +208,9 @@ document.addEventListener('visibilitychange', () => {
 
 // ── Initialization ─────────────────────────────
 try {
+  // Expose for index.html callbacks
+  window.Studio = { auth };
+
   forge.applyMode(state.get('app.mode') || 'standard');
   router.handleRouting();
   auth.checkAuth().then(loggedIn => { if (loggedIn) vault.reload(); });
