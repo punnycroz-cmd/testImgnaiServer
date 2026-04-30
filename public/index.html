@@ -3004,13 +3004,27 @@
             updatePublishButtonUI();
             setFooterMsg(nextPublic ? "Batch published to gallery!" : "Batch removed from gallery.", "info");
             
-            // Refresh history list item if it exists
+            // 1. Update Vault UI (Badge)
             const card = document.getElementById(`batch-${rid}`);
             if (card) {
                 card.dataset.public = nextPublic;
                 const badge = card.querySelector(".public-badge");
                 if (badge) badge.classList.toggle("hidden", !nextPublic);
             }
+
+            // 2. Clear state and trigger reloads for other tabs so they pull fresh data
+            state.discoveryLoaded = false; 
+            state.discoveryHasMore = true;
+            state.discoveryCursor = null;
+            
+            state.feedLoaded = false;
+            state.feedHasMore = true;
+            state.feedCursor = null;
+
+            if (state.view === 'discovery') reloadDiscovery();
+            if (state.view === 'feed') reloadFeed();
+            
+            updatePublishButtonUI();
         } catch (err) {
             console.error("Publish failed:", err);
             setFooterMsg("Failed to update public status.", "error");

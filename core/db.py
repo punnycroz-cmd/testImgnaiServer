@@ -467,7 +467,7 @@ async def list_generations(limit: int = 20, offset: int = 0, realm: Optional[str
     sql = f"""
         SELECT uid, image_id, request_id, client_id, realm, prompt, model, 
                quality, aspect, count, session_uuid, result, error, 
-               is_hidden, hidden_indices,
+               is_hidden, is_public, hidden_indices,
                created_at, updated_at 
         FROM generations 
         {where_stmt}
@@ -640,8 +640,13 @@ async def list_posts(limit: int = 20, before_id: Optional[int] = None) -> List[D
                 posts.*, 
                 users.name, 
                 users.picture,
-                generations.result->'image_urls'->0 as preview_url,
-                generations.realm as preview_realm
+                CASE 
+                    WHEN generations.result->'image_urls'->>0 LIKE 'http%' THEN generations.result->'image_urls'->>0
+                    WHEN generations.result->'image_urls'->>0 IS NOT NULL THEN 'https://pub-b770478fe936495c8d44e69fb02d2943.r2.dev/' || LTRIM(generations.result->'image_urls'->>0, '/')
+                    ELSE NULL 
+                END as preview_url,
+                generations.realm as preview_realm,
+                generations.is_public
             FROM posts 
             JOIN users ON posts.uid = users.uid 
             LEFT JOIN generations ON posts.request_id = generations.request_id
@@ -655,6 +660,11 @@ async def list_posts(limit: int = 20, before_id: Optional[int] = None) -> List[D
             d = dict(r)
             if d.get('created_at'): d['created_at'] = d['created_at'].isoformat()
             if d.get('updated_at'): d['updated_at'] = d['updated_at'].isoformat()
+            
+            # Ensure preview_url is correctly handled if CASE failed for some reason
+            if d.get('preview_url') and not d['preview_url'].startswith('http'):
+                 d['preview_url'] = 'https://pub-b770478fe936495c8d44e69fb02d2943.r2.dev/' + d['preview_url'].lstrip('/')
+            
             results.append(d)
         return results
 
