@@ -80,8 +80,20 @@ function toggleConsole(forceState) {
 // ── Health Check ───────────────────────────────
 async function checkBackend() {
   const el = document.getElementById('backendStatus');
-  try { const res = await api.apiFetch('/health'); if (el) el.textContent = res.status === 'ok' ? 'Backend Online' : 'Backend Latency'; }
-  catch { if (el) el.textContent = 'Backend Offline'; }
+  try {
+    const res = await api.apiFetch('/health');
+    // If res is null (304 Not Modified) it means the server is alive and responding
+    const isOnline = !res || res.status === 'ok';
+    if (el) {
+      el.textContent = isOnline ? 'Backend Online' : 'Backend Latency';
+      el.classList.toggle('opacity-50', !isOnline);
+    }
+  } catch (err) {
+    if (el) {
+      el.textContent = 'Backend Offline';
+      el.classList.add('opacity-50');
+    }
+  }
 }
 
 // ── Success Handler (bridges forge → vault) ────
