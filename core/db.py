@@ -585,15 +585,15 @@ async def list_generations(limit: int = 20, offset: int = 0, realm: Optional[str
     pool = await get_pool()
     
     # We query from image_summaries for speed
-    clauses = ["(uid = $1 OR (is_public = TRUE AND uid = 'uid_0'))"]
+    clauses = ["(s.uid = $1 OR (s.is_public = TRUE AND s.uid = 'uid_0'))"]
     params = [uid] # $1
 
     if not include_hidden:
-        clauses.append("is_hidden = FALSE")
+        clauses.append("s.is_hidden = FALSE")
     
     if realm:
         params.append(realm)
-        clauses.append(f"realm = ${len(params)}")
+        clauses.append(f"s.realm = ${len(params)}")
         
     if before_id is not None:
         try:
@@ -852,7 +852,7 @@ async def set_generation_public(request_id: str, is_public: bool) -> bool:
 async def list_public_generations(limit: int = 20, before_id: Optional[int] = None) -> List[Dict]:
     pool = await get_pool()
     async with pool.acquire() as conn:
-        clauses = ["is_public = TRUE", "visible_images > 0"]
+        clauses = ["s.is_public = TRUE", "s.visible_images > 0"]
         params = []
         
         if before_id is not None:
