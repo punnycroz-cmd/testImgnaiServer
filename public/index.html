@@ -1,557 +1,368 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Aether Studio</title>
-  <meta name="description" content="Aether Studio — AI Image Generation Platform" />
-
-  <!-- Tailwind (temporary, for layout utilities) -->
-  <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Modular CSS Design System -->
-  <link rel="stylesheet" href="/css/variables.css" />
-  <link rel="stylesheet" href="/css/base.css" />
-  <link rel="stylesheet" href="/css/animations.css" />
-  <link rel="stylesheet" href="/css/components/glass-panel.css" />
-  <link rel="stylesheet" href="/css/components/button.css" />
-  <link rel="stylesheet" href="/css/components/bubble.css" />
-  <link rel="stylesheet" href="/css/components/card.css" />
-  <link rel="stylesheet" href="/css/components/lightbox.css" />
-  <link rel="stylesheet" href="/css/components/console.css" />
-  <link rel="stylesheet" href="/css/components/nav.css" />
-  <link rel="stylesheet" href="/css/components/modal.css" />
-  <link rel="stylesheet" href="/css/components/progress.css" />
-  <link rel="stylesheet" href="/css/layouts/responsive.css" />
-
-  <!-- Legacy inline styles (to be removed in Phase 4) -->
-  <style>
-    .btn-magic {
-      background: var(--accent);
-      color: var(--accent-text);
-      transition: all 0.25s ease;
-      border-radius: 1.25rem;
-      cursor: pointer;
-    }
-    .btn-magic:hover:not(:disabled) {
-      background: var(--accent-hover);
-      box-shadow: 0 14px 32px var(--accent-glow);
-      transform: translateY(-2px);
-    }
-    .btn-magic:disabled { opacity: 0.65; cursor: not-allowed; transform: none; }
-    .btn-magic:active:not(:disabled) { transform: scale(0.96); }
-
-    /* Lightbox specifics that reference IDs */
-    #bubbleReveal {
-      position: fixed; inset: 0; z-index: 9999;
-      transition: opacity 0.4s ease, backdrop-filter 0.4s ease;
-      display: none; opacity: 0;
-      flex-direction: column; align-items: center; justify-content: flex-start;
-      background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(12px);
-      padding: 1rem; gap: 2rem;
-    }
-    #bubbleReveal img { max-height: 55vh; width: auto; max-width: 100%; object-fit: contain; border-radius: 1.25rem; }
-    @media (min-width: 1024px) {
-      #bubbleReveal { flex-direction: row; padding: 4rem; gap: 4rem; align-items: center; justify-content: center; }
-      #bubbleReveal .image-viewer-container { flex: 7; display: flex; justify-content: center; align-items: center; max-height: 85vh; }
-      #bubbleReveal img { max-height: 85vh; }
-      .glass-reveal-panel { flex: 3; max-width: 450px; min-width: 350px; height: min-content; max-height: 85vh; overflow-y: auto; }
-    }
-    #bubbleReveal.active { display: flex !important; opacity: 1; }
-    .glass-reveal-panel {
-      background: rgba(10, 10, 10, 0.85); backdrop-filter: blur(30px);
-      border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 28px;
-      transform: translateY(30px); transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-      color: white; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-    }
-    #bubbleReveal.active .glass-reveal-panel { transform: translateY(0); }
-    #bubbleReveal.active img { transform: scale(1); }
-    #bubbleReveal img { transform: scale(0.95); transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
-    #bubbleRevealImg[data-hidden="true"] { display: none; }
-
-    /* Console overrides */
-    .bottom-console {
-      position: fixed; bottom: 1.25rem; left: 50%; transform: translateX(-50%);
-      width: calc(100% - 1.5rem); max-width: 1100px; z-index: 100;
-      transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
-    }
-    .bottom-console.minimized { transform: translate(-50%, 100%); opacity: 0; pointer-events: none; }
-    @media (min-width: 1024px) {
-      .bottom-console.minimized { transform: translate(-50%, calc(100% - 1rem)); opacity: 0.9; pointer-events: auto; }
-      .bottom-console.minimized #consoleToggleBtn { top: -45px; opacity: 1; }
-    }
-    #mobileToggleStub { display: none; position: absolute; top: -38px; left: 50%; transform: translateX(-50%); z-index: 1001; }
-
-    /* Progress matrix (legacy) */
-    .progress-matrix { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; margin-top: 1rem; opacity: 0; transition: opacity 0.3s ease; }
-    .progress-matrix.active { opacity: 1; }
-    .progress-label { font-size: 8px; text-transform: uppercase; font-weight: 800; letter-spacing: 1px; margin-top: 4px; color: var(--text-muted); }
-  </style>
-
-  <!-- Google Sign-In -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>AETHER HUD // SYSTEM.ON</title>
+  
+  <link rel="stylesheet" href="/css/variables.css">
+  <link rel="stylesheet" href="/index.css">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script>
-    const GOOGLE_CLIENT_ID = "206665134027-80oiqn378dq1jo49lgtmaueu0p30mf9a.apps.googleusercontent.com";
-    window.__SERVER_URL__ = "__STD_URL__";
-    window.__SERVER_URL_NSFW__ = "__NSFW_URL__";
-
-    // Global bridge for Google Sign-In callback
-    window.handleGoogleLogin = function(response) {
-      if (window.Studio && window.Studio.auth) {
-        window.Studio.auth.handleGoogleLogin(response);
-      } else {
-        console.warn('Auth module not ready. Retrying login...');
-        setTimeout(() => window.handleGoogleLogin(response), 100);
-      }
-    };
-  </script>
 </head>
 
-<body data-mode="standard">
-  <div id="auth-overlay" class="fixed inset-0 z-[1000] flex items-center justify-center bg-[#0f172a] transition-opacity duration-700 hidden">
-    <div class="glass-panel p-12 max-w-md w-full text-center space-y-8 border-violet-500/20">
-      <div class="space-y-4">
-        <h1 class="text-4xl font-black text-white tracking-tighter">AETHER <span class="text-[var(--accent)]">STUDIO</span></h1>
-        <p class="text-slate-400 text-sm font-medium">Please sign in to access your creative sanctuary.</p>
-      </div>
+<body class="bg-[var(--bg-void)] text-[var(--text-main)] font-hud selection:bg-[var(--accent)] selection:text-black overflow-x-hidden" data-mode="standard">
+  <!-- Sci-Fi FX Overlays -->
+  <div class="bg-grid"></div>
+  <div class="scanlines"></div>
+  <canvas id="aetherCanvas" class="fixed inset-0 pointer-events-none z-[-1] opacity-50"></canvas>
+
+  <!-- TOP HUD BAR -->
+  <header class="fixed top-0 left-0 right-0 z-[var(--z-header)] pointer-events-none">
+    <div class="flex justify-between items-start pointer-events-auto">
       
-      <div id="g_id_onload"
-           data-client_id="206665134027-80oiqn378dq1jo49lgtmaueu0p30mf9a.apps.googleusercontent.com"
-           data-callback="handleGoogleLogin"
-           data-auto_prompt="false">
-      </div>
-      <div class="g_id_signin flex justify-center"
-           data-type="standard"
-           data-size="large"
-           data-theme="outline"
-           data-text="sign_in_with"
-           data-shape="pill"
-           data-logo_alignment="left">
-      </div>
-    </div>
-  </div>
-  <canvas id="aetherCanvas" class="fixed inset-0 pointer-events-none z-[-1]"></canvas>
-
-  <header class="fixed top-6 left-1/2 -translate-x-1/2 w-[95%] max-w-7xl z-[var(--z-header)]">
-    <div class="glass-panel p-2 pl-6 flex items-center justify-between gap-4">
-      <div class="flex items-center gap-6 min-w-0">
-        <div class="flex items-center gap-3">
-          <div class="w-8 h-8 rounded-lg bg-[var(--accent)] text-white flex items-center justify-center shadow-[var(--shadow-bloom)] shrink-0">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-              <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
-            </svg>
-          </div>
-          <h1 class="hidden md:block cinematic-text text-lg font-black text-[var(--text-main)] tracking-widest">STUDIO</h1>
+      <!-- Logo / System Status -->
+      <div class="hud-panel border-l-0 border-t-0 p-4 pl-6 flex items-center gap-4 shadow-lg min-w-[300px]">
+        <div class="w-10 h-10 border border-[var(--accent)] flex items-center justify-center animate-pulse-hud">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2">
+            <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"></polygon>
+            <polyline points="12 22 12 12"></polyline>
+            <polyline points="22 8.5 12 12"></polyline>
+            <polyline points="2 8.5 12 12"></polyline>
+          </svg>
         </div>
-        
-        <nav class="flex items-center gap-1 bg-[#F8FAFC] border border-[#E2E8F0] p-1.5 rounded-[var(--radius-md)] shrink-0">
-          <button data-view="generate" class="nav-pill active">Forge</button>
-          <button data-view="history" class="nav-pill">Vault</button>
-          <button data-view="discovery" class="nav-pill">Discovery</button>
-          <button data-view="feed" class="nav-pill">Feed</button>
-        </nav>
+        <div class="flex flex-col">
+          <h1 class="text-2xl font-black tracking-[0.3em] uppercase text-white m-0 leading-none">AETHER</h1>
+          <span class="hud-data text-[var(--accent)]">SYS.CORE // ONLINE</span>
+        </div>
       </div>
 
-      <div class="flex items-center gap-4">
-        <div id="user-profile" class="hidden items-center gap-3 bg-[#F8FAFC] border border-[#E2E8F0] p-1 pr-3 rounded-[var(--radius-md)]">
-            <img id="user-avatar" class="w-7 h-7 rounded-[var(--radius-sm)] object-cover shadow-sm" src="" alt="">
-            <span class="hidden lg:block text-[10px] font-bold tracking-wide text-[var(--text-main)]" id="user-name"></span>
-            <button data-action="logout" class="p-1.5 text-[var(--text-muted)] hover:text-red-500 transition-colors" title="Logout">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      <!-- Navigation Matrix -->
+      <nav class="hud-panel border-t-0 p-2 flex gap-2">
+        <button data-view="generate" class="btn-hud px-6 py-2 active text-xs">Forge</button>
+        <button data-view="history" class="btn-hud px-6 py-2 text-xs">Vault</button>
+        <button data-view="discovery" class="btn-hud px-6 py-2 text-xs">Discovery</button>
+        <button data-view="feed" class="btn-hud px-6 py-2 text-xs">Comm-Link</button>
+      </nav>
+
+      <!-- User Profile Readout -->
+      <div class="hud-panel border-r-0 border-t-0 p-3 pr-6 flex items-center gap-4">
+        <div id="user-profile" class="hidden items-center gap-3">
+            <img id="user-avatar" class="w-8 h-8 object-cover border border-[var(--hud-border)]" src="" alt="" style="clip-path: var(--clip-corner-sm)">
+            <div class="flex flex-col text-right">
+              <span class="hud-data text-[var(--accent)]" id="user-name"></span>
+              <span class="text-[8px] uppercase tracking-widest text-white/50">Operator</span>
+            </div>
+            <button data-action="logout" class="ml-2 text-[var(--neon-orange)] hover:text-white transition-colors">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
             </button>
         </div>
-        <div class="status-pill hidden sm:inline-flex" id="backendStatus">Online</div>
+        <div class="hud-data border border-[var(--accent)] px-2 py-1 text-[8px]" id="backendStatus">Uplink OK</div>
       </div>
+
     </div>
   </header>
 
-  <div id="bubbleReveal"
-    class="fixed inset-0 z-[2000] hidden flex-col items-center justify-start p-4 pt-12 sm:p-12 bg-black/80 backdrop-blur-md overflow-y-auto"
-    data-action="closeLightbox">
-    <!-- Floating Image Container -->
-    <div class="image-viewer-container w-full relative flex items-center justify-center my-4 pb-4"
-      data-stop-propagation="true">
-      <img id="bubbleRevealImg" src="" alt="Manifestation"
-        class="shadow-[0_20px_80px_rgba(0,0,0,0.9)] border border-white/10 transition-all duration-500 hover:scale-[1.01]">
-    </div>
-
-    <!-- Floating Glass Info Panel -->
-    <div class="glass-reveal-panel w-full p-8 sm:p-10 flex flex-col gap-6 shadow-2xl mb-24 sm:mb-0"
-      data-stop-propagation="true">
-      <div id="thumbsSection" class="hidden flex-col gap-3">
-        <div class="flex items-center justify-between mb-1">
-            <span class="opacity-60 uppercase font-black text-[9px] tracking-[0.2em] text-[var(--accent)]">The Batch</span>
-            <span id="bubbleMeta" class="opacity-40 uppercase font-black text-[9px] tracking-[0.2em] text-white"># -</span>
-        </div>
-        <div id="bubbleRevealThumbs" class="grid grid-cols-4 gap-2"></div>
-      </div>
-
-      <div id="metaInspector" class="grid grid-cols-2 gap-8 border-t border-white/10 pt-6">
-        <div class="flex flex-col"><span
-            class="opacity-60 uppercase font-black text-[10px] tracking-[0.2em] mb-2 text-[var(--accent)]">Casting
-            Engine</span><span class="font-bold text-lg tracking-tight" id="metaModel">-</span></div>
-        <div class="flex flex-col items-end"><span
-            class="opacity-60 uppercase font-black text-[10px] tracking-[0.2em] mb-2 text-[var(--accent)]">Celestial
-            Realm</span><span class="font-bold text-white text-lg uppercase tracking-wide" id="metaRealm">-</span></div>
-        <div class="col-span-2 pt-6 border-t border-white/10">
-          <span
-            class="opacity-60 uppercase font-black text-[10px] tracking-[0.2em] mb-3 block text-[var(--accent)]">Inscription</span>
-          <p id="metaPrompt" class="text-base sm:text-lg leading-relaxed text-white font-medium italic tracking-tight">-
-          </p>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-2 lg:grid-cols-3 gap-3 pt-6 border-t border-white/5">
-        <a id="bubbleRevealDownload" href="#" download
-          class="btn-magic h-12 flex items-center justify-center rounded-xl text-[10px] font-black uppercase tracking-[0.15em] shadow-2xl">Collect</a>
-        <button data-action="cloneManifestation"
-          class="h-12 rounded-xl border-2 border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white transition-all text-[10px] font-black uppercase tracking-[0.15em]">Invoke</button>
-        <button data-action="closeLightbox"
-          class="h-12 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-[10px] font-black uppercase tracking-[0.15em] hidden lg:block">Close</button>
-
-        <div class="col-span-2 lg:col-span-3 grid grid-cols-2 gap-3 mt-1">
-          <button data-action="hideCurrentItem"
-            class="h-12 rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all text-[10px] font-black uppercase tracking-[0.15em]">Hide
-            One</button>
-          <button data-action="banishCurrentItem"
-            class="h-12 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all text-[10px] font-black uppercase tracking-[0.15em]">Banish
-            One</button>
-          <button data-action="showCurrentItem"
-            class="h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all text-[10px] font-black uppercase tracking-[0.15em]">Show
-            One</button>
-          <button data-action="toggleBatchHidden"
-            class="h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-300 hover:bg-blue-500 hover:text-white transition-all text-[10px] font-black uppercase tracking-[0.15em]">Toggle
-            Batch</button>
-          <button data-action="banishBatch"
-            class="h-12 rounded-xl bg-red-900/20 border border-red-500/30 text-red-400 hover:bg-red-600 hover:text-white transition-all text-[10px] font-black uppercase tracking-[0.15em]">Banish
-            Batch</button>
-          <button id="publishBtn" data-action="togglePublishCurrentBatch"
-            class="h-12 rounded-xl bg-violet-600/20 border border-violet-500/30 text-violet-400 hover:bg-violet-600/40 transition-all text-[10px] font-black uppercase tracking-[0.15em] col-span-2">Post to Public</button>
-        </div>
-        <button data-action="closeLightbox"
-          class="h-12 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-[10px] font-black uppercase tracking-[0.15em] lg:hidden col-span-2">Close</button>
-      </div>
-
-
-    </div>
-  </div>
-
-  <main id="mainContent" class="pt-44 pb-40">
+  <!-- MAIN VIEWPORT -->
+  <main id="mainContent" class="pt-32 pb-48">
+    
+    <!-- FORGE SEC -->
     <section id="view-generate" class="view">
-      <div class="max-w-7xl mx-auto px-4 sm:px-8">
-
-
-        <div id="gallery" class="bubble-container">
-          <div id="galleryEmpty"
-            class="col-span-full py-20 text-center opacity-15 text-3xl font-light cinematic-text tracking-[0.3em] uppercase">
-            Void Awaiting Light</div>
-        </div>
-
-        <!-- The Matrix Grid -->
-        <div id="matrixControls"
-          class="hidden flex items-center justify-between gap-4 py-4 px-2 bg-white/5 rounded-2xl border border-white/10 mb-4 animate-in fade-in slide-in-from-top-4 duration-500">
-          <div class="flex items-center gap-3">
-            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" id="matrixStatusPulse"></span>
-            <span class="text-[10px] font-black uppercase tracking-widest" id="matrixStatusText">Matrix Active</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <button data-action="toggleMatrixPause" id="matrixPauseBtn"
-              class="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-[9px] font-black uppercase tracking-widest transition-all">Pause</button>
-            <button data-action="cancelMatrix"
-              class="px-4 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-500 text-[9px] font-black uppercase tracking-widest transition-all border border-red-500/20">Cancel</button>
-          </div>
-        </div>
-        <div id="matrixGallery" class="hidden grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 py-8"></div>
-      </div>
-    </section>
-
-    <section id="view-tasks" class="view hidden px-4 sm:px-8">
-      <div class="max-w-7xl mx-auto glass-panel p-6 sm:p-10 min-h-[400px]">
-        <div class="flex items-center justify-between gap-4 mb-8">
-          <h2 class="text-xl font-bold uppercase tracking-widest text-[var(--text-muted)]">Active Queue</h2>
-          <button data-action="cancelAllJobs"
-            class="px-4 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-500 text-[10px] font-black uppercase tracking-widest transition-all border border-red-500/20">Halt
-            All</button>
-        </div>
-        <div id="taskList" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
-      </div>
-    </section>
-
-    <section id="view-history" class="view hidden px-4 sm:px-8">
-      <div class="max-w-7xl mx-auto min-h-[400px] relative">
-        <h2 class="text-3xl font-black tracking-tight text-[var(--text-main)] mb-8">Vault</h2>
-        <div class="flex flex-col lg:flex-row items-center justify-between gap-4 mb-10">
-          <div class="flex flex-wrap items-center justify-center lg:justify-start gap-4">
-            <!-- Realm Filter Buttons -->
-            <div class="flex items-center gap-2 bg-[#F1F5F9] p-1.5 rounded-[var(--radius-md)] border border-[#E2E8F0]">
-              <button data-action="filterRealm" data-realm="all" id="filterRealmAll"
-                class="px-4 py-2 rounded-[var(--radius-sm)] text-[11px] font-bold tracking-wide transition-all bg-[var(--text-main)] text-white shadow-sm">
-                All
-              </button>
-              <button data-action="filterRealm" data-realm="day" id="filterRealmDay"
-                class="px-4 py-2 rounded-[var(--radius-sm)] text-[11px] font-bold tracking-wide transition-all text-[var(--text-muted)] hover:bg-[#E2E8F0] hover:text-[var(--text-main)]">
-                Day
-              </button>
-              <button data-action="filterRealm" data-realm="star" id="filterRealmStar"
-                class="px-4 py-2 rounded-[var(--radius-sm)] text-[11px] font-bold tracking-wide transition-all text-[var(--text-muted)] hover:bg-[#E2E8F0] hover:text-[var(--text-main)]">
-                Star
-              </button>
-            </div>
-
-            <div class="hidden sm:block w-px h-6 bg-[#E2E8F0]"></div>
-            
-            <div class="flex items-center gap-6">
-              <button data-action="toggleHiddenVault" id="toggleHiddenVaultBtn"
-                class="text-[11px] font-bold uppercase tracking-wide text-[var(--text-muted)] hover:text-[var(--text-main)] transition-all">Show Hidden</button>
-              <button data-action="toggleSelectionMode" id="toggleSelectBtn"
-                class="text-[11px] font-bold uppercase tracking-wide text-[var(--text-muted)] hover:text-[var(--text-main)] transition-all">Select Mode</button>
-            </div>
-            
-            <div class="hidden sm:block w-px h-6 bg-[#E2E8F0]"></div>
-            
-            <div class="flex items-center gap-6">
-              <button data-action="reloadHistory"
-                class="text-[11px] font-bold uppercase tracking-wide text-[var(--accent)] hover:opacity-80">Reload</button>
-              <button data-action="clearVault" class="text-[11px] font-bold uppercase tracking-wide text-red-500 hover:text-red-600 transition-all">Purge Cache</button>
+      <div class="max-w-7xl mx-auto px-4">
+        <div id="gallery" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div id="galleryEmpty" class="col-span-full py-20 text-center">
+            <div class="inline-block border border-[var(--hud-border)] p-6 bg-black/50" style="clip-path: var(--clip-corner)">
+              <span class="hud-data block mb-2 text-white/50">NO TARGET SPECIFIED</span>
+              <span class="text-2xl font-black uppercase tracking-[0.3em] text-[var(--accent)]">AWAITING MANIFEST SEQUENCE</span>
             </div>
           </div>
         </div>
-
-
-
-
-
-        <div id="historyList" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 transition-all"
-          data-select-mode="false"></div>
-        <div class="mt-8 flex justify-center">
-          <button id="loadMoreBtn" data-action="loadHistoryPage"
-            class="btn-magic px-8 py-3 font-bold uppercase tracking-widest text-xs hidden">Deep Dive</button>
-        </div>
-      </div>
-    </section>
-
-    <!-- Discovery View -->
-    <section id="view-discovery" class="view hidden px-4 sm:px-8">
-      <div class="max-w-7xl mx-auto min-h-[400px] relative">
-        <h2 class="text-3xl font-black tracking-tight text-[var(--text-main)] mb-8">Discovery</h2>
-        <div class="flex flex-col sm:flex-row items-center justify-between gap-6 mb-10">
+        
+        <!-- Matrix Data (Hidden) -->
+        <div id="matrixControls" class="hidden mt-8 hud-panel p-4 flex justify-between items-center">
           <div class="flex items-center gap-4">
-            <button data-action="reloadDiscovery" class="text-[11px] font-bold uppercase tracking-wide text-[var(--accent)] hover:opacity-80">Refresh</button>
+            <span class="w-3 h-3 bg-[var(--neon-orange)] shadow-[var(--hud-glow-alert)] rounded-none animate-pulse"></span>
+            <span class="hud-data text-[var(--neon-orange)]">MATRIX ITERATION ENGAGED</span>
           </div>
-        </div>
-        <div id="discoveryList" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 transition-all"></div>
-        <div class="mt-8 flex justify-center">
-            <button id="loadMoreDiscoveryBtn" data-action="loadDiscoveryPage" class="btn-magic px-8 py-3 font-bold uppercase tracking-widest text-xs hidden">Load More</button>
+          <button data-action="cancelMatrix" class="btn-action px-6 py-2 text-xs">ABORT</button>
         </div>
       </div>
     </section>
 
-    <!-- Feed View -->
-    <section id="view-feed" class="view hidden px-4 sm:px-8 pb-20">
-      <div class="max-w-3xl mx-auto min-h-[400px] relative">
-        <h2 class="text-3xl font-black tracking-tight text-[var(--text-main)] mb-8">Feed</h2>
-        <div class="flex flex-col sm:flex-row items-center justify-between gap-6 mb-10">
-          <div class="flex items-center gap-4">
-            <button data-action="reloadFeed" class="text-[11px] font-bold uppercase tracking-wide text-[var(--accent)] hover:opacity-80">Refresh</button>
+    <!-- VAULT SEC -->
+    <section id="view-history" class="view hidden px-4">
+      <div class="max-w-7xl mx-auto min-h-[400px]">
+        
+        <div class="hud-panel mb-8">
+          <div class="hud-panel-inner flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-4">
+              <span class="text-3xl font-black uppercase tracking-[0.4em] text-white">VAULT //</span>
+              <span class="hud-data text-[var(--accent)] mt-1">ARCHIVE.ACCESS</span>
+            </div>
+            
+            <div class="flex items-center gap-4">
+              <div class="flex bg-black/50 border border-[var(--hud-border)] p-1" style="clip-path: var(--clip-corner-sm)">
+                <button data-action="filterRealm" data-realm="all" id="filterRealmAll" class="px-4 py-1 font-data text-xs uppercase tracking-widest bg-[var(--accent)] text-black">ALL</button>
+                <button data-action="filterRealm" data-realm="day" id="filterRealmDay" class="px-4 py-1 font-data text-xs uppercase tracking-widest text-white hover:text-[var(--accent)]">DAY</button>
+                <button data-action="filterRealm" data-realm="star" id="filterRealmStar" class="px-4 py-1 font-data text-xs uppercase tracking-widest text-white hover:text-[var(--accent)]">STAR</button>
+              </div>
+              
+              <button data-action="toggleHiddenVault" id="toggleHiddenVaultBtn" class="hud-data text-white/50 hover:text-white">DECRYPT HIDDEN</button>
+              <button data-action="toggleSelectionMode" id="toggleSelectBtn" class="hud-data text-[var(--neon-orange)] hover:text-white">OVERRIDE SELECT</button>
+              <button data-action="reloadHistory" class="btn-hud px-4 py-1 text-[10px]">SYNC</button>
+            </div>
+          </div>
+        </div>
+        
+        <div id="historyList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
+        <div class="mt-12 flex justify-center">
+            <button id="loadMoreHistoryBtn" data-action="loadHistoryPage" class="btn-hud px-8 py-3 hidden">ACCESS NEXT SECTOR</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- DISCOVERY SEC -->
+    <section id="view-discovery" class="view hidden px-4">
+      <div class="max-w-7xl mx-auto min-h-[400px]">
+        <div class="hud-panel mb-8">
+          <div class="hud-panel-inner flex justify-between items-center">
+             <div class="flex items-center gap-4">
+                <span class="text-3xl font-black uppercase tracking-[0.4em] text-white">DISCOVERY //</span>
+                <span class="hud-data text-[var(--accent)] mt-1">PUBLIC.GRID</span>
+             </div>
+             <button data-action="reloadDiscovery" class="btn-hud px-6 py-2">PING GRID</button>
+          </div>
+        </div>
+        <div id="discoveryList" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"></div>
+        <div class="mt-12 flex justify-center">
+            <button id="loadMoreDiscoveryBtn" data-action="loadDiscoveryPage" class="btn-hud px-8 py-3 hidden">EXPAND GRID</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- FEED SEC -->
+    <section id="view-feed" class="view hidden px-4 pb-20">
+      <div class="max-w-4xl mx-auto min-h-[400px]">
+        
+        <div class="hud-panel mb-8">
+          <div class="hud-panel-inner flex justify-between items-center">
+             <div class="flex items-center gap-4">
+                <span class="text-3xl font-black uppercase tracking-[0.4em] text-white">COMM-LINK //</span>
+                <span class="hud-data text-[var(--accent)] mt-1">SEC.CHANNEL</span>
+             </div>
+             <button data-action="reloadFeed" class="btn-hud px-6 py-2">REFRESH SIGNAL</button>
           </div>
         </div>
 
         <!-- Post Creation Area -->
-        <div class="glass-panel p-6 mb-10 border border-[#E2E8F0]">
-            <div class="flex gap-4">
-                <img class="feed-user-avatar w-10 h-10 rounded-[var(--radius-sm)] object-cover shadow-sm" src="" alt="">
-                <div class="flex-1 space-y-4">
-                    <textarea id="feed-post-content" 
-                        class="w-full bg-[#F8FAFC] border border-[#E2E8F0] rounded-[var(--radius-md)] p-4 text-[13px] text-[var(--text-main)] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent transition-all resize-none font-medium"
-                        placeholder="Share your favorite prompts or settings... (AI Art related only)"
-                        rows="3"></textarea>
-                    <div class="flex justify-between items-center">
-                        <p class="text-[10px] text-[var(--text-muted)] uppercase font-bold tracking-wide">Only AI image related content allowed</p>
-                        <button data-action="createPost" class="btn-magic px-8 py-2.5 font-bold uppercase tracking-widest text-[11px] shadow-sm">Broadcast</button>
-                    </div>
-                </div>
+        <div class="hud-panel mb-10">
+          <div class="hud-panel-inner flex gap-4">
+            <img class="feed-user-avatar w-12 h-12 object-cover border border-[var(--accent)]" src="" alt="" style="clip-path: var(--clip-corner-sm)">
+            <div class="flex-1 space-y-4">
+              <textarea id="feed-post-content" class="hud-input p-4 min-h-[100px] text-lg resize-none" placeholder="BROADCAST SIGNAL TO NETWORK... (IMG DATA ONLY)"></textarea>
+              <div class="flex justify-between items-center">
+                <span class="hud-data text-[var(--neon-orange)]">! RESTRICTED TO SYSTEM GENERATED ASSETS</span>
+                <button id="submit-post-btn" data-action="createPost" class="btn-action px-8 py-2">TRANSMIT</button>
+              </div>
             </div>
+          </div>
         </div>
-
-        <div id="feedList" class="flex flex-col gap-6"></div>
         
-        <div class="mt-8 flex justify-center">
-            <button id="loadMoreFeedBtn" data-action="loadFeedPage" class="btn-magic px-8 py-3 font-bold uppercase tracking-widest text-xs hidden">Venture Deeper</button>
+        <div id="feedList" class="flex flex-col gap-6"></div>
+        <div class="mt-12 flex justify-center">
+            <button id="loadMoreFeedBtn" data-action="loadFeedPage" class="btn-hud px-8 py-3 hidden">ACCESS ARCHIVE</button>
         </div>
       </div>
     </section>
-  </main>  <div id="desktopConsole" class="bottom-console glass-panel p-6 border border-[var(--glass-border)] bg-white/90 shadow-[var(--shadow-deep)] backdrop-blur-3xl rounded-[var(--radius-xl)]">
-    <button data-action="toggleConsole" id="consoleToggleBtn"
-      class="absolute -top-12 left-1/2 -translate-x-1/2 bg-[var(--text-main)] text-white px-8 py-3 rounded-[var(--radius-full)] font-bold text-[11px] uppercase tracking-widest shadow-md hover:-translate-y-1 transition-transform">
-      <span id="consoleToggleText">Minimize</span>
-    </button>
+  </main>
 
-    <div class="grid grid-cols-12 gap-8 items-stretch">
-      <!-- Parameters Column -->
-      <div class="col-span-12 lg:col-span-4 flex flex-col gap-5">
-        <div class="flex items-center gap-2 bg-[#F1F5F9] p-1.5 rounded-[var(--radius-md)] h-12">
-          <button data-mode="standard" class="nav-pill active w-1/2 h-full">Day</button>
-          <button data-mode="nsfw" class="nav-pill w-1/2 h-full">Star</button>
-        </div>
+  <!-- BOTTOM HUD CONSOLE (DASHBOARD) -->
+  <div id="desktopConsole" class="hud-dashboard p-4 pb-0">
+    <!-- Toggle Tab -->
+    <div class="absolute -top-10 left-1/2 -translate-x-1/2 flex justify-center">
+      <button data-action="toggleConsole" id="consoleToggleBtn" class="bg-[var(--bg-panel-dark)] border border-b-0 border-[var(--hud-border)] px-10 py-2 text-[var(--text-data)] font-data uppercase tracking-[0.2em] hover:text-white transition-colors" style="clip-path: var(--clip-tab)">
+        <span id="consoleToggleText">HIDE.DASHBOARD</span>
+      </button>
+    </div>
+
+    <div class="max-w-7xl mx-auto">
+      <div class="flex flex-col lg:flex-row gap-6 mb-4">
         
-        <div class="grid grid-cols-2 gap-5">
-          <div class="space-y-2">
-            <label class="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] ml-1">Casting Engine</label>
-            <select id="model" class="w-full h-12 px-4 bg-[#F8FAFC] border border-[#E2E8F0] rounded-[var(--radius-sm)] font-semibold text-xs text-[var(--text-main)]"></select>
+        <!-- SYS.PARAMS (Left Panel) -->
+        <div class="lg:w-1/3 flex flex-col gap-4 border-r border-[var(--hud-border)]/30 pr-6">
+          <div class="flex items-center gap-2 mb-2">
+            <div class="w-2 h-2 bg-[var(--accent)]"></div>
+            <span class="hud-data">SYS.PARAMETERS</span>
           </div>
-          <div class="space-y-2">
-            <label class="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] ml-1">Celestial Realm</label>
-            <select id="aspect" class="w-full h-12 px-4 bg-[#F8FAFC] border border-[#E2E8F0] rounded-[var(--radius-sm)] font-semibold text-xs text-[var(--text-main)]"></select>
-          </div>
-        </div>
 
-        <div class="grid grid-cols-2 gap-5">
-          <div class="space-y-2">
-            <label class="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] ml-1">Complexity</label>
-            <select id="quality" class="w-full h-12 px-4 bg-[#F8FAFC] border border-[#E2E8F0] rounded-[var(--radius-sm)] font-semibold text-xs text-[var(--text-main)]"></select>
+          <div class="flex bg-black/60 border border-[var(--hud-border)] p-1" style="clip-path: var(--clip-corner-sm)">
+            <button data-mode="standard" class="btn-hud active flex-1 h-8 text-[10px]">DAY.CYCLE</button>
+            <button data-mode="nsfw" class="btn-hud flex-1 h-8 text-[10px]">STAR.CYCLE</button>
           </div>
-          <div class="space-y-2">
-            <label class="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] ml-1">Spirits</label>
-            <select id="count" class="w-full h-12 px-4 bg-[#F8FAFC] border border-[#E2E8F0] rounded-[var(--radius-sm)] font-semibold text-xs text-[var(--text-main)]">
-              <option value="1">1 Manifestation</option>
-              <option value="4" selected>4 Manifestations</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <!-- Prompting Column -->
-      <div class="col-span-12 lg:col-span-8 flex flex-col gap-5">
-        <div class="flex-1 flex flex-col space-y-2">
-          <div class="flex justify-between px-1 items-end">
-            <label class="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">The Vision</label>
-            <div class="flex gap-4 items-center">
-              <button data-action="clearPrompt" class="text-[10px] font-bold uppercase tracking-widest text-red-500 hover:text-red-600 transition-colors">Clear</button>
-              <button data-action="pastePrompt" class="text-[10px] font-bold uppercase tracking-widest text-[var(--accent)] hover:brightness-90 transition-colors">Paste</button>
-              <button data-action="magicPrompt" class="text-[10px] font-bold uppercase tracking-widest text-[var(--accent-secondary)] flex items-center gap-1.5 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
-                Oracle
-              </button>
+          
+          <div class="grid grid-cols-2 gap-4">
+            <div class="space-y-1">
+              <label class="hud-data text-white/50">ENGINE.CORE</label>
+              <select id="model" class="hud-input h-10 px-3"></select>
+            </div>
+            <div class="space-y-1">
+              <label class="hud-data text-white/50">DIMENSIONS</label>
+              <select id="aspect" class="hud-input h-10 px-3"></select>
             </div>
           </div>
-          <textarea id="prompt" 
-            class="flex-1 w-full p-5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-[var(--radius-md)] font-medium text-[13px] text-[var(--text-main)] placeholder:text-[#94A3B8] focus:border-[var(--accent)] transition-all resize-none leading-relaxed"
-            placeholder="Describe your manifestation..."></textarea>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div class="space-y-1">
+              <label class="hud-data text-white/50">RESOLUTION</label>
+              <select id="quality" class="hud-input h-10 px-3"></select>
+            </div>
+            <div class="space-y-1">
+              <label class="hud-data text-white/50">YIELD.COUNT</label>
+              <select id="count" class="hud-input h-10 px-3">
+                <option value="1">1 UNIT</option>
+                <option value="4" selected>4 UNITS</option>
+              </select>
+            </div>
+          </div>
         </div>
 
-        <div class="grid grid-cols-12 gap-5 items-end">
-          <div class="col-span-8 space-y-2">
-            <label class="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] ml-1">Wards (Negative)</label>
-            <input id="negative_prompt" type="text" placeholder="Banish artifacts..." class="w-full h-12 px-5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-[var(--radius-sm)] text-[13px] font-medium text-[var(--text-main)] placeholder:text-[#94A3B8]">
+        <!-- TARGET.INPUT (Right Panel) -->
+        <div class="lg:w-2/3 flex flex-col gap-4">
+          <div class="flex-1 flex flex-col space-y-2">
+            <div class="flex justify-between items-center px-1">
+              <div class="flex items-center gap-2">
+                <div class="w-2 h-2 bg-[var(--accent)]"></div>
+                <span class="hud-data">TARGET.DESIGNATION</span>
+              </div>
+              <div class="flex gap-4">
+                <button data-action="clearPrompt" class="hud-data text-[var(--neon-red)] hover:text-white">FLUSH</button>
+                <button data-action="pastePrompt" class="hud-data text-[var(--accent)] hover:text-white">LINK</button>
+                <button data-action="magicPrompt" class="hud-data text-[var(--neon-purple)] flex items-center gap-1 border border-[var(--neon-purple)] px-2">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3L21 12L12 21L3 12L12 3Z"/></svg>
+                  ORACLE
+                </button>
+              </div>
+            </div>
+            <textarea id="prompt" class="hud-input flex-1 p-4 text-base tracking-wide" placeholder="INPUT MANIFESTATION PARAMETERS..."></textarea>
           </div>
-          <div class="col-span-4 flex gap-3">
-            <button data-action="toggleMatrix" class="h-12 px-6 border border-[#E2E8F0] rounded-[var(--radius-sm)] text-[11px] font-bold uppercase tracking-widest hover:bg-[#F1F5F9] transition-all text-[var(--text-main)]">Matrix</button>
-            <button id="generateBtn" class="btn-magic flex-1 h-12 font-bold uppercase text-[12px] tracking-widest flex items-center justify-center gap-2">
-              <span id="btnText">Manifest</span>
+
+          <div class="flex gap-4 items-end">
+            <div class="flex-1 space-y-1">
+              <label class="hud-data text-white/50">SYS.EXCLUSIONS (NEGATIVE)</label>
+              <input id="negative_prompt" type="text" placeholder="PARAMETERS TO BLOCK..." class="hud-input h-12 px-4">
+            </div>
+            <button data-action="toggleMatrix" class="btn-hud h-12 px-6">MATRIX</button>
+            <button id="generateBtn" class="btn-manifest w-48 h-12 flex items-center justify-center gap-2">
+              <span id="btnText">INITIATE</span>
               <div id="btnLoader" class="hidden">
-                <div class="loader" style="border-width: 2px; width: 14px; height: 14px;"></div>
+                <div class="w-4 h-4 border-2 border-t-transparent border-[var(--accent)] animate-spin"></div>
               </div>
             </button>
           </div>
         </div>
+
       </div>
     </div>
   </div>
 
-  <div id="footerStatus"
-    class="fixed bottom-8 left-1/2 -translate-x-1/2 glass-panel py-3 px-8 text-xs font-bold transition-all translate-y-32 opacity-0 pointer-events-none z-[150]">
-  </div>
-
-  <!-- Mobile Nav -->
-  <nav
-    class="sm:hidden fixed bottom-0 left-0 right-0 z-[200] glass-panel p-4 rounded-b-none border-t border-[var(--panel-border)] flex items-center justify-around shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
-    <!-- Pinned Toggle Button for Mobile -->
-    <div id="mobileToggleStub"
-      style="display: none; position: absolute; top: -42px; left: 50%; transform: translateX(-50%); z-index: 1001;">
-      <button data-action="toggleConsole"
-        class="bg-[var(--accent)] text-white px-8 py-2.5 rounded-t-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-2xl">
-        Expand
-      </button>
+  <!-- LIGHTBOX / REVEAL HUD -->
+  <div id="bubbleReveal" class="fixed inset-0 z-[var(--z-overlay)] hidden bg-black/90 backdrop-blur-sm" data-action="closeLightbox">
+    <div class="scanlines"></div>
+    <div class="absolute top-8 left-8 flex flex-col">
+      <span class="text-4xl font-black text-white uppercase tracking-[0.4em]">INSPECTION</span>
+      <span class="hud-data text-[var(--accent)]">ASSET // VIEWPORT</span>
     </div>
-    <button data-view="generate"
-      class="mobile-nav-item flex flex-col items-center p-2 transition-all opacity-60 active">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-      </svg>
-      <span class="text-[9px] font-black uppercase tracking-tighter">Forge</span>
+    <button data-action="closeLightbox" class="absolute top-8 right-8 text-white hover:text-[var(--neon-red)]">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
     </button>
-    <!-- Mobile Queue Disabled -->
-    <button data-view="history" class="mobile-nav-item flex flex-col items-center p-2 transition-all opacity-60">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-          d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-      </svg>
-      <span class="text-[9px] font-black uppercase tracking-tighter">Vault</span>
-    </button>
-  </nav>
 
-  <!-- Custom Confirm Modal -->
-  <div id="confirmModal"
-    class="fixed inset-0 z-[10000] hidden flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl">
-    <div
-      class="glass-panel max-w-sm w-full p-8 flex flex-col gap-6 text-center animate-in zoom-in duration-300 border-2 border-white/5">
-      <div class="flex justify-center">
-        <div class="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center border border-red-500/20">
-          <svg class="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-          </svg>
+    <div class="flex w-full h-full p-24 gap-8">
+      <!-- Image Area -->
+      <div class="flex-1 flex items-center justify-center relative border border-[var(--hud-border)] bg-black/50 p-4" style="clip-path: var(--clip-corner)">
+        <div class="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-[var(--accent)]"></div>
+        <div class="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2 border-[var(--accent)]"></div>
+        <div class="absolute bottom-2 left-2 w-4 h-4 border-b-2 border-l-2 border-[var(--accent)]"></div>
+        <div class="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-[var(--accent)]"></div>
+        <img id="bubbleRevealImg" src="" alt="" class="max-h-full max-w-full object-contain filter drop-shadow-[var(--hud-glow)]">
+      </div>
+      
+      <!-- Meta Panel -->
+      <div class="w-80 flex flex-col gap-6" data-stop-propagation="true">
+        <div class="hud-panel p-6 flex flex-col gap-4">
+          <div>
+             <span class="hud-data block text-white/50 mb-1">PROMPT.DATA</span>
+             <p id="bubbleRevealPrompt" class="text-sm font-bold text-white"></p>
+          </div>
+          <div>
+             <span class="hud-data block text-white/50 mb-1">ENGINE.CFG</span>
+             <div class="flex flex-col gap-1 text-xs font-data text-[var(--accent)]">
+               <div>MDL: <span id="bubbleRevealModel" class="text-white"></span></div>
+               <div>RLM: <span id="bubbleRevealRealm" class="text-white uppercase"></span></div>
+             </div>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-2">
+          <button data-action="lightboxShare" class="btn-hud w-full py-3">BROADCAST TO COMM-LINK</button>
+          <button data-action="lightboxRemix" class="btn-hud w-full py-3">EXTRACT TO FORGE</button>
+          <button data-action="lightboxDownload" class="btn-hud w-full py-3">DOWNLOAD ASSET</button>
         </div>
       </div>
-      <div>
-        <h3 id="confirmTitle" class="text-xl font-black uppercase tracking-[0.1em] text-white">Banish Manifestation?
-        </h3>
-        <p id="confirmMsg" class="opacity-60 text-xs leading-relaxed mt-2 uppercase tracking-widest font-bold">This
-          action will return the spirit to the void forever.</p>
+    </div>
+  </div>
+
+  <!-- MULTI-SELECT OVERRIDE HUD -->
+  <div id="selectionBar" class="hidden fixed bottom-32 left-1/2 -translate-x-1/2 z-[var(--z-overlay)] hud-panel p-4 flex gap-8 shadow-[var(--hud-glow-alert)] border-[var(--neon-orange)] before:bg-[var(--neon-orange)]">
+    <div class="hud-panel-inner flex items-center gap-8 py-2">
+      <div class="flex flex-col text-right border-r border-[var(--hud-border)] pr-8">
+        <span id="selectCount" class="text-3xl font-black text-[var(--neon-orange)] leading-none">0</span>
+        <span class="hud-data text-white">TARGETS ACQUIRED</span>
       </div>
-      <div class="grid grid-cols-2 gap-4 mt-2">
-        <button id="confirmYes"
-          class="bg-red-600 text-white py-4 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl hover:bg-red-500 transition-colors">Banish</button>
-        <button data-action="closeConfirm"
-          class="bg-white/5 py-4 rounded-xl border border-white/10 font-black text-[10px] uppercase tracking-[0.2em] hover:bg-white/10 transition-colors">Cancel</button>
+      <div class="flex gap-4">
+        <button data-action="bulkHide" class="btn-hud border-[var(--text-muted)] text-[var(--text-muted)] px-6 py-2">ENCRYPT (HIDE)</button>
+        <button data-action="bulkDelete" class="btn-action px-6 py-2">PURGE FROM SYSTEM</button>
+      </div>
+      <div class="border-l border-[var(--hud-border)] pl-8">
+        <button data-action="cancelSelectionMode" class="hud-data text-white/50 hover:text-white">ABORT OVERRIDE</button>
       </div>
     </div>
   </div>
 
-  <!-- Multi-Select Action Bar: True Viewport Fixed -->
-  <div id="selectionBar"
-    class="hidden fixed bottom-10 left-1/2 -translate-x-1/2 z-[10000] glass-panel p-5 px-10 border-2 border-[var(--accent)] flex flex-col sm:flex-row items-center gap-8 shadow-[0_50px_120px_rgba(0,0,0,1)] animate-in slide-in-from-bottom-12 duration-500 rounded-[2.5rem]">
-    <div class="flex items-center gap-8">
-      <div class="flex flex-col">
-        <span id="selectCount" class="text-3xl font-black tracking-tighter text-[var(--accent)]">0</span>
-        <span class="text-[10px] uppercase tracking-[0.2em] opacity-60 font-black">Spirits</span>
+  <!-- CONFIRM OVERLAY -->
+  <div id="confirmModal" class="fixed inset-0 z-[var(--z-overlay)] hidden bg-black/90 backdrop-blur flex items-center justify-center">
+    <div class="scanlines"></div>
+    <div class="hud-panel max-w-md w-full border-[var(--neon-orange)] before:bg-[var(--neon-orange)]">
+      <div class="hud-panel-inner p-8 text-center flex flex-col gap-6 relative z-10">
+        <div class="flex justify-center">
+          <div class="w-16 h-16 border-2 border-[var(--neon-orange)] flex items-center justify-center shadow-[var(--hud-glow-alert)] rotate-45">
+            <span class="font-black text-2xl text-[var(--neon-orange)] -rotate-45">!</span>
+          </div>
+        </div>
+        <div>
+          <h3 id="confirmTitle" class="text-xl font-black uppercase text-white tracking-[0.2em]">CRITICAL ACTION</h3>
+          <p id="confirmMsg" class="hud-data text-white/50 mt-2">DATA WILL BE IRREVERSIBLY PURGED FROM CORE MEMORY.</p>
+        </div>
+        <div class="flex gap-4 justify-center mt-4">
+          <button data-action="closeConfirm" class="btn-hud px-6 py-2">ABORT</button>
+          <button id="confirmYes" class="btn-action px-8 py-2">CONFIRM PURGE</button>
+        </div>
       </div>
-      <div class="w-px h-12 bg-white/10"></div>
-      <div class="flex items-center gap-4">
-        <button data-action="bulkHide"
-          class="bg-white/5 border border-white/10 text-white px-8 py-4 rounded-3xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-white/15 transition-all">Hide</button>
-        <button data-action="bulkDelete"
-          class="bg-red-600 text-white px-8 py-4 rounded-3xl font-black text-[10px] uppercase tracking-[0.2em] shadow-2xl hover:bg-red-500 hover:scale-105 transition-all">Banish</button>
-      </div>
-    </div>
-    <div class="flex items-center gap-8 mt-4 sm:mt-0 sm:border-l sm:border-white/10 sm:pl-10 w-full sm:w-auto">
-      <button data-action="cancelSelectionMode"
-        class="w-full sm:w-auto text-[10px] font-black uppercase tracking-[0.2em] opacity-40 hover:opacity-100 transition-all">Cancel</button>
     </div>
   </div>
 
+  <!-- PROGRESS MATRIX -->
+  <div id="progressMatrix" class="fixed top-0 left-0 right-0 h-1 z-[var(--z-overlay)] opacity-0 flex gap-1 pointer-events-none transition-opacity">
+    <div class="progress-step bg-[var(--accent)] h-full flex-1 shadow-[var(--hud-glow)]"></div>
+    <div class="progress-step bg-[var(--accent)] h-full flex-1 shadow-[var(--hud-glow)]"></div>
+    <div class="progress-step bg-[var(--accent)] h-full flex-1 shadow-[var(--hud-glow)]"></div>
+    <div class="progress-step bg-[var(--accent)] h-full flex-1 shadow-[var(--hud-glow)]"></div>
+  </div>
 
+  <!-- STATUS POPUP -->
+  <div id="footerStatus" class="fixed bottom-10 right-10 z-[var(--z-overlay)] hud-panel border-[var(--accent)] px-6 py-3 transition-transform translate-x-48 opacity-0">
+    <span class="hud-data text-[var(--accent)]"></span>
+  </div>
 
-  <!-- Modular JS Entry Point -->
   <script type="module" src="/js/main.js"></script>
-  <div id="progressMatrix"
-    class="fixed top-0 left-0 right-0 h-1 z-[10000] pointer-events-none opacity-0 transition-opacity duration-500 flex gap-1">
-    <div class="progress-step flex-1 h-full"></div>
-    <div class="progress-step flex-1 h-full"></div>
-    <div class="progress-step flex-1 h-full"></div>
-    <div class="progress-step flex-1 h-full"></div>
-  </div>
 </body>
-
 </html>

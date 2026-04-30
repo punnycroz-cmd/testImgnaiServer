@@ -10,20 +10,20 @@ export function createFeedView(state, api, toast) {
 
   function createPostCard(post) {
     const div = document.createElement('div');
-    div.className = 'glass-card p-6 flex gap-4';
+    div.className = 'hud-panel p-6 flex gap-4';
     div.innerHTML = `
-      <img class="w-10 h-10 rounded-[var(--radius-sm)] object-cover shadow-sm" src="${post.picture || ''}" alt="">
+      <img class="w-12 h-12 object-cover border border-[var(--accent)]" src="${post.picture || ''}" alt="" style="clip-path: var(--clip-corner-sm)">
       <div class="flex-1 min-w-0">
         <div class="flex items-center justify-between mb-1">
-          <span class="font-bold text-[11px] tracking-wide text-[var(--accent)]">${post.name || 'Unknown'}</span>
-          <span class="text-[10px] font-medium text-[var(--text-muted)]">${new Date(post.created_at).toLocaleString()}</span>
+          <span class="hud-data text-[var(--accent)]">${post.name || 'UNKNOWN.OP'}</span>
+          <span class="font-data text-[10px] text-[var(--text-muted)]">${new Date(post.created_at).toLocaleString()}</span>
         </div>
-        <p class="text-[13px] text-[var(--text-main)] font-medium leading-relaxed whitespace-pre-wrap mb-4">${escapeHtml(post.content)}</p>
+        <p class="text-[14px] text-white font-medium leading-relaxed whitespace-pre-wrap mb-4">${escapeHtml(post.content)}</p>
         ${post.preview_url ? `
           <div class="relative group/feed-img cursor-pointer max-w-sm" onclick="window.Studio.vault.openById('${post.request_id}')">
-            <img class="rounded-[var(--radius-md)] border border-[#E2E8F0] shadow-sm transition-transform group-hover/feed-img:scale-[1.02]" src="${post.preview_url}" alt="">
-            <div class="absolute inset-0 bg-[#F8FAFC]/30 group-hover/feed-img:bg-transparent transition-all rounded-[var(--radius-md)] flex items-center justify-center">
-               <span class="bg-white/90 backdrop-blur-md px-4 py-2 rounded-full text-[10px] font-bold tracking-wide text-[var(--text-main)] opacity-0 group-hover/feed-img:opacity-100 transition-opacity shadow-md border border-[#E2E8F0]">Inspect</span>
+            <img class="border border-[var(--hud-border)] transition-transform group-hover/feed-img:scale-[1.02]" style="clip-path: var(--clip-corner)" src="${post.preview_url}" alt="">
+            <div class="absolute inset-0 bg-black/50 group-hover/feed-img:bg-transparent transition-all flex items-center justify-center" style="clip-path: var(--clip-corner)">
+               <span class="bg-black/80 border border-[var(--accent)] text-[var(--accent)] px-4 py-2 text-[10px] font-black tracking-widest uppercase opacity-0 group-hover/feed-img:opacity-100 transition-opacity">ENGAGE.INSPECT</span>
             </div>
           </div>
         ` : ''}

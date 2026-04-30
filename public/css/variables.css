@@ -1,66 +1,57 @@
 /* ============================================
-   Aether Studio — Howard UI Design Tokens
+   Aether Studio — HUD Game UI (Howard Le Style)
    ============================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap');
 
 :root {
-  /* Core Palette — Clean Light UI */
-  --bg-deep: #F8FAFC; /* Slate 50 */
-  --bg-surface: #FFFFFF;
+  /* Core Sci-Fi Palette */
+  --bg-void: #030509;
+  --bg-panel: rgba(10, 15, 25, 0.85);
+  --bg-panel-dark: rgba(5, 8, 15, 0.95);
   
-  --accent: #10B981; /* Emerald 500 */
-  --accent-secondary: #6366F1; /* Indigo 500 */
-  --accent-glow: rgba(16, 185, 129, 0.2);
-  --accent-text: #FFFFFF;
+  /* Primary Neons */
+  --neon-cyan: #00E5FF;
+  --neon-orange: #FF3D00;
+  --neon-purple: #B000FF;
+  --neon-red: #FF003C;
   
-  --text-main: #0F172A; /* Slate 900 */
-  --text-muted: #64748B; /* Slate 500 */
-  --text-dim: #CBD5E1; /* Slate 300 */
+  --accent: var(--neon-cyan);
+  --accent-secondary: var(--neon-orange);
+  
+  /* Text */
+  --text-main: #E0F7FA;
+  --text-muted: #607D8B;
+  --text-data: var(--neon-cyan);
+  --text-alert: var(--neon-orange);
 
-  /* Glassmorphism Refined */
-  --glass-bg: rgba(255, 255, 255, 0.7);
-  --glass-border: rgba(0, 0, 0, 0.05);
-  --glass-blur: 24px;
+  /* HUD Elements */
+  --hud-border: rgba(0, 229, 255, 0.3);
+  --hud-border-active: rgba(0, 229, 255, 0.8);
+  --hud-glow: 0 0 10px rgba(0, 229, 255, 0.5);
+  --hud-glow-alert: 0 0 15px rgba(255, 61, 0, 0.6);
   
-  /* Spacing System */
-  --space-2xs: 0.25rem;
-  --space-xs: 0.5rem;
-  --space-sm: 0.75rem;
-  --space-md: 1rem;
-  --space-lg: 1.5rem;
-  --space-xl: 2rem;
-  --space-2xl: 4rem;
+  /* Borders & Shapes */
+  --clip-corner: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);
+  --clip-corner-sm: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+  --clip-tab: polygon(0 0, calc(100% - 15px) 0, 100% 15px, 100% 100%, 0 100%);
+  --clip-btn: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
 
-  /* Border Radius - Squarcles */
-  --radius-sm: 8px;
-  --radius-md: 16px;
-  --radius-lg: 24px;
-  --radius-xl: 32px;
-  --radius-full: 9999px;
-
-  /* Typography Stack */
-  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-display: 'Inter', sans-serif;
-  
-  /* Transitions */
-  --ease-premium: cubic-bezier(0.16, 1, 0.3, 1);
-  --duration-normal: 0.3s;
-  
-  /* Shadows & Glows */
-  --shadow-bloom: 0 10px 30px rgba(16, 185, 129, 0.15);
-  --shadow-deep: 0 20px 40px rgba(0, 0, 0, 0.05);
-  --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.03);
+  /* Typography */
+  --font-hud: 'Rajdhani', sans-serif;
+  --font-data: 'Share Tech Mono', monospace;
   
   /* Z-Index */
-  --z-header: 1000;
-  --z-console: 1100;
-  --z-overlay: 2000;
-  --z-modal: 5000;
+  --z-bg: -10;
+  --z-panel: 10;
+  --z-hud: 100;
+  --z-overlay: 1000;
 }
 
 [data-mode="nsfw"] {
-  --accent: var(--accent-secondary);
-  --accent-glow: rgba(99, 102, 241, 0.2);
-  --shadow-bloom: 0 10px 30px rgba(99, 102, 241, 0.15);
+  --accent: var(--neon-purple);
+  --hud-border: rgba(176, 0, 255, 0.3);
+  --hud-border-active: rgba(176, 0, 255, 0.8);
+  --hud-glow: 0 0 10px rgba(176, 0, 255, 0.5);
+  --text-data: var(--neon-purple);
 }

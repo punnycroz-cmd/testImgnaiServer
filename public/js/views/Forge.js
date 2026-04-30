@@ -156,10 +156,10 @@ export function createForgeView(state, api, toast) {
     if (gallery) gallery.style.display = 'none';
     const mGallery = document.getElementById('matrixGallery');
     if (mGallery) { mGallery.classList.remove('hidden'); mGallery.classList.add('grid'); mGallery.innerHTML = models.map(m => `
-      <div id="matrix-cell-${m.replace(/\s+/g, '-')}" class="art-frame aspect-square flex flex-col items-center justify-center bg-black/40 border border-white/10 relative group overflow-hidden" data-realm="${payload.realm}">
-        <span class="text-[10px] font-bold uppercase text-[var(--text-muted)] tracking-widest absolute bottom-3 z-20 bg-black/50 px-2 py-0.5 rounded-lg border border-white/5">${m}</span>
-        <div class="loader opacity-40 hidden z-20" style="width:20px;height:20px;"></div>
-        <img src="" class="absolute inset-0 w-full h-full object-cover hidden transition-all duration-1000 opacity-0 scale-110 z-10">
+      <div id="matrix-cell-${m.replace(/\s+/g, '-')}" class="hud-panel aspect-square flex flex-col items-center justify-center relative group" data-realm="${payload.realm}">
+        <span class="hud-data absolute top-2 right-2 bg-black/80 px-2 border border-[var(--hud-border)] z-20">${m}</span>
+        <div class="loader opacity-40 hidden z-20" style="width:20px;height:20px;border-color:var(--accent);border-bottom-color:transparent;"></div>
+        <img src="" class="absolute inset-0 w-full h-full object-cover hidden transition-all duration-1000 opacity-0 scale-110 z-10" style="clip-path: var(--clip-corner)">
       </div>`).join(''); }
     const genBtn = dom.generateBtn();
     const matBtn = dom.matrixBtn();

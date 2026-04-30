@@ -11,10 +11,10 @@ export function createVaultView(state, api, toast, openHistoryGroup) {
     const wrap = document.createElement('div');
     wrap.id = `batch-${entry.request_id}`;
     wrap.dataset.realm = entry.realm || 'day';
-    wrap.className = 'glass-card p-4 pb-5 cursor-pointer group relative transition-all duration-300 hover:scale-[1.02] border border-[#E2E8F0]';
+    wrap.className = 'hud-panel p-4 pb-5 cursor-pointer group relative transition-all duration-300 hover:border-[var(--accent)]';
     const selIds = state.get('vault.selectedIds');
-    if (selIds && selIds.has(entry.request_id)) wrap.classList.add('border-[var(--accent)]', 'bg-[#F1F5F9]');
-    if (entry.is_hidden) wrap.classList.add('opacity-65');
+    if (selIds && selIds.has(entry.request_id)) wrap.classList.add('border-[var(--accent)]', 'bg-[var(--accent)]/10');
+    if (entry.is_hidden) wrap.classList.add('opacity-50', 'border-[var(--neon-orange)]');
 
     wrap.onclick = (e) => {
       if (e.target.closest('button')) return;
@@ -27,25 +27,25 @@ export function createVaultView(state, api, toast, openHistoryGroup) {
     const showHidden = state.get('vault.showHidden');
 
     wrap.innerHTML = `
-      <div class="flex items-center justify-between gap-2 mb-3">
+      <div class="flex items-center justify-between gap-2 mb-3 border-b border-[var(--hud-border)] pb-2">
         <div class="min-w-0">
           <div class="flex items-center gap-2 mb-1">
-            <div class="text-[9px] uppercase tracking-wide font-black px-2 py-0.5 rounded-[var(--radius-sm)] ${entry.realm === 'star' ? 'bg-[#EEF2FF] text-[#6366F1]' : 'bg-[#ECFDF5] text-[#10B981]'}">${entry.realm || 'day'}</div>
-            ${entry.is_hidden ? '<div class="text-[9px] font-black uppercase tracking-wide bg-red-50 text-red-500 px-2 py-0.5 rounded-[var(--radius-sm)]">Hidden</div>' : ''}
-            <div class="public-badge ${entry.is_public ? '' : 'hidden'} text-[9px] font-black uppercase tracking-wide bg-violet-50 text-violet-500 px-2 py-0.5 rounded-[var(--radius-sm)]">Shared</div>
+            <div class="hud-data px-1 ${entry.realm === 'star' ? 'bg-[var(--neon-purple)]/20 text-[var(--neon-purple)]' : 'bg-[var(--accent)]/20 text-[var(--accent)]'}">${entry.realm || 'day'}</div>
+            ${entry.is_hidden ? '<div class="hud-data bg-[var(--neon-orange)]/20 text-[var(--neon-orange)] px-1">ENCRYPTED</div>' : ''}
+            <div class="public-badge ${entry.is_public ? '' : 'hidden'} hud-data bg-white/10 text-white px-1">PUBLIC</div>
           </div>
-          <div class="text-[12px] font-semibold truncate text-[var(--text-main)]">${escapeHtml(entry.prompt || 'No Inscription')}</div>
+          <div class="text-[12px] font-hud uppercase tracking-widest truncate text-white">${escapeHtml(entry.prompt || 'NO DESIGNATION')}</div>
         </div>
-        <div class="selection-indicator ${state.get('vault.selectionMode') ? 'flex' : 'hidden'} w-5 h-5 rounded-full border-2 border-[#E2E8F0] items-center justify-center ${isSelected ? 'bg-[var(--accent)] border-[var(--accent)]' : ''}">
-          ${isSelected ? '<svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg>' : ''}
+        <div class="selection-indicator ${state.get('vault.selectionMode') ? 'flex' : 'hidden'} w-6 h-6 border border-[var(--hud-border)] items-center justify-center ${isSelected ? 'bg-[var(--neon-orange)] border-[var(--neon-orange)]' : ''}" style="clip-path: var(--clip-corner-sm)">
+          ${isSelected ? '<span class="text-black font-black leading-none">X</span>' : ''}
         </div>
       </div>
       <div class="grid grid-cols-2 gap-2">
         ${(entry.images || []).slice(0, 4).map(img => {
           const isH = img.status === 'hidden';
           const isD = img.status === 'deleting';
-          return `<div class="art-frame shimmer relative group/card ${isH ? 'ring-1 ring-red-400/60' : ''} ${isD ? 'spirit-deleting' : ''} ${isH && !showHidden ? 'hidden-collapsed' : ''} rounded-[var(--radius-sm)] overflow-hidden shadow-sm">
-            <img src="${img.thumbnail_url || img.r2_url}" class="w-full aspect-square object-cover relative z-10 opacity-0 transition-all duration-500 scale-100 group-hover/card:scale-105 ${isH ? 'spirit-hidden' : ''}" loading="lazy"
+          return `<div class="art-frame shimmer relative group/card ${isH ? 'border border-[var(--neon-orange)]' : ''} ${isD ? 'spirit-deleting' : ''} ${isH && !showHidden ? 'hidden-collapsed' : ''}" style="clip-path: var(--clip-corner-sm)">
+            <img src="${img.thumbnail_url || img.r2_url}" class="w-full aspect-square object-cover relative z-10 opacity-0 transition-all duration-500 group-hover/card:scale-105 ${isH ? 'spirit-hidden filter grayscale' : ''}" loading="lazy"
               onload="this.style.opacity=('${isH}'==='true'?'0.75':'1');this.style.transform='scale(1)';this.parentElement.classList.remove('shimmer');">
           </div>`;
         }).join('')}
