@@ -209,7 +209,7 @@ document.addEventListener('visibilitychange', () => {
 // ── Initialization ─────────────────────────────
 try {
   // Expose for index.html callbacks
-  window.Studio = { auth };
+  window.Studio = { auth, vault };
 
   forge.applyMode(state.get('app.mode') || 'standard');
   router.handleRouting();

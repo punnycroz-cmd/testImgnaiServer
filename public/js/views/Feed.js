@@ -18,7 +18,15 @@ export function createFeedView(state, api, toast) {
           <span class="font-black text-[10px] uppercase tracking-widest text-[var(--accent)]">${post.name || 'Unknown'}</span>
           <span class="text-[9px] opacity-40 uppercase font-bold">${new Date(post.created_at).toLocaleString()}</span>
         </div>
-        <p class="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">${escapeHtml(post.content)}</p>
+        <p class="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap mb-3">${escapeHtml(post.content)}</p>
+        ${post.preview_url ? `
+          <div class="relative group/feed-img cursor-pointer max-w-sm" onclick="window.Studio.vault.openById('${post.request_id}')">
+            <img class="rounded-2xl border border-white/10 shadow-2xl transition-transform group-hover/feed-img:scale-[1.02]" src="${post.preview_url}" alt="">
+            <div class="absolute inset-0 bg-black/20 group-hover/feed-img:bg-transparent transition-all rounded-2xl flex items-center justify-center">
+               <span class="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest text-white opacity-0 group-hover/feed-img:opacity-100 transition-opacity">Inspect</span>
+            </div>
+          </div>
+        ` : ''}
       </div>`;
     return div;
   }

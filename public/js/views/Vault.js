@@ -180,6 +180,13 @@ export function createVaultView(state, api, toast, openHistoryGroup) {
     await loadPage();
   }
 
+  async function openById(requestId) {
+    try {
+      const data = await api.apiFetch(`/history/batch/${requestId}`);
+      if (data) openHistoryGroup(data);
+    } catch (err) { toast('Manifestation lost to the void.', 'error'); }
+  }
+
   function reload() {
     state.set('vault.loaded', false);
     state.set('vault.cursor', null);
@@ -218,5 +225,5 @@ export function createVaultView(state, api, toast, openHistoryGroup) {
     return obs;
   }
 
-  return { createBatchCard, loadPage, render, reload, filterByRealm, toggleHidden, toggleSelectionMode, toggleBatchSelection, executeBulkAction, updateSelectionUI, initObserver };
+  return { createBatchCard, loadPage, render, reload, filterByRealm, toggleHidden, toggleSelectionMode, toggleBatchSelection, executeBulkAction, updateSelectionUI, initObserver, openById };
 }
