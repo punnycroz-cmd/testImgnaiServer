@@ -1,94 +1,63 @@
 /* ============================================
-   Aether Studio — Design Tokens
+   Aether Studio — Design Tokens (Premium)
    ============================================ */
 
 :root {
-  /* === Color System: Day Mode (Default) === */
-  --bg-base: #f1f7f4;
-  --panel-bg: rgba(255, 255, 255, 0.5);
-  --panel-border: rgba(255, 255, 255, 0.7);
-  --panel-shadow: rgba(0, 50, 20, 0.1);
-  --text-main: #10243a;
-  --text-muted: #64748b;
-  --accent: #10b981;
-  --accent-hover: #059669;
-  --accent-glow: rgba(16, 185, 129, 0.4);
-  --accent-text: #fff;
+  /* Core Palette — Nebula Obsidian */
+  --bg-deep: #020204;
+  --bg-surface: rgba(8, 8, 12, 0.8);
+  
+  --accent: #00f2ff; /* Electric Cyan */
+  --accent-secondary: #bd00ff; /* Supernova Purple */
+  --accent-glow: rgba(0, 242, 255, 0.4);
+  --accent-text: #000000;
+  
+  --text-main: #ffffff;
+  --text-muted: rgba(255, 255, 255, 0.6);
+  --text-dim: rgba(255, 255, 255, 0.2);
 
-  /* === Z-Index Scale === */
-  --z-canvas: -1;
-  --z-base: 1;
-  --z-card-hover: 20;
-  --z-bubble-sphere: 2;
-  --z-bubble-canvas: 50;
-  --z-console: 100;
-  --z-header: 110;
-  --z-footer: 150;
-  --z-mobile-nav: 200;
-  --z-auth-overlay: 1000;
-  --z-lightbox: 2000;
-  --z-modal: 10000;
-  --z-progress: 10000;
-
-  /* === Spacing Scale === */
-  --space-2xs: 0.125rem;
-  --space-xs: 0.25rem;
-  --space-sm: 0.5rem;
+  /* Glassmorphism Refined */
+  --glass-bg: rgba(255, 255, 255, 0.03);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-blur: 32px;
+  
+  /* Spacing System */
+  --space-2xs: 0.25rem;
+  --space-xs: 0.5rem;
+  --space-sm: 0.75rem;
   --space-md: 1rem;
   --space-lg: 1.5rem;
   --space-xl: 2rem;
-  --space-2xl: 3rem;
-  --space-3xl: 4rem;
+  --space-2xl: 4rem;
 
-  /* === Border Radius === */
+  /* Border Radius */
   --radius-sm: 0.5rem;
-  --radius-md: 0.75rem;
-  --radius-lg: 1.25rem;
-  --radius-xl: 1.75rem;
-  --radius-2xl: 2rem;
-  --radius-full: 999px;
+  --radius-md: 1rem;
+  --radius-lg: 1.5rem;
+  --radius-xl: 2.5rem;
+  --radius-full: 9999px;
 
-  /* === Typography === */
-  --font-body: 'Outfit', sans-serif;
-  --font-display: 'Cinzel', serif;
-  --text-2xs: 8px;
-  --text-xs: 9px;
-  --text-sm: 10px;
-  --text-base: 11px;
-  --text-md: 12px;
-  --text-lg: 14px;
-  --text-xl: 16px;
-  --text-2xl: 20px;
-  --text-3xl: 24px;
-
-  /* === Transitions === */
-  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
-  --duration-fast: 0.2s;
+  /* Typography Stack */
+  --font-body: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: 'Space Grotesk', 'Outfit', sans-serif;
+  
+  /* Transitions */
+  --ease-premium: cubic-bezier(0.16, 1, 0.3, 1);
   --duration-normal: 0.4s;
-  --duration-slow: 0.6s;
-  --duration-slower: 0.8s;
-
-  /* === Shadows === */
-  --shadow-sm: 0 4px 10px rgba(0, 0, 0, 0.1);
-  --shadow-md: 0 10px 25px rgba(0, 0, 0, 0.15);
-  --shadow-lg: 0 20px 40px var(--panel-shadow);
-  --shadow-xl: 0 20px 80px rgba(0, 0, 0, 0.3);
-  --shadow-glow: 0 10px 25px var(--accent-glow);
-  --shadow-heavy: 0 50px 120px rgba(0, 0, 0, 1);
+  
+  /* Shadows & Glows */
+  --shadow-bloom: 0 0 50px rgba(0, 242, 255, 0.15);
+  --shadow-deep: 0 30px 60px rgba(0, 0, 0, 0.9);
+  
+  /* Z-Index */
+  --z-header: 1000;
+  --z-console: 1100;
+  --z-overlay: 2000;
+  --z-modal: 5000;
 }
 
-/* === Color System: Star Mode === */
-body[data-mode="nsfw"] {
-  --bg-base: #0f172a;
-  --panel-bg: rgba(15, 23, 42, 0.62);
-  --panel-border: rgba(255, 255, 255, 0.12);
-  --panel-shadow: rgba(0, 0, 0, 0.5);
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --accent: #8b5cf6;
-  --accent-hover: #7c3aed;
-  --accent-glow: rgba(139, 92, 246, 0.5);
-  --accent-text: #fff;
+[data-mode="nsfw"] {
+  --accent: var(--accent-secondary);
+  --accent-glow: rgba(189, 0, 255, 0.4);
+  --shadow-bloom: 0 0 50px rgba(189, 0, 255, 0.15);
 }

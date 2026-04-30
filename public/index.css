@@ -1,0 +1,73 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;900&family=Space+Grotesk:wght@300;400;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-[var(--bg-deep)] text-[var(--text-main)] font-body selection:bg-[var(--accent)] selection:text-black overflow-x-hidden;
+    background-image: 
+      radial-gradient(circle at 0% 0%, rgba(0, 242, 255, 0.05) 0%, transparent 50%),
+      radial-gradient(circle at 100% 100%, rgba(189, 0, 255, 0.05) 0%, transparent 50%);
+    min-height: 100vh;
+  }
+}
+
+@layer components {
+  .glass-panel {
+    @apply backdrop-blur-[var(--glass-blur)] bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-[var(--radius-lg)] shadow-[var(--shadow-deep)];
+  }
+
+  .nav-pill {
+    @apply px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300;
+  }
+
+  .nav-pill.active {
+    @apply bg-[var(--accent)] text-black shadow-[var(--shadow-bloom)];
+  }
+
+  .nav-pill:not(.active) {
+    @apply text-[var(--text-muted)] hover:text-white hover:bg-white/5;
+  }
+
+  .btn-magic {
+    @apply relative overflow-hidden bg-[var(--accent)] text-black rounded-[var(--radius-md)] transition-all duration-500 hover:scale-[1.02] active:scale-95 shadow-[var(--shadow-bloom)];
+  }
+
+  .btn-magic::after {
+    content: '';
+    @apply absolute inset-0 bg-white/20 translate-y-full transition-transform duration-500;
+  }
+
+  .btn-magic:hover::after {
+    @apply translate-y-0;
+  }
+
+  .cinematic-text {
+    @apply font-display tracking-[0.4em] uppercase;
+  }
+
+  .bottom-console {
+    @apply fixed bottom-8 left-1/2 -translate-x-1/2 w-[95%] max-w-5xl z-[var(--z-console)] transition-all duration-700 ease-[var(--ease-premium)];
+  }
+
+  .bottom-console.minimized {
+    @apply translate-y-[calc(100%-60px)];
+  }
+
+  /* Status Pills */
+  .status-pill {
+    @apply px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border border-white/10 bg-black/40 backdrop-blur-md;
+  }
+}
+
+/* Animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
