@@ -6,8 +6,137 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>AETHER HUD // SYSTEM.ON</title>
   
-  <link rel="stylesheet" href="/css/variables.css">
-  <link rel="stylesheet" href="/index.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style type="text/tailwindcss">
+    @layer base {
+      body {
+        @apply bg-[var(--bg-void)] text-[var(--text-main)] font-hud selection:bg-[var(--accent)] selection:text-black overflow-x-hidden;
+        margin: 0;
+        min-height: 100vh;
+      }
+    }
+
+    @layer components {
+      /* Complex HUD Panels */
+      .hud-panel {
+        @apply relative bg-[var(--bg-panel)] backdrop-blur-md border border-[var(--hud-border)];
+        clip-path: var(--clip-corner);
+      }
+
+      .hud-panel::before {
+        content: '';
+        @apply absolute top-0 left-0 w-full h-[2px] bg-[var(--accent)] opacity-50;
+      }
+
+      .hud-panel-inner {
+        @apply p-6 border-t border-[var(--hud-border-active)] bg-gradient-to-b from-[var(--accent)]/5 to-transparent;
+      }
+
+      /* Data Readouts */
+      .hud-data {
+        @apply font-data text-[var(--text-data)] text-xs tracking-[0.2em] uppercase;
+      }
+
+      /* Game UI Buttons */
+      .btn-hud {
+        @apply relative inline-flex items-center justify-center bg-black/40 border border-[var(--hud-border)] text-[var(--text-main)] font-bold uppercase tracking-[0.2em] transition-all duration-200 overflow-hidden;
+        clip-path: var(--clip-btn);
+      }
+
+      .btn-hud:hover, .btn-hud.active {
+        @apply bg-[var(--accent)]/10 border-[var(--accent)] text-[var(--accent)];
+        box-shadow: inset var(--hud-glow);
+      }
+
+      .btn-hud::after {
+        content: '';
+        @apply absolute bottom-0 left-0 w-full h-0.5 bg-[var(--accent)] scale-x-0 transition-transform origin-left;
+      }
+      
+      .btn-hud:hover::after, .btn-hud.active::after {
+        @apply scale-x-100;
+      }
+
+      /* Warning/Action Buttons */
+      .btn-action {
+        @apply relative bg-[var(--neon-orange)]/20 border-2 border-[var(--neon-orange)] text-[var(--neon-orange)] font-black uppercase tracking-[0.3em] hover:bg-[var(--neon-orange)] hover:text-black transition-all shadow-[var(--hud-glow-alert)];
+        clip-path: var(--clip-corner-sm);
+      }
+
+      /* The Main Manifest Button */
+      .btn-manifest {
+        @apply relative bg-[var(--accent)]/10 border-l-4 border-[var(--accent)] text-[var(--accent)] font-black uppercase tracking-[0.4em] text-lg hover:bg-[var(--accent)] hover:text-black transition-all;
+        clip-path: polygon(20px 0, 100% 0, 100% 100%, 0 100%, 0 20px);
+        box-shadow: inset var(--hud-glow);
+      }
+
+      /* Bottom Console Dashboard */
+      .hud-dashboard {
+        @apply fixed bottom-0 left-0 right-0 z-[var(--z-console)] bg-[var(--bg-panel-dark)] border-t border-[var(--hud-border)] backdrop-blur-xl transition-transform duration-500;
+      }
+
+      .hud-dashboard.minimized {
+        @apply translate-y-[calc(100%-40px)];
+      }
+
+      /* Inputs */
+      .hud-input {
+        @apply bg-black/50 border border-[var(--hud-border)] text-[var(--text-main)] font-data focus:border-[var(--accent)] focus:outline-none transition-colors w-full;
+        clip-path: var(--clip-corner-sm);
+      }
+    }
+
+    /* Sci-Fi Background FX */
+    .bg-grid {
+      position: fixed;
+      inset: 0;
+      z-index: var(--z-bg);
+      background-image: 
+        linear-gradient(rgba(0, 229, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 229, 255, 0.05) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+    }
+
+    .scanlines {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: linear-gradient(
+        to bottom,
+        rgba(255, 255, 255, 0),
+        rgba(255, 255, 255, 0) 50%,
+        rgba(0, 0, 0, 0.1) 50%,
+        rgba(0, 0, 0, 0.1)
+      );
+      background-size: 100% 4px;
+      pointer-events: none;
+      opacity: 0.3;
+    }
+
+    /* Glitch/HUD Animations */
+    @keyframes pulse-border {
+      0% { border-color: rgba(0, 229, 255, 0.2); }
+      50% { border-color: rgba(0, 229, 255, 0.8); }
+      100% { border-color: rgba(0, 229, 255, 0.2); }
+    }
+
+    .animate-pulse-hud {
+      animation: pulse-border 2s infinite;
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            hud: ['Rajdhani', 'sans-serif'],
+            data: ['Share Tech Mono', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 
