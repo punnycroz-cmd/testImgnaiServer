@@ -79,6 +79,7 @@ app.include_router(analytics.router, prefix="/api")
 @app.post("/auth/google")
 async def auth_google(request: Request, response: Response):
     try:
+        GOOGLE_CLIENT_ID = "206665134027-80oiqn378dq1jo49lgtmaueu0p30mf9a.apps.googleusercontent.com"
         body = await request.json()
         token = body.get("id_token")
         if not token:
