@@ -61,7 +61,7 @@ export function createFeedView(state, api, toast) {
 
   async function createPost() {
     const el = dom.postContent();
-    const content = el?.value?.trim();
+    const content = (el && el.value) ? el.value.trim() : '';
     if (!content) return;
     try {
       await api.apiFetch('/posts', { method: 'POST', body: JSON.stringify({ content }) });

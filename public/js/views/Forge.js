@@ -22,15 +22,23 @@ export function createForgeView(state, api, toast) {
 
   function getPayload() {
     const realm = state.get('app.mode') === 'nsfw' ? 'star' : 'day';
+    const pEl = dom.prompt();
+    const mEl = dom.model();
+    const cEl = dom.count();
+    const aEl = dom.aspect();
+    const qEl = dom.quality();
+    const nEl = dom.negativePrompt();
+    const sEl = dom.seed();
+
     return {
-      prompt: dom.prompt()?.value?.trim() || '',
-      model: dom.model()?.value || '',
+      prompt: (pEl && pEl.value) ? pEl.value.trim() : '',
+      model: (mEl && mEl.value) || '',
       nsfw: state.get('app.mode') === 'nsfw',
-      count: parseInt(dom.count()?.value || '4', 10),
-      aspect: dom.aspect()?.value || '1:1',
-      quality: dom.quality()?.value || 'Fast',
-      negative_prompt: dom.negativePrompt()?.value?.trim() || '',
-      seed: dom.seed()?.value ? parseInt(dom.seed().value, 10) : null,
+      count: parseInt((cEl && cEl.value) || '4', 10),
+      aspect: (aEl && aEl.value) || '1:1',
+      quality: (qEl && qEl.value) || 'Fast',
+      negative_prompt: (nEl && nEl.value) ? nEl.value.trim() : '',
+      seed: (sEl && sEl.value) ? parseInt(sEl.value, 10) : null,
       client_id: `client-${Date.now()}`,
       realm,
     };
@@ -66,9 +74,15 @@ export function createForgeView(state, api, toast) {
   function renderGallery(urls_or_imgs, requestId, payload, meta = {}) {
     const gallery = dom.gallery();
     if (!gallery) return;
-    const normalized = urls_or_imgs.map(u => typeof u === 'string' ? { r2_url: u, status: 'active' } : (u.status ? u : { ...u, status: 'active' }));
+    const normalized = urls_or_imgs.map(u => {
+      if (typeof u === 'string') return { r2_url: u, status: 'active' };
+      return u.status ? u : { ...u, status: 'active' };
+    });
     const pending = state.get('forge.pendingDeletions') || new Set();
-    const visible = normalized.filter(img => !pending.has(img.r2_url?.split('?')[0]));
+    const visible = normalized.filter(img => {
+      if (!img.r2_url) return false;
+      return !pending.has(img.r2_url.split('?')[0]);
+    });
     if (!visible.length) { gallery.innerHTML = '<div class="col-span-full py-24 cinematic-text text-xl opacity-20 uppercase tracking-widest text-center">Manifestation Dissolved</div>'; return; }
     gallery.innerHTML = visible.map((img, idx) => `
       <div class="bubble ${img.status === 'deleting' ? 'spirit-deleting' : ''}" id="bubble-${requestId}-${idx}">
@@ -93,16 +107,16 @@ export function createForgeView(state, api, toast) {
       try {
         const res = await api.apiFetch(`/job-status/${requestId}`);
         if (state.get('app.currentPoll') !== requestId) return false;
-        if (res?.images?.length) {
+        if (res && res.images && res.images.length) {
           const urls = res.images.map(img => img.r2_url);
           const gallery = dom.gallery();
           if (gallery && urls.length > gallery.querySelectorAll('.bubble').length) renderGallery(urls, requestId, payload, res);
         }
-        if (res?.status === 'done') {
-          const finalUrls = res.images?.length ? res.images.map(i => i.r2_url) : res.result?.image_urls;
+        if (res && res.status === 'done') {
+          const finalUrls = (res.images && res.images.length) ? res.images.map(i => i.r2_url) : (res.result && res.result.image_urls);
           if (finalUrls) { return { urls: finalUrls, meta: res }; }
         }
-        if (res?.status === 'error' || res?.status === 'failed') { toast(res.error || 'Generation failed.', 'error'); return false; }
+        if (res && (res.status === 'error' || res.status === 'failed')) { toast(res.error || 'Generation failed.', 'error'); return false; }
       } catch (err) { /* retry */ }
       await sleep(backoffDelay(attempt, isStar));
     }
@@ -119,7 +133,7 @@ export function createForgeView(state, api, toast) {
     try {
       const res = await api.apiFetch('/generate', { method: 'POST', body: JSON.stringify(payload) });
       state.set('app.activeRequestId', res.request_id);
-      if (res.status === 'done' && res.result?.image_urls?.length) {
+      if (res.status === 'done' && res.result && res.result.image_urls && res.result.image_urls.length) {
         renderGallery(res.result.image_urls, res.request_id, payload, res);
         if (onSuccess) onSuccess(res.result.image_urls, res.request_id, payload, res);
         return;
@@ -155,7 +169,8 @@ export function createForgeView(state, api, toast) {
     const mldr = dom.btnMatrixLoader();
     if (mtxt) mtxt.textContent = 'Casting...';
     if (mldr) mldr.classList.remove('hidden');
-    document.getElementById('matrixControls')?.classList.remove('hidden');
+    const controls = document.getElementById('matrixControls');
+    if (controls) controls.classList.remove('hidden');
     state.set('matrix.paused', false);
     state.set('matrix.cancelled', false);
     const isStar = state.get('app.mode') === 'nsfw';
@@ -168,7 +183,10 @@ export function createForgeView(state, api, toast) {
       while (state.get('matrix.paused')) { await sleep(1000); if (state.get('matrix.cancelled')) break; }
       const model = models[i];
       const cell = document.getElementById(`matrix-cell-${model.replace(/\s+/g, '-')}`);
-      if (cell) cell.querySelector('.loader')?.classList.remove('hidden');
+      if (cell) {
+        const loader = cell.querySelector('.loader');
+        if (loader) loader.classList.remove('hidden');
+      }
       try {
         const res = await api.apiFetch('/generate', { method: 'POST', body: JSON.stringify({ ...payload, model }) });
         if (cell) cell.dataset.requestId = res.request_id;
@@ -191,12 +209,24 @@ export function createForgeView(state, api, toast) {
       if (state.get('matrix.cancelled')) break;
       try {
         const res = await api.apiFetch(`/job-status/${requestId}`);
-        const urls = (res.images?.length ? res.images.map(i => i.r2_url) : res.result?.image_urls || []).filter(Boolean);
+        const urls = ((res.images && res.images.length) ? res.images.map(i => i.r2_url) : (res.result && res.result.image_urls) || []).filter(Boolean);
         if (res.status === 'done' && urls.length) {
-          if (cell) { const img = cell.querySelector('img'); const ldr = cell.querySelector('.loader'); if (ldr) ldr.classList.add('hidden'); if (img) { img.src = urls[0]; img.classList.remove('hidden', 'opacity-0', 'scale-110'); img.classList.add('opacity-100'); } }
+          if (cell) {
+            const img = cell.querySelector('img');
+            const ldr = cell.querySelector('.loader');
+            if (ldr) ldr.classList.add('hidden');
+            if (img) { img.src = urls[0]; img.classList.remove('hidden', 'opacity-0', 'scale-110'); img.classList.add('opacity-100'); }
+          }
           return;
         }
-        if (res.status === 'failed') { if (cell) { cell.querySelector('.loader')?.classList.add('hidden'); cell.style.boxShadow = 'inset 0 0 40px rgba(239,68,68,0.2)'; } return; }
+        if (res.status === 'failed') {
+          if (cell) {
+            const loader = cell.querySelector('.loader');
+            if (loader) loader.classList.add('hidden');
+            cell.style.boxShadow = 'inset 0 0 40px rgba(239,68,68,0.2)';
+          }
+          return;
+        }
       } catch (e) { /* retry */ }
       await sleep(pollDelay);
     }

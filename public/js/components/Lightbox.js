@@ -17,7 +17,7 @@ export function createLightbox(state, api, toast) {
 
   function populateInspector(data) {
     const model = el.metaModel(), realm = el.metaRealm(), prompt = el.metaPrompt();
-    if (!data?.prompt) return;
+    if (!data || !data.prompt) return;
     if (realm) realm.textContent = data.realm || 'day';
     if (model) model.textContent = data.model || 'Standard';
     if (prompt) prompt.textContent = data.prompt;
@@ -30,17 +30,23 @@ export function createLightbox(state, api, toast) {
     const activeImages = images.filter(i => i.status !== 'deleting');
     const urls = activeImages.map(img => img.r2_url);
     if (!urls.length && !images.some(i => i.status === 'deleting')) return;
-    const targetUrl = focusUrl || urls[0] || images[0]?.r2_url;
+    const targetUrl = focusUrl || urls[0] || (images[0] ? images[0].r2_url : null);
     const targetObj = images.find(i => i.r2_url === targetUrl) || images[0];
-    const isHidden = targetObj?.status === 'hidden';
+    const isHidden = targetObj && targetObj.status === 'hidden';
     const img = el.img();
-    if (img) { img.src = targetUrl; img.dataset.hidden = isHidden ? 'true' : 'false'; img.classList.toggle('spirit-hidden', isHidden && state.get('vault.showHidden')); img.classList.toggle('spirit-deleting', targetObj?.status === 'deleting'); }
+    if (img) {
+      img.src = targetUrl;
+      img.dataset.hidden = isHidden ? 'true' : 'false';
+      img.classList.toggle('spirit-hidden', isHidden && state.get('vault.showHidden'));
+      img.classList.toggle('spirit-deleting', targetObj && targetObj.status === 'deleting');
+    }
     const dl = el.download();
     if (dl) dl.href = targetUrl;
     const meta = el.bubbleMeta();
-    if (meta) meta.textContent = `#${(targetObj?.image_index ?? 0) + 1}`;
+    const idxNum = (targetObj && targetObj.image_index !== undefined) ? targetObj.image_index : 0;
+    if (meta) meta.textContent = `#${idxNum + 1}`;
     state.set('lightbox.currentUrl', targetUrl);
-    state.set('lightbox.currentIndex', targetObj?.image_index ?? 0);
+    state.set('lightbox.currentIndex', idxNum);
     state.set('lightbox.currentHidden', isHidden);
     populateInspector(entry);
     updatePublishButton();
@@ -72,7 +78,7 @@ export function createLightbox(state, api, toast) {
   }
 
   function close(e) {
-    if (e?.target?.tagName === 'IMG') return;
+    if (e && e.target && e.target.tagName === 'IMG') return;
     const reveal = el.reveal();
     if (reveal) { reveal.classList.remove('active'); setTimeout(() => { reveal.style.display = 'none'; state.set('lightbox.data', null); state.set('lightbox.currentUrl', null); }, 350); }
   }
@@ -101,13 +107,13 @@ export function createLightbox(state, api, toast) {
 
   async function setImageVisibility(hidden) {
     const data = state.get('lightbox.data');
-    const requestId = data?.request_id;
+    const requestId = data ? data.request_id : null;
     const index = state.get('lightbox.currentIndex');
     if (!requestId || index === undefined) return toast('Cannot toggle visibility.', 'error');
     const endpoint = hidden ? 'hide' : 'show';
     try {
       await api.apiFetch(`/history/image/${encodeURIComponent(requestId)}/${endpoint}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ index: parseInt(index, 10) }) });
-      if (data.images?.[index]) data.images[index].status = hidden ? 'hidden' : 'active';
+      if (data.images && data.images[index]) data.images[index].status = hidden ? 'hidden' : 'active';
       if (hidden && !state.get('vault.showHidden')) {
         const remaining = data.images.filter(i => i.status !== 'hidden' && i.status !== 'deleting');
         if (remaining.length > 0) { open(data, (remaining.find(i => i.image_index > index) || remaining[0]).r2_url); }
@@ -119,7 +125,7 @@ export function createLightbox(state, api, toast) {
 
   async function toggleBatchHidden() {
     const data = state.get('lightbox.data');
-    if (!data?.request_id) return;
+    if (!data || !data.request_id) return;
     const hasVisible = (data.images || []).some(img => img.status !== 'hidden' && img.status !== 'deleting');
     const endpoint = hasVisible ? 'hide' : 'show';
     try {
@@ -133,7 +139,7 @@ export function createLightbox(state, api, toast) {
   async function banishImage() {
     const data = state.get('lightbox.data');
     const currentUrl = canonicalImageUrl(state.get('lightbox.currentUrl'));
-    if (!data?.images) return;
+    if (!data || !data.images) return;
     const imgObj = data.images.find(i => canonicalImageUrl(i.r2_url) === currentUrl);
     if (!imgObj) return;
     const img = el.img();
@@ -148,7 +154,7 @@ export function createLightbox(state, api, toast) {
 
   async function banishBatch() {
     const data = state.get('lightbox.data');
-    if (!data?.request_id) return;
+    if (!data || !data.request_id) return;
     try {
       await api.apiFetch(`/history/batch/${encodeURIComponent(data.request_id)}`, { method: 'DELETE' });
       toast('Manifestation dissolved.', 'info');
@@ -160,7 +166,7 @@ export function createLightbox(state, api, toast) {
 
   async function togglePublish() {
     const data = state.get('lightbox.data');
-    if (!data?.request_id) return;
+    if (!data || !data.request_id) return;
     const next = !data.is_public;
     try {
       await api.apiFetch(`/history/batch/${data.request_id}/public`, { method: 'POST', body: JSON.stringify({ is_public: next }) });
@@ -189,7 +195,8 @@ export function createLightbox(state, api, toast) {
     const idx = data.images.findIndex(i => i.r2_url === currentUrl || i.thumbnail_url === currentUrl);
     if (idx === -1) return toast('Unable to identify current image.', 'error');
     try {
-      const res = await api.apiFetch('/api/share', { method: 'POST', body: JSON.stringify({ request_id: data.request_id, image_index: idx, title: data.prompt?.substring(0, 100) || 'AI Manifestation' }) });
+      const pTitle = (data.prompt && data.prompt.length > 100) ? data.prompt.substring(0, 100) : (data.prompt || 'AI Manifestation');
+      const res = await api.apiFetch('/api/share', { method: 'POST', body: JSON.stringify({ request_id: data.request_id, image_index: idx, title: pTitle }) });
       if (res.share_url) { await navigator.clipboard.writeText(res.share_url); toast('🔗 Public share link copied!', 'success'); }
     } catch (err) { toast('Sharing failed.', 'error'); }
   }

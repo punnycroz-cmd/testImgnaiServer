@@ -12,7 +12,8 @@ export function createVaultView(state, api, toast, openHistoryGroup) {
     wrap.id = `batch-${entry.request_id}`;
     wrap.dataset.realm = entry.realm || 'day';
     wrap.className = 'glass-panel p-4 pb-5 cursor-pointer group relative transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_20px_50px_rgba(0,0,0,0.4)] border-white/5 hover:border-white/20';
-    if (state.get('vault.selectedIds')?.has(entry.request_id)) wrap.classList.add('border-[var(--accent)]', 'bg-[var(--accent)]/10');
+    const selIds = state.get('vault.selectedIds');
+    if (selIds && selIds.has(entry.request_id)) wrap.classList.add('border-[var(--accent)]', 'bg-[var(--accent)]/10');
     if (entry.is_hidden) wrap.classList.add('opacity-65');
 
     wrap.onclick = (e) => {
@@ -21,7 +22,8 @@ export function createVaultView(state, api, toast, openHistoryGroup) {
       else { openHistoryGroup(entry); }
     };
 
-    const isSelected = state.get('vault.selectedIds')?.has(entry.request_id);
+    const selIds = state.get('vault.selectedIds');
+    const isSelected = selIds && selIds.has(entry.request_id);
     const showHidden = state.get('vault.showHidden');
 
     wrap.innerHTML = `
@@ -152,7 +154,8 @@ export function createVaultView(state, api, toast, openHistoryGroup) {
 
     // Update load more button
     const loadBtn = dom.loadMore();
-    const total = dom.list()?.children?.length || 0;
+    const listEl = dom.list();
+    const total = (listEl && listEl.children) ? listEl.children.length : 0;
     if (loadBtn) {
       if (!state.get('vault.hasMore')) { loadBtn.classList.remove('hidden'); loadBtn.disabled = true; loadBtn.textContent = `End of Vault (${total} Total)`; loadBtn.style.opacity = '0.5'; }
       else { loadBtn.classList.remove('hidden'); loadBtn.disabled = false; loadBtn.style.opacity = '1'; loadBtn.textContent = `Load More (${total} shown)`; }
