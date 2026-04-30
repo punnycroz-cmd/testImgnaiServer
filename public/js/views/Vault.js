@@ -22,8 +22,8 @@ export function createVaultView(state, api, toast, openHistoryGroup) {
       else { openHistoryGroup(entry); }
     };
 
-    const selIds = state.get('vault.selectedIds');
-    const isSelected = selIds && selIds.has(entry.request_id);
+    const currentSelIds = state.get('vault.selectedIds');
+    const isSelected = currentSelIds && currentSelIds.has(entry.request_id);
     const showHidden = state.get('vault.showHidden');
 
     wrap.innerHTML = `
