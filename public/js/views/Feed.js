@@ -30,9 +30,14 @@ export function createFeedView(state, api, toast) {
       const cursor = state.get('feed.cursor');
       const url = `/posts?limit=20${cursor ? `&before=${cursor}` : ''}`;
       const res = await api.apiFetch(url);
+      if (!res) return; // 304 Not Modified or empty
+      
       const list = dom.list();
       if (!cursor) list.innerHTML = '';
-      res.items.forEach(post => list.appendChild(createPostCard(post)));
+      
+      const items = res.items || [];
+      items.forEach(post => list.appendChild(createPostCard(post)));
+      
       state.set('feed.cursor', res.next_cursor);
       state.set('feed.hasMore', res.has_more);
       const btn = dom.loadMore();

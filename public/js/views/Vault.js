@@ -125,6 +125,7 @@ export function createVaultView(state, api, toast, openHistoryGroup) {
       const showHidden = state.get('vault.showHidden');
       const url = `/history?limit=20${cursor ? `&before=${cursor}` : ''}&uid=${uid}&include_hidden=${showHidden}&_t=${Date.now()}`;
       const res = await api.apiFetch(url);
+      if (!res) return;
       const items = res.items || [];
       const list = dom.list();
       const pending = state.get('forge.pendingDeletions') || new Set();

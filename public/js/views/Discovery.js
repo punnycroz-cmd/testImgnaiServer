@@ -13,12 +13,17 @@ export function createDiscoveryView(state, api, toast, createBatchCard) {
       const cursor = state.get('discovery.cursor');
       const url = `/public-gallery?limit=20${cursor ? `&before=${cursor}` : ''}`;
       const res = await api.apiFetch(url);
+      if (!res) return; // 304 Not Modified or empty
+      
       const list = dom.list();
       if (!cursor) list.innerHTML = '';
-      res.items.forEach(item => {
+      
+      const items = res.items || [];
+      items.forEach(item => {
         const card = createBatchCard(item);
         list.appendChild(card);
       });
+      
       state.set('discovery.cursor', res.next_cursor);
       state.set('discovery.hasMore', res.has_more);
       const btn = dom.loadMore();
