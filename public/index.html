@@ -95,6 +95,16 @@
     const GOOGLE_CLIENT_ID = "206665134027-80oiqn378dq1jo49lgtmaueu0p30mf9a.apps.googleusercontent.com";
     window.__SERVER_URL__ = "__STD_URL__";
     window.__SERVER_URL_NSFW__ = "__NSFW_URL__";
+
+    // Global bridge for Google Sign-In callback
+    window.handleGoogleLogin = function(response) {
+      if (window.Studio && window.Studio.auth) {
+        window.Studio.auth.handleGoogleLogin(response);
+      } else {
+        console.warn('Auth module not ready. Retrying login...');
+        setTimeout(() => window.handleGoogleLogin(response), 100);
+      }
+    };
   </script>
 </head>
 
