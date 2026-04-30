@@ -20,18 +20,14 @@ export function createAuthService(state, api, showToast) {
     const name = document.getElementById('user-name');
 
     if (user) {
-      if (overlay) overlay.classList.add('is-hidden');
-      if (profile) {
-        profile.classList.add('is-visible');
-      }
+      if (overlay) overlay.classList.add('hidden');
+      if (profile) profile.classList.remove('hidden');
       if (avatar) avatar.src = user.picture;
       if (name) name.textContent = user.name.split(' ')[0];
       document.querySelectorAll('.feed-user-avatar').forEach(img => img.src = user.picture);
     } else {
-      if (overlay) overlay.classList.remove('is-hidden');
-      if (profile) {
-        profile.classList.remove('is-visible');
-      }
+      if (overlay) overlay.classList.remove('hidden');
+      if (profile) profile.classList.add('hidden');
     }
   }
 
