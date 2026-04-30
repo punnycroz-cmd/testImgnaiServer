@@ -60,8 +60,8 @@ export function createLightbox(state, api, toast) {
         const isD = imgData.status === 'deleting';
         const isT = imgData.r2_url === targetUrl;
         const showHidden = state.get('vault.showHidden');
-        return `<button class="art-frame overflow-hidden border-2 transition-all ${isT ? 'border-[var(--accent)]' : 'border-transparent'} ${isH ? 'ring-1 ring-red-400/60' : ''} ${isD ? 'spirit-deleting' : ''} ${isH && !showHidden ? 'hidden-collapsed' : ''}" data-thumb-url="${imgData.r2_url}">
-          <img src="${imgData.r2_url}" class="w-full aspect-square object-cover ${isH ? 'spirit-hidden' : ''}" loading="lazy">
+        return `<button class="hud-panel p-1 overflow-hidden transition-all duration-300 ${isT ? 'border-[var(--neon-orange)] shadow-[var(--hud-glow-alert)] scale-110' : 'border-transparent'} ${isH ? 'border-[var(--neon-orange)] opacity-50' : ''} ${isD ? 'spirit-deleting' : ''} ${isH && !showHidden ? 'hidden-collapsed' : ''}" data-thumb-url="${imgData.r2_url}" style="clip-path: var(--clip-corner-sm)">
+          <img src="${imgData.r2_url}" class="w-full aspect-square object-cover ${isH ? 'filter grayscale' : ''}" loading="lazy" style="clip-path: var(--clip-corner-sm)">
         </button>`;
       }).join('');
       // Delegate thumb clicks
