@@ -1,0 +1,161 @@
+/* ============================================
+   Aether Studio — Component: Card
+   Art frames, batch cards
+   ============================================ */
+
+.art-frame {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  position: relative;
+  transition: all 0.3s ease;
+  background: var(--panel-bg);
+  cursor: pointer;
+  border: 2px solid transparent;
+}
+
+.art-frame:hover {
+  transform: translateY(-4px);
+  border-color: var(--accent);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+  z-index: var(--z-card-hover);
+}
+
+/* === Batch Card === */
+.batch-card {
+  cursor: pointer;
+  position: relative;
+  transition: all 0.5s ease;
+}
+
+.batch-card:hover {
+  transform: scale(1.02);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.batch-card.is-selected {
+  border-color: var(--accent);
+  background: rgba(var(--accent), 0.1);
+}
+
+.batch-card.is-hidden {
+  opacity: 0.65;
+}
+
+/* === Realm Badge === */
+.realm-badge {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 900;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.realm-badge--day {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+}
+
+.realm-badge--star {
+  background: rgba(139, 92, 246, 0.2);
+  color: #a78bfa;
+}
+
+/* === Status Badges === */
+.badge {
+  font-size: var(--text-xs);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+}
+
+.badge--hidden {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+
+.badge--public {
+  background: rgba(124, 58, 237, 0.2);
+  color: #a78bfa;
+}
+
+/* === Selection Indicator === */
+.selection-indicator {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--duration-fast) ease;
+  flex-shrink: 0;
+}
+
+.selection-indicator.is-selected {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+/* === Spirit States === */
+.spirit-deleting {
+  filter: grayscale(1) blur(40px) brightness(0.7) !important;
+  opacity: 0.5 !important;
+  pointer-events: none !important;
+  transition: all 8s var(--ease-smooth) !important;
+}
+
+.spirit-hidden {
+  display: block !important;
+  opacity: 0.75 !important;
+  filter: grayscale(0.5) blur(2px) !important;
+}
+
+.hidden-collapsed {
+  display: none !important;
+}
+
+/* === Filter Button Active === */
+.filter-btn-active {
+  box-shadow: 0 0 0 2px var(--accent) inset !important;
+}
+
+/* === Chip System === */
+.chip-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(0, 0, 0, 0.1);
+  padding: 4px;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.chip {
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--duration-fast) ease;
+  opacity: 0.5;
+}
+
+.chip:hover {
+  opacity: 1;
+}
+
+.chip.is-active {
+  background: var(--accent);
+  color: white;
+  opacity: 1;
+  box-shadow: var(--shadow-sm);
+}

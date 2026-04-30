@@ -1,0 +1,16 @@
+/* ============================================
+   Aether Studio — Component: Glass Panel
+   ============================================ */
+
+.glass-panel {
+  background: var(--panel-bg);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--shadow-lg);
+  border-radius: var(--radius-2xl);
+  transition:
+    transform var(--duration-normal) var(--ease-spring),
+    box-shadow var(--duration-normal) ease,
+    border-color var(--duration-normal) ease;
+}

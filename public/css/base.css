@@ -1,0 +1,95 @@
+/* ============================================
+   Aether Studio — Base Styles
+   Reset, Typography, Body, Scrollbar
+   ============================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-body);
+  background:
+    radial-gradient(circle at top, rgba(16, 185, 129, 0.12), transparent 30%),
+    linear-gradient(180deg, var(--bg-base), var(--bg-base));
+  color: var(--text-main);
+  margin: 0;
+  min-height: 100vh;
+  overflow: hidden;
+  transition: background-color var(--duration-slower) var(--ease-smooth), color var(--duration-normal) ease;
+}
+
+h1, h2, h3, .cinematic-text {
+  font-family: var(--font-display);
+}
+
+/* === Form Elements === */
+textarea, select, input {
+  background: var(--panel-bg) !important;
+  border: 1px solid var(--panel-border) !important;
+  color: var(--text-main) !important;
+  border-radius: var(--radius-md) !important;
+  transition: all var(--duration-fast) ease !important;
+  font-family: var(--font-body);
+}
+
+textarea:focus, select:focus, input:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 3px var(--accent-glow) !important;
+  border-color: var(--accent) !important;
+}
+
+/* === Main Content Area === */
+main {
+  padding-top: 8rem;
+  padding-bottom: 22rem;
+  overflow-y: auto;
+  height: 100vh;
+  scrollbar-width: none;
+}
+
+main::-webkit-scrollbar {
+  width: 0;
+}
+
+/* === View System === */
+.view {
+  transition: opacity 0.5s var(--ease-smooth), transform 0.5s var(--ease-smooth);
+}
+
+.view.hidden {
+  display: none;
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.view.active {
+  display: block;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* === Utility: Line Clamp === */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* === Utility: Truncate === */
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* === Selection === */
+::selection {
+  background: var(--accent);
+  color: white;
+}

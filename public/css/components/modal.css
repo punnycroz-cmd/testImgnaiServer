@@ -1,0 +1,218 @@
+/* ============================================
+   Aether Studio — Component: Modal
+   Confirm dialog
+   ============================================ */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-md);
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(20px);
+}
+
+.modal-overlay.is-open {
+  display: flex;
+}
+
+.modal {
+  max-width: 24rem;
+  width: 100%;
+  padding: var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  text-align: center;
+  animation: zoom-in 0.3s var(--ease-out-expo);
+  border: 2px solid rgba(255, 255, 255, 0.05);
+}
+
+.modal__icon {
+  display: flex;
+  justify-content: center;
+}
+
+.modal__icon-circle {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.modal__title {
+  font-size: 1.25rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: white;
+}
+
+.modal__message {
+  opacity: 0.6;
+  font-size: var(--text-md);
+  line-height: 1.6;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  margin-top: 0.5rem;
+}
+
+.modal__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+  margin-top: 0.5rem;
+}
+
+/* ============================================
+   Component: Progress Matrix
+   Top-of-screen progress indicator
+   ============================================ */
+
+.progress-matrix {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  z-index: var(--z-progress);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  display: flex;
+  gap: 4px;
+}
+
+.progress-matrix.is-active {
+  opacity: 1;
+}
+
+.progress-step {
+  flex: 1;
+  height: 100%;
+  background: var(--panel-border);
+  border-radius: var(--radius-full);
+  position: relative;
+}
+
+.progress-step.is-done {
+  background: var(--accent);
+}
+
+.progress-step.is-active::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--accent);
+  border-radius: var(--radius-full);
+  animation: pulse-width 1.5s infinite;
+}
+
+/* ============================================
+   Component: Selection Bar
+   Multi-select action bar
+   ============================================ */
+
+.selection-bar {
+  position: fixed;
+  bottom: 2.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--z-modal);
+  padding: 1.25rem 2.5rem;
+  border: 2px solid var(--accent);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xl);
+  box-shadow: var(--shadow-heavy);
+  animation: slide-in-bottom 0.5s var(--ease-out-expo);
+  border-radius: 2.5rem;
+}
+
+.selection-bar.is-visible {
+  display: flex;
+}
+
+@media (min-width: 640px) {
+  .selection-bar {
+    flex-direction: row;
+  }
+}
+
+.selection-bar__count {
+  display: flex;
+  flex-direction: column;
+}
+
+.selection-bar__count-number {
+  font-size: 1.875rem;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  color: var(--accent);
+}
+
+.selection-bar__count-label {
+  font-size: var(--text-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  opacity: 0.6;
+  font-weight: 900;
+}
+
+.selection-bar__divider {
+  width: 1px;
+  height: 3rem;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* ============================================
+   Component: Footer Toast
+   ============================================ */
+
+.footer-toast {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.75rem 2rem;
+  font-size: var(--text-md);
+  font-weight: 700;
+  transition: all var(--duration-normal) ease;
+  z-index: var(--z-footer);
+  translate: 0 8rem;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.footer-toast.is-visible {
+  translate: 0 0;
+  opacity: 1;
+}
+
+/* ============================================
+   Component: Auth Overlay
+   ============================================ */
+
+.auth-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-auth-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0f172a;
+  transition: opacity 0.7s ease;
+}
+
+.auth-overlay.is-hidden {
+  display: none;
+}

@@ -1,0 +1,188 @@
+/* ============================================
+   Aether Studio — Component: Button
+   BEM: .btn, .btn--primary, .btn--secondary, etc.
+   ============================================ */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-family: var(--font-body);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  font-size: var(--text-sm);
+  border: none;
+  cursor: pointer;
+  transition: all var(--duration-fast) ease;
+  border-radius: var(--radius-lg);
+  padding: 0.75rem 1.5rem;
+  min-height: 44px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+/* === Primary (Filled Accent) === */
+.btn--primary {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.btn--primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+  box-shadow: 0 14px 32px var(--accent-glow);
+  transform: translateY(-2px);
+}
+
+/* === Secondary (Outlined Accent) === */
+.btn--secondary {
+  background: transparent;
+  border: 2px solid var(--accent);
+  color: var(--accent);
+}
+
+.btn--secondary:hover:not(:disabled) {
+  background: var(--accent);
+  color: white;
+}
+
+/* === Ghost (Subtle) === */
+.btn--ghost {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-main);
+}
+
+.btn--ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* === Danger === */
+.btn--danger {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+.btn--danger:hover:not(:disabled) {
+  background: #ef4444;
+  color: white;
+}
+
+/* === Danger Strong === */
+.btn--danger-strong {
+  background: #dc2626;
+  color: white;
+}
+
+.btn--danger-strong:hover:not(:disabled) {
+  background: #ef4444;
+  transform: scale(1.02);
+}
+
+/* === Success === */
+.btn--success {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  color: #34d399;
+}
+
+.btn--success:hover:not(:disabled) {
+  background: #10b981;
+  color: white;
+}
+
+/* === Info (Blue) === */
+.btn--info {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  color: #93c5fd;
+}
+
+.btn--info:hover:not(:disabled) {
+  background: #3b82f6;
+  color: white;
+}
+
+/* === Publish (Violet) === */
+.btn--publish {
+  background: rgba(124, 58, 237, 0.2);
+  border: 1px solid rgba(124, 58, 237, 0.3);
+  color: #a78bfa;
+}
+
+.btn--publish:hover:not(:disabled) {
+  background: rgba(124, 58, 237, 0.4);
+}
+
+.btn--publish.is-active {
+  background: rgba(124, 58, 237, 0.4);
+  color: white;
+}
+
+/* === Link-style Button === */
+.btn--link {
+  background: none;
+  border: none;
+  padding: 0.25rem 0.5rem;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  min-height: auto;
+  border-radius: var(--radius-sm);
+}
+
+.btn--link:hover:not(:disabled) {
+  opacity: 0.7;
+}
+
+/* === Size Variants === */
+.btn--sm {
+  padding: 0.5rem 1rem;
+  font-size: var(--text-xs);
+  min-height: 36px;
+  border-radius: var(--radius-md);
+}
+
+.btn--lg {
+  padding: 1rem 2rem;
+  font-size: var(--text-md);
+  min-height: 52px;
+}
+
+.btn--icon {
+  padding: 0.5rem;
+  min-height: auto;
+  border-radius: var(--radius-md);
+}
+
+/* === Full Width === */
+.btn--full {
+  width: 100%;
+}
+
+/* === Button with Loading State === */
+.btn .btn__loader {
+  display: none;
+}
+
+.btn.is-loading .btn__text {
+  visibility: hidden;
+}
+
+.btn.is-loading .btn__loader {
+  display: block;
+  position: absolute;
+}

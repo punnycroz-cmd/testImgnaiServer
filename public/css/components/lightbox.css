@@ -1,0 +1,205 @@
+/* ============================================
+   Aether Studio — Component: Lightbox
+   Full-screen image viewer + info panel
+   ============================================ */
+
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-lightbox);
+  transition: opacity var(--duration-normal) ease, backdrop-filter var(--duration-normal) ease;
+  display: none;
+  opacity: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(12px);
+  padding: var(--space-md);
+  gap: var(--space-xl);
+  overflow-y: auto;
+}
+
+.lightbox.is-open {
+  display: flex !important;
+  opacity: 1;
+}
+
+/* === Image Container === */
+.lightbox__image-container {
+  width: 100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: var(--space-md) 0;
+  padding-bottom: var(--space-md);
+}
+
+.lightbox__image {
+  max-height: 55vh;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.5s ease;
+  transform: scale(0.95);
+}
+
+.lightbox.is-open .lightbox__image {
+  transform: scale(1);
+}
+
+.lightbox__image:hover {
+  transform: scale(1.01);
+}
+
+.lightbox__image[data-hidden="true"] {
+  display: none;
+}
+
+/* === Info Panel === */
+.lightbox__panel {
+  background: rgba(10, 10, 10, 0.85);
+  backdrop-filter: blur(30px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 28px;
+  transform: translateY(30px);
+  transition: transform var(--duration-slow) var(--ease-out-expo);
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  width: 100%;
+  padding: 2rem 2.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  box-shadow: var(--shadow-lg);
+  margin-bottom: 6rem;
+}
+
+.lightbox.is-open .lightbox__panel {
+  transform: translateY(0);
+}
+
+/* === Thumbnail Grid === */
+.lightbox__thumbs {
+  display: none;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.lightbox__thumbs.has-batch {
+  display: flex;
+}
+
+.lightbox__thumbs-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+}
+
+/* === Meta Inspector === */
+.lightbox__meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-xl);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: var(--space-lg);
+}
+
+.lightbox__meta-label {
+  opacity: 0.6;
+  text-transform: uppercase;
+  font-weight: 900;
+  font-size: var(--text-sm);
+  letter-spacing: 0.2em;
+  margin-bottom: 0.5rem;
+  color: var(--accent);
+}
+
+.lightbox__meta-value {
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: -0.02em;
+}
+
+.lightbox__inscription {
+  grid-column: span 2;
+  padding-top: var(--space-lg);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.lightbox__inscription p {
+  font-size: 16px;
+  line-height: 1.6;
+  color: white;
+  font-weight: 500;
+  font-style: italic;
+  letter-spacing: -0.02em;
+}
+
+/* === Action Groups === */
+.lightbox__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: var(--space-lg);
+}
+
+.lightbox__actions-row {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.lightbox__actions-row--primary {
+  grid-template-columns: 1fr 1fr;
+}
+
+.lightbox__actions-row--secondary {
+  grid-template-columns: 1fr 1fr;
+}
+
+.lightbox__actions-row--danger {
+  grid-template-columns: 1fr 1fr;
+}
+
+.lightbox__actions-row--full {
+  grid-template-columns: 1fr;
+}
+
+/* === Desktop Layout === */
+@media (min-width: 1024px) {
+  .lightbox {
+    flex-direction: row;
+    padding: var(--space-3xl);
+    gap: var(--space-3xl);
+    align-items: center;
+    justify-content: center;
+  }
+
+  .lightbox__image-container {
+    flex: 7;
+    max-height: 85vh;
+  }
+
+  .lightbox__image {
+    max-height: 85vh;
+  }
+
+  .lightbox__panel {
+    flex: 3;
+    max-width: 450px;
+    min-width: 350px;
+    height: min-content;
+    max-height: 85vh;
+    overflow-y: auto;
+    margin-bottom: 0;
+  }
+
+  .lightbox__actions-row--primary {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+}

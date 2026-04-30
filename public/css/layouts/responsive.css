@@ -1,0 +1,147 @@
+/* ============================================
+   Aether Studio — Responsive Layout Overrides
+   ============================================ */
+
+/* === Mobile (< 768px) === */
+@media (max-width: 768px) {
+  html {
+    font-size: 14px;
+  }
+
+  h2.cinematic-text {
+    font-size: 1.75rem !important;
+  }
+
+  main {
+    padding-top: 7.5rem;
+    padding-bottom: 38rem;
+  }
+
+  .console {
+    bottom: 5rem !important;
+  }
+
+  .view {
+    padding-top: var(--space-md);
+  }
+
+  .header__title {
+    font-size: 1.25rem;
+  }
+}
+
+/* === Tablet (768px - 1024px) === */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .header__nav {
+    gap: 0.25rem;
+  }
+
+  .nav-pill {
+    padding: 0.5rem 0.75rem;
+    font-size: 8px;
+  }
+}
+
+/* === Grid Layouts for Views === */
+.vault-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-md);
+  transition: all var(--duration-normal) ease;
+}
+
+@media (min-width: 640px) {
+  .vault-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .vault-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (min-width: 1280px) {
+  .vault-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+/* === Container Widths === */
+.container {
+  max-width: 80rem;
+  margin: 0 auto;
+  padding: 0 var(--space-md);
+}
+
+@media (min-width: 640px) {
+  .container {
+    padding: 0 var(--space-xl);
+  }
+}
+
+.container--narrow {
+  max-width: 56rem;
+}
+
+/* === Section Spacing === */
+.section-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  margin-bottom: 2.5rem;
+}
+
+@media (min-width: 640px) {
+  .section-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.section-title {
+  font-size: 1.875rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+}
+
+.section-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.section-divider {
+  width: 1px;
+  height: 16px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* === Feed Post Area === */
+.feed-create {
+  padding: var(--space-lg);
+  margin-bottom: 2.5rem;
+  border-color: rgba(124, 58, 237, 0.2);
+}
+
+.feed-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+/* === Empty State === */
+.empty-state {
+  grid-column: 1 / -1;
+  padding: 5rem 0;
+  text-align: center;
+  opacity: 0.15;
+  font-size: 1.875rem;
+  font-weight: 300;
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+}

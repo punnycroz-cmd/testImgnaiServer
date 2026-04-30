@@ -1,0 +1,80 @@
+/* ============================================
+   Aether Studio — Component: Progress (Matrix Cast)
+   ============================================ */
+
+.matrix-controls {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-md) 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-2xl);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: var(--space-md);
+  animation: fade-in 0.5s var(--ease-out-expo);
+}
+
+.matrix-controls.is-visible {
+  display: flex;
+}
+
+.matrix-controls__status {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.matrix-controls__pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+  animation: glow-pulse 2s infinite;
+}
+
+.matrix-controls__pulse--paused {
+  background: #f59e0b;
+}
+
+.matrix-controls__pulse--cancelled {
+  background: #ef4444;
+  animation: none;
+}
+
+.matrix-controls__text {
+  font-size: var(--text-sm);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.matrix-controls__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* === Matrix Gallery === */
+.matrix-gallery {
+  display: none;
+}
+
+.matrix-gallery.is-visible {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-md);
+  padding: var(--space-xl) 0;
+}
+
+@media (min-width: 768px) {
+  .matrix-gallery.is-visible {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .matrix-gallery.is-visible {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
