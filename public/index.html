@@ -157,7 +157,7 @@
         <div id="user-profile" class="hidden items-center gap-3 bg-black/5 p-1 pr-3 rounded-2xl border border-white/5">
             <img id="user-avatar" class="w-8 h-8 rounded-xl object-cover border border-white/10" src="" alt="">
             <div class="hidden lg:block text-[10px] font-bold uppercase tracking-widest text-[var(--text-main)]" id="user-name"></div>
-            <button onclick="logout()" class="p-2 hover:text-red-500 transition-colors" title="Logout">
+            <button data-action="logout" class="p-2 hover:text-red-500 transition-colors" title="Logout">
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
             </button>
         </div>
@@ -168,17 +168,17 @@
 
   <div id="bubbleReveal"
     class="fixed inset-0 z-[2000] hidden flex-col items-center justify-start p-4 pt-12 sm:p-12 bg-black/80 backdrop-blur-md overflow-y-auto"
-    onclick="closeBubbleReveal(event)">
+    data-action="closeLightbox">
     <!-- Floating Image Container -->
     <div class="image-viewer-container w-full relative flex items-center justify-center my-4 pb-4"
-      onclick="event.stopPropagation()">
+      data-stop-propagation="true">
       <img id="bubbleRevealImg" src="" alt="Manifestation"
         class="shadow-[0_20px_80px_rgba(0,0,0,0.9)] border border-white/10 transition-all duration-500 hover:scale-[1.01]">
     </div>
 
     <!-- Floating Glass Info Panel -->
     <div class="glass-reveal-panel w-full p-8 sm:p-10 flex flex-col gap-6 shadow-2xl mb-24 sm:mb-0"
-      onclick="event.stopPropagation()">
+      data-stop-propagation="true">
       <div id="thumbsSection" class="hidden flex-col gap-3">
         <div class="flex items-center justify-between mb-1">
             <span class="opacity-60 uppercase font-black text-[9px] tracking-[0.2em] text-[var(--accent)]">The Batch</span>
@@ -205,31 +205,31 @@
       <div class="grid grid-cols-2 lg:grid-cols-3 gap-3 pt-6 border-t border-white/5">
         <a id="bubbleRevealDownload" href="#" download
           class="btn-magic h-12 flex items-center justify-center rounded-xl text-[10px] font-black uppercase tracking-[0.15em] shadow-2xl">Collect</a>
-        <button onclick="cloneActiveManifestation()"
+        <button data-action="cloneManifestation"
           class="h-12 rounded-xl border-2 border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white transition-all text-[10px] font-black uppercase tracking-[0.15em]">Invoke</button>
-        <button onclick="closeBubbleReveal()"
+        <button data-action="closeLightbox"
           class="h-12 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-[10px] font-black uppercase tracking-[0.15em] hidden lg:block">Close</button>
 
         <div class="col-span-2 lg:col-span-3 grid grid-cols-2 gap-3 mt-1">
-          <button onclick="hideCurrentItem()"
+          <button data-action="hideCurrentItem"
             class="h-12 rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all text-[10px] font-black uppercase tracking-[0.15em]">Hide
             One</button>
-          <button onclick="banishCurrentItem()"
+          <button data-action="banishCurrentItem"
             class="h-12 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all text-[10px] font-black uppercase tracking-[0.15em]">Banish
             One</button>
-          <button onclick="showCurrentItem()"
+          <button data-action="showCurrentItem"
             class="h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all text-[10px] font-black uppercase tracking-[0.15em]">Show
             One</button>
-          <button onclick="toggleBatchHidden()"
+          <button data-action="toggleBatchHidden"
             class="h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-300 hover:bg-blue-500 hover:text-white transition-all text-[10px] font-black uppercase tracking-[0.15em]">Toggle
             Batch</button>
-          <button onclick="banishBatch()"
+          <button data-action="banishBatch"
             class="h-12 rounded-xl bg-red-900/20 border border-red-500/30 text-red-400 hover:bg-red-600 hover:text-white transition-all text-[10px] font-black uppercase tracking-[0.15em]">Banish
             Batch</button>
-          <button id="publishBtn" onclick="togglePublishCurrentBatch()"
+          <button id="publishBtn" data-action="togglePublishCurrentBatch"
             class="h-12 rounded-xl bg-violet-600/20 border border-violet-500/30 text-violet-400 hover:bg-violet-600/40 transition-all text-[10px] font-black uppercase tracking-[0.15em] col-span-2">Post to Public</button>
         </div>
-        <button onclick="closeBubbleReveal()"
+        <button data-action="closeLightbox"
           class="h-12 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-[10px] font-black uppercase tracking-[0.15em] lg:hidden col-span-2">Close</button>
       </div>
 
@@ -256,9 +256,9 @@
             <span class="text-[10px] font-black uppercase tracking-widest" id="matrixStatusText">Matrix Active</span>
           </div>
           <div class="flex items-center gap-2">
-            <button onclick="toggleMatrixPause()" id="matrixPauseBtn"
+            <button data-action="toggleMatrixPause" id="matrixPauseBtn"
               class="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-[9px] font-black uppercase tracking-widest transition-all">Pause</button>
-            <button onclick="cancelMatrix()"
+            <button data-action="cancelMatrix"
               class="px-4 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-500 text-[9px] font-black uppercase tracking-widest transition-all border border-red-500/20">Cancel</button>
           </div>
         </div>
@@ -270,7 +270,7 @@
       <div class="max-w-7xl mx-auto glass-panel p-6 sm:p-10 min-h-[400px]">
         <div class="flex items-center justify-between gap-4 mb-8">
           <h2 class="text-xl font-bold uppercase tracking-widest text-[var(--text-muted)]">Active Queue</h2>
-          <button onclick="cancelAllJobs()"
+          <button data-action="cancelAllJobs"
             class="px-4 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-500 text-[10px] font-black uppercase tracking-widest transition-all border border-red-500/20">Halt
             All</button>
         </div>
@@ -284,15 +284,15 @@
           <div class="flex items-center gap-4">
             <!-- Realm Filter Buttons -->
             <div class="flex items-center gap-1 bg-black/10 p-1 rounded-xl border border-white/5">
-              <button onclick="filterVaultByRealm('all')" id="filterRealmAll"
+              <button data-action="filterRealm" data-realm="all" id="filterRealmAll"
                 class="px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-all bg-[var(--accent)] text-white shadow-sm">
                 All
               </button>
-              <button onclick="filterVaultByRealm('day')" id="filterRealmDay"
+              <button data-action="filterRealm" data-realm="day" id="filterRealmDay"
                 class="px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-all opacity-50 hover:opacity-100">
                 Day
               </button>
-              <button onclick="filterVaultByRealm('star')" id="filterRealmStar"
+              <button data-action="filterRealm" data-realm="star" id="filterRealmStar"
                 class="px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-all opacity-50 hover:opacity-100">
                 Star
               </button>
@@ -300,14 +300,14 @@
 
             <div class="w-px h-4 bg-white/10"></div>
             
-            <button onclick="toggleHiddenVault()" id="toggleHiddenVaultBtn"
+            <button data-action="toggleHiddenVault" id="toggleHiddenVaultBtn"
               class="text-[10px] font-bold uppercase tracking-widest opacity-60 hover:opacity-100">Show Hidden</button>
-            <button onclick="toggleSelectionMode()" id="toggleSelectBtn"
+            <button data-action="toggleSelectionMode" id="toggleSelectBtn"
               class="text-[10px] font-bold uppercase tracking-widest opacity-60 hover:opacity-100">Select Mode</button>
             <div class="w-px h-4 bg-white/10"></div>
-            <button onclick="reloadHistory()"
+            <button data-action="reloadHistory"
               class="text-[10px] font-bold uppercase tracking-widest text-[var(--accent)]">Reload</button>
-            <button onclick="clearVault()" class="text-[10px] font-bold uppercase text-red-500 hover:opacity-70">Purge
+            <button data-action="clearVault" class="text-[10px] font-bold uppercase text-red-500 hover:opacity-70">Purge
               Cache</button>
           </div>
         </div>
@@ -319,7 +319,7 @@
         <div id="historyList" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 transition-all"
           data-select-mode="false"></div>
         <div class="mt-8 flex justify-center">
-          <button id="loadMoreBtn" onclick="loadHistoryPage()"
+          <button id="loadMoreBtn" data-action="loadHistoryPage"
             class="btn-magic px-8 py-3 font-bold uppercase tracking-widest text-xs hidden">Deep Dive</button>
         </div>
       </div>
@@ -332,12 +332,12 @@
           <div class="flex items-center gap-4">
             <h2 class="text-3xl font-black cinematic-text tracking-widest text-[var(--accent)]">Public Gallery</h2>
             <div class="w-px h-4 bg-white/10"></div>
-            <button onclick="reloadDiscovery()" class="text-[10px] font-bold uppercase tracking-widest text-[var(--accent)]">Refresh</button>
+            <button data-action="reloadDiscovery" class="text-[10px] font-bold uppercase tracking-widest text-[var(--accent)]">Refresh</button>
           </div>
         </div>
         <div id="discoveryList" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 transition-all"></div>
         <div class="mt-8 flex justify-center">
-            <button id="loadMoreDiscoveryBtn" onclick="loadDiscoveryPage()" class="btn-magic px-8 py-3 font-bold uppercase tracking-widest text-xs hidden">Load More</button>
+            <button id="loadMoreDiscoveryBtn" data-action="loadDiscoveryPage" class="btn-magic px-8 py-3 font-bold uppercase tracking-widest text-xs hidden">Load More</button>
         </div>
       </div>
     </section>
@@ -349,7 +349,7 @@
           <div class="flex items-center gap-4">
             <h2 class="text-3xl font-black cinematic-text tracking-widest text-[var(--accent)]">Community Feed</h2>
             <div class="w-px h-4 bg-white/10"></div>
-            <button onclick="reloadFeed()" class="text-[10px] font-bold uppercase tracking-widest text-[var(--accent)]">Refresh</button>
+            <button data-action="reloadFeed" class="text-[10px] font-bold uppercase tracking-widest text-[var(--accent)]">Refresh</button>
           </div>
         </div>
 
@@ -364,7 +364,7 @@
                         rows="3"></textarea>
                     <div class="flex justify-between items-center">
                         <p class="text-[9px] text-slate-500 uppercase font-bold tracking-widest">Only AI image related content allowed</p>
-                        <button onclick="createPost()" class="btn-magic px-6 py-2 font-bold uppercase tracking-widest text-[10px]">Broadcast</button>
+                        <button data-action="createPost" class="btn-magic px-6 py-2 font-bold uppercase tracking-widest text-[10px]">Broadcast</button>
                     </div>
                 </div>
             </div>
@@ -373,14 +373,14 @@
         <div id="feedList" class="flex flex-col gap-6"></div>
         
         <div class="mt-8 flex justify-center">
-            <button id="loadMoreFeedBtn" onclick="loadFeedPage()" class="btn-magic px-8 py-3 font-bold uppercase tracking-widest text-xs hidden">Venture Deeper</button>
+            <button id="loadMoreFeedBtn" data-action="loadFeedPage" class="btn-magic px-8 py-3 font-bold uppercase tracking-widest text-xs hidden">Venture Deeper</button>
         </div>
       </div>
     </section>
   </main>
 
   <div id="desktopConsole" class="bottom-console glass-panel p-4 border-2 border-[var(--accent)]">
-    <button onclick="toggleConsole()" id="consoleToggleBtn"
+    <button data-action="toggleConsole" id="consoleToggleBtn"
       class="absolute -top-10 left-1/2 -translate-x-1/2 bg-[var(--accent)] text-white px-6 py-2 rounded-t-xl font-bold text-[10px] uppercase tracking-widest shadow-lg">
       <span id="consoleToggleText">Minimize</span>
     </button>
@@ -426,11 +426,11 @@
           <div class="flex justify-between px-1">
             <label class="text-[9px] font-bold uppercase opacity-50">The Vision</label>
             <div class="flex gap-4 items-center">
-              <button onclick="clearPrompt()"
+              <button data-action="clearPrompt"
                 class="px-2 py-1 text-xs font-bold text-red-500 uppercase hover:text-red-400 transition-colors">Clear</button>
-              <button onclick="pastePrompt()"
+              <button data-action="pastePrompt"
                 class="px-2 py-1 text-xs font-bold text-[var(--text-main)] uppercase hover:opacity-70 transition-colors">Paste</button>
-              <button onclick="rollOracle()"
+              <button data-action="rollOracle"
                 class="px-3 py-2 text-xs font-bold text-[var(--accent)] uppercase flex items-center gap-1.5 hover:brightness-125 transition-all border border-[var(--panel-border)] rounded-lg">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
                   <path
@@ -447,14 +447,14 @@
             <textarea id="negativePrompt" placeholder="Wards (Banish artifacts...)"
               class="w-full h-11 px-3 py-2 text-xs resize-none"></textarea>
           </div>
-          <button id="matrixBtn" onclick="runMatrixCast()"
+          <button id="matrixBtn" data-action="runMatrixCast"
             class="col-span-1 rounded-xl border-2 border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white transition-colors flex items-center justify-center font-bold uppercase text-[10px] sm:text-[11px] tracking-widest shadow-lg min-h-[44px]">
             <span id="btnMatrixText">Matrix</span>
             <div id="btnMatrixLoader" class="hidden ml-2">
               <div class="loader" style="width:12px;height:12px;border-width:2px;animation-duration:2s"></div>
             </div>
           </button>
-          <button id="generateBtn"
+          <button id="generateBtn" data-action="runGeneration"
             class="col-span-2 btn-magic flex items-center justify-center gap-2 font-bold uppercase text-[11px] sm:text-xs tracking-widest shadow-lg min-h-[44px]">
             <span id="btnText">Manifest</span>
             <div id="btnLoader" class="hidden">
@@ -476,7 +476,7 @@
     <!-- Pinned Toggle Button for Mobile -->
     <div id="mobileToggleStub"
       style="display: none; position: absolute; top: -42px; left: 50%; transform: translateX(-50%); z-index: 1001;">
-      <button onclick="toggleConsole()"
+      <button data-action="toggleConsole"
         class="bg-[var(--accent)] text-white px-8 py-2.5 rounded-t-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-2xl">
         Expand
       </button>
@@ -520,7 +520,7 @@
       <div class="grid grid-cols-2 gap-4 mt-2">
         <button id="confirmYes"
           class="bg-red-600 text-white py-4 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl hover:bg-red-500 transition-colors">Banish</button>
-        <button onclick="closeConfirm()"
+        <button data-action="closeConfirm"
           class="bg-white/5 py-4 rounded-xl border border-white/10 font-black text-[10px] uppercase tracking-[0.2em] hover:bg-white/10 transition-colors">Cancel</button>
       </div>
     </div>
@@ -536,14 +536,14 @@
       </div>
       <div class="w-px h-12 bg-white/10"></div>
       <div class="flex items-center gap-4">
-        <button onclick="executeBulkAction('hide')"
+        <button data-action="bulkHide"
           class="bg-white/5 border border-white/10 text-white px-8 py-4 rounded-3xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-white/15 transition-all">Hide</button>
-        <button onclick="executeBulkAction('delete')"
+        <button data-action="bulkDelete"
           class="bg-red-600 text-white px-8 py-4 rounded-3xl font-black text-[10px] uppercase tracking-[0.2em] shadow-2xl hover:bg-red-500 hover:scale-105 transition-all">Banish</button>
       </div>
     </div>
     <div class="flex items-center gap-8 mt-4 sm:mt-0 sm:border-l sm:border-white/10 sm:pl-10 w-full sm:w-auto">
-      <button onclick="toggleSelectionMode(false)"
+      <button data-action="cancelSelectionMode"
         class="w-full sm:w-auto text-[10px] font-black uppercase tracking-[0.2em] opacity-40 hover:opacity-100 transition-all">Cancel</button>
     </div>
   </div>

@@ -15,6 +15,7 @@ import { createForgeView } from './views/Forge.js';
 import { createVaultView } from './views/Vault.js';
 import { createDiscoveryView } from './views/Discovery.js';
 import { createFeedView } from './views/Feed.js';
+import { EventDelegate } from './utils/events.js';
 
 // ── Bootstrap ──────────────────────────────────
 const state = createAppState();
@@ -126,42 +127,63 @@ window.Studio = {
   copyRequestId: async (id) => { if (id) { await navigator.clipboard.writeText(id); toast('Copied ID.', 'info'); } },
 };
 
-// ── Global Function Aliases (for HTML onclick) ──
-// These bridge old inline handlers to new modules
-window.toggleConsole = toggleConsole;
-window.closeBubbleReveal = lightbox.close;
-window.cloneActiveManifestation = () => lightbox.cloneToForge(forge.applyMode);
-window.hideCurrentItem = () => lightbox.setImageVisibility(true);
-window.showCurrentItem = () => lightbox.setImageVisibility(false);
-window.banishCurrentItem = () => openConfirm('Banish Spirit?', 'This manifestation will fade into the void.', lightbox.banishImage);
-window.banishBatch = () => openConfirm('Banish Batch?', 'Return all spirits to the void forever.', lightbox.banishBatch);
-window.toggleBatchHidden = lightbox.toggleBatchHidden;
-window.togglePublishCurrentBatch = lightbox.togglePublish;
-window.shareCurrentImage = lightbox.shareImage;
-window.runGeneration = () => forge.runGeneration(handleSuccess);
-window.runMatrixCast = () => forge.runMatrixCast();
-window.rollOracle = forge.rollOracle;
-window.clearPrompt = forge.clearPrompt;
-window.pastePrompt = forge.pastePrompt;
-window.reloadHistory = vault.reload;
-window.reloadDiscovery = discovery.reload;
-window.reloadFeed = feed.reload;
-window.filterVaultByRealm = vault.filterByRealm;
-window.toggleHiddenVault = vault.toggleHidden;
-window.toggleSelectionMode = vault.toggleSelectionMode;
-window.executeBulkAction = vault.executeBulkAction;
-window.logout = auth.logout;
-window.openHistoryGroup = lightbox.open;
-window.loadHistoryPage = vault.loadPage;
-window.loadDiscoveryPage = discovery.loadPage;
-window.loadFeedPage = feed.loadPage;
-window.createPost = feed.createPost;
-window.toggleMatrixPause = () => { state.set('matrix.paused', !state.get('matrix.paused')); };
-window.cancelMatrix = () => { state.set('matrix.cancelled', true); state.set('matrix.paused', false); };
-window.cancelAllJobs = async () => { if (!confirm('Halt all active manifestations?')) return; try { await api.apiFetch('/cancel-all-jobs', { method: 'POST' }); toast('All Jobs Halted.', 'success'); } catch (err) { toast('Global Halt Error.', 'error'); } };
-window.clearVault = () => { if (confirm('Clear local cache?')) { localStorage.removeItem('a_vault_cache'); const list = document.getElementById('historyList'); if (list) list.innerHTML = ''; vault.reload(); } };
-window.copyRequestId = async (id) => { if (id) { await navigator.clipboard.writeText(id); toast('Copied ID.', 'info'); } };
-window.cancelJob = async (id) => { try { await api.apiFetch(`/cancel-job/${id}`, { method: 'POST' }); toast('Job Cancellation Initiated.', 'info'); } catch (err) { toast('Cancellation Error.', 'error'); } };
+// ── Global Event Delegation ────────────────────
+EventDelegate.on(document.body, 'click', '[data-action]', (e, target) => {
+  const action = target.dataset.action;
+  
+  if (target.dataset.stopPropagation) {
+    e.stopPropagation();
+  }
+
+  switch (action) {
+    case 'toggleConsole': toggleConsole(); break;
+    case 'closeLightbox': lightbox.close(e); break;
+    case 'cloneManifestation': lightbox.cloneToForge(forge.applyMode); break;
+    case 'hideCurrentItem': lightbox.setImageVisibility(true); break;
+    case 'showCurrentItem': lightbox.setImageVisibility(false); break;
+    case 'banishCurrentItem': openConfirm('Banish Spirit?', 'This manifestation will fade into the void.', lightbox.banishImage); break;
+    case 'banishBatch': openConfirm('Banish Batch?', 'Return all spirits to the void forever.', lightbox.banishBatch); break;
+    case 'toggleBatchHidden': lightbox.toggleBatchHidden(); break;
+    case 'togglePublishCurrentBatch': lightbox.togglePublish(); break;
+    case 'runGeneration': forge.runGeneration(handleSuccess); break;
+    case 'runMatrixCast': forge.runMatrixCast(); break;
+    case 'rollOracle': forge.rollOracle(); break;
+    case 'clearPrompt': forge.clearPrompt(); break;
+    case 'pastePrompt': forge.pastePrompt(); break;
+    case 'reloadHistory': vault.reload(); break;
+    case 'reloadDiscovery': discovery.reload(); break;
+    case 'reloadFeed': feed.reload(); break;
+    case 'filterRealm': vault.filterByRealm(target.dataset.realm); break;
+    case 'toggleHiddenVault': vault.toggleHidden(); break;
+    case 'toggleSelectionMode': vault.toggleSelectionMode(); break;
+    case 'cancelSelectionMode': vault.toggleSelectionMode(false); break;
+    case 'bulkHide': vault.executeBulkAction('hide'); break;
+    case 'bulkDelete': vault.executeBulkAction('delete'); break;
+    case 'logout': auth.logout(); break;
+    case 'loadHistoryPage': vault.loadPage(); break;
+    case 'loadDiscoveryPage': discovery.loadPage(); break;
+    case 'loadFeedPage': feed.loadPage(); break;
+    case 'createPost': feed.createPost(); break;
+    case 'toggleMatrixPause': state.set('matrix.paused', !state.get('matrix.paused')); break;
+    case 'cancelMatrix': state.set('matrix.cancelled', true); state.set('matrix.paused', false); break;
+    case 'cancelAllJobs': 
+      if (confirm('Halt all active manifestations?')) {
+        api.apiFetch('/cancel-all-jobs', { method: 'POST' })
+          .then(() => toast('All Jobs Halted.', 'success'))
+          .catch(() => toast('Global Halt Error.', 'error'));
+      }
+      break;
+    case 'clearVault':
+      if (confirm('Clear local cache?')) {
+        localStorage.removeItem('a_vault_cache');
+        const list = document.getElementById('historyList');
+        if (list) list.innerHTML = '';
+        vault.reload();
+      }
+      break;
+    case 'closeConfirm': closeConfirm(); break;
+  }
+});
 
 // ── Tab Visibility ─────────────────────────────
 document.addEventListener('visibilitychange', () => {
@@ -188,12 +210,6 @@ try {
   // Mode toggles
   document.querySelectorAll('[data-mode]').forEach(btn =>
     btn.addEventListener('click', () => forge.applyMode(btn.dataset.mode)));
-
-  // Generate button
-  document.getElementById('generateBtn')?.addEventListener('click', () => forge.runGeneration(handleSuccess));
-
-  // Matrix button
-  document.getElementById('matrixBtn')?.addEventListener('click', () => forge.runMatrixCast());
 
   console.log('✨ Aether Studio initialized');
 } catch (e) {
