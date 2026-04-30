@@ -40,6 +40,7 @@ logger = logging.getLogger("aether")
 
 COOKIE_DIR = "cookie"
 os.makedirs(COOKIE_DIR, exist_ok=True)
+GOOGLE_CLIENT_ID = "206665134027-80oiqn378dq1jo49lgtmaueu0p30mf9a.apps.googleusercontent.com"
 
 R2_VAULT = R2Vault(
     account_id="c733aa6dbf847adf0949e4387eb6f15f",
