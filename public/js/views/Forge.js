@@ -83,14 +83,13 @@ export function createForgeView(state, api, toast) {
       if (!img.r2_url) return false;
       return !pending.has(img.r2_url.split('?')[0]);
     });
-    if (!visible.length) { gallery.innerHTML = '<div class="col-span-full py-24 text-xl opacity-20 uppercase tracking-widest text-center font-data">TARGET PURGED FROM CACHE</div>'; return; }
+    if (!visible.length) { gallery.innerHTML = '<div class="col-span-full py-24 cinematic-text text-xl opacity-20 uppercase tracking-widest text-center">Manifestation Dissolved</div>'; return; }
     gallery.innerHTML = visible.map((img, idx) => `
-      <div class="hud-panel aspect-square relative group overflow-hidden ${img.status === 'deleting' ? 'opacity-20' : ''}" id="img-${requestId}-${idx}">
-        ${(img.r2_url.includes('.r2.dev') || img.r2_url.includes('cloudflare')) ? '<span class="hud-data absolute top-2 right-2 bg-neon-purple/20 text-neon-purple px-2 z-20 border border-neon-purple">VAULTED</span>' : ''}
-        <img src="${img.r2_url}" alt="Image ${idx + 1}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" style="clip-path: var(--clip-corner)">
-        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity z-10 flex items-center justify-center pointer-events-none">
-          <span class="hud-data bg-accent text-black px-4 py-2 opacity-80">ASSET IN VIEWPORT</span>
-        </div>
+      <div class="bubble ${img.status === 'deleting' ? 'spirit-deleting' : ''}" id="bubble-${requestId}-${idx}">
+        ${(img.r2_url.includes('.r2.dev') || img.r2_url.includes('cloudflare')) ? '<span class="vault-badge">Vaulted</span>' : ''}
+        <div class="bubble-img-overlay"><img src="${img.r2_url}" alt="Image ${idx + 1}" loading="lazy"></div>
+        <div class="bubble-sphere"></div>
+        <canvas class="bubble-canvas" width="260" height="260"></canvas>
       </div>`).join('');
     return visible;
   }
@@ -130,7 +129,7 @@ export function createForgeView(state, api, toast) {
     setLoading(true);
     state.set('app.isGenerating', true);
     const gallery = dom.gallery();
-    if (gallery) { gallery.style.display = ''; gallery.innerHTML = '<div class="col-span-full py-24 animate-pulse opacity-50 text-2xl uppercase tracking-[0.4em] text-accent text-center font-data">UPLINKING ASSETS...</div>'; }
+    if (gallery) { gallery.style.display = ''; gallery.innerHTML = '<div class="col-span-full py-24 animate-pulse opacity-50 cinematic-text text-2xl uppercase tracking-widest text-center">Weaving Vision...</div>'; }
     try {
       const res = await api.apiFetch('/generate', { method: 'POST', body: JSON.stringify(payload) });
       state.set('app.activeRequestId', res.request_id);
@@ -157,10 +156,10 @@ export function createForgeView(state, api, toast) {
     if (gallery) gallery.style.display = 'none';
     const mGallery = document.getElementById('matrixGallery');
     if (mGallery) { mGallery.classList.remove('hidden'); mGallery.classList.add('grid'); mGallery.innerHTML = models.map(m => `
-      <div id="matrix-cell-${m.replace(/\s+/g, '-')}" class="hud-panel aspect-square flex flex-col items-center justify-center relative group" data-realm="${payload.realm}">
-        <span class="hud-data absolute top-2 right-2 bg-black/80 px-2 border border-[var(--hud-border)] z-20">${m}</span>
-        <div class="loader opacity-40 hidden z-20" style="width:20px;height:20px;border-color:var(--accent);border-bottom-color:transparent;"></div>
-        <img src="" class="absolute inset-0 w-full h-full object-cover hidden transition-all duration-1000 opacity-0 scale-110 z-10" style="clip-path: var(--clip-corner)">
+      <div id="matrix-cell-${m.replace(/\s+/g, '-')}" class="art-frame aspect-square flex flex-col items-center justify-center bg-black/40 border border-white/10 relative group overflow-hidden" data-realm="${payload.realm}">
+        <span class="text-[10px] font-bold uppercase text-[var(--text-muted)] tracking-widest absolute bottom-3 z-20 bg-black/50 px-2 py-0.5 rounded-lg border border-white/5">${m}</span>
+        <div class="loader opacity-40 hidden z-20" style="width:20px;height:20px;"></div>
+        <img src="" class="absolute inset-0 w-full h-full object-cover hidden transition-all duration-1000 opacity-0 scale-110 z-10">
       </div>`).join(''); }
     const genBtn = dom.generateBtn();
     const matBtn = dom.matrixBtn();
