@@ -6,21 +6,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>AETHER HUD // SYSTEM.ON</title>
   
+  <script src="https://cdn.tailwindcss.com"></script>
   <script>
-    window.tailwind = {
-      config: {
-        theme: {
-          extend: {
-            fontFamily: {
-              hud: ['Rajdhani', 'sans-serif'],
-              data: ['Share Tech Mono', 'monospace'],
-            }
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            hud: ['Rajdhani', 'sans-serif'],
+            data: ['Share Tech Mono', 'monospace'],
           }
         }
       }
-    };
+    }
   </script>
-  <script src="https://cdn.tailwindcss.com"></script>
   <style type="text/tailwindcss">
     @layer base {
       body {
