@@ -444,7 +444,7 @@ async def list_generations(limit: int = 20, offset: int = 0, realm: Optional[str
     pool = await get_pool()
     
     # Build where clauses explicitly
-    clauses = ["status = 'done'", "uid = $1"]
+    clauses = ["status = 'done'", "(uid = $1 OR (is_public = TRUE AND uid = 'uid_0'))"]
     params = [uid] # $1
 
     if not include_hidden:
@@ -640,11 +640,18 @@ async def list_posts(limit: int = 20, before_id: Optional[int] = None) -> List[D
                 posts.*, 
                 users.name, 
                 users.picture,
-                CASE 
-                    WHEN generations.result->'image_urls'->>0 LIKE 'http%' THEN generations.result->'image_urls'->>0
-                    WHEN generations.result->'image_urls'->>0 IS NOT NULL THEN 'https://pub-b770478fe936495c8d44e69fb02d2943.r2.dev/' || LTRIM(generations.result->'image_urls'->>0, '/')
-                    ELSE NULL 
-                END as preview_url,
+                COALESCE(
+                    CASE 
+                        WHEN generations.result->'thumbnail_urls'->>0 LIKE 'http%' THEN generations.result->'thumbnail_urls'->>0
+                        WHEN generations.result->'thumbnail_urls'->>0 IS NOT NULL THEN 'https://pub-b770478fe936495c8d44e69fb02d2943.r2.dev/' || LTRIM(generations.result->'thumbnail_urls'->>0, '/')
+                        ELSE NULL 
+                    END,
+                    CASE 
+                        WHEN generations.result->'image_urls'->>0 LIKE 'http%' THEN generations.result->'image_urls'->>0
+                        WHEN generations.result->'image_urls'->>0 IS NOT NULL THEN 'https://pub-b770478fe936495c8d44e69fb02d2943.r2.dev/' || LTRIM(generations.result->'image_urls'->>0, '/')
+                        ELSE NULL 
+                    END
+                ) as preview_url,
                 generations.realm as preview_realm,
                 generations.is_public
             FROM posts 
