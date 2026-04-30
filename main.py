@@ -476,7 +476,7 @@ async def get_history(request: Request, response: Response, limit: int = 20, rea
         "items": page_items,
         "limit": limit,
         "has_more": len(page_items) == limit,
-        "next_cursor": page_items[-1]["image_id"] if page_items else None
+        "next_cursor": page_items[-1]["image_id_seq"] if page_items else None
     }
 
     # Option 4: ETag Generation
