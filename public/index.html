@@ -2952,11 +2952,12 @@
     async function copyRequestId(id) { if (id) { await navigator.clipboard.writeText(id); setFooterMsg("Copied ID.", "info"); } }
 
     async function shareCurrentImage() {
-        const data = state.inspectedData;
-        if (!data || !state.inspectedUrl) return;
+        const data = state.__inspected_data;
+        const currentUrl = state.__inspected_current_url;
+        if (!data || !currentUrl) return;
         
         // Find index of the currently viewed image
-        const idx = data.images.findIndex(i => i.r2_url === state.inspectedUrl || i.thumbnail_url === state.inspectedUrl);
+        const idx = data.images.findIndex(i => i.r2_url === currentUrl || i.thumbnail_url === currentUrl);
         if (idx === -1) {
             setFooterMsg("Unable to identify current image index.", "error");
             return;

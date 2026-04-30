@@ -2,10 +2,12 @@ name = "aether-share-worker"
 main = "workers/share_worker.js"
 compatibility_date = "2024-04-30"
 
+account_id = "c733aa6dbf847adf0949e4387eb6f15f"
+
 # Cloudflare KV namespace for shortcodes
 [[kv_namespaces]]
 binding = "SHARE_KV"
-id = "YOUR_KV_NAMESPACE_ID"
+id = "6d420cb0f8864a98b07b47078d082541"
 
 # Cloudflare R2 bucket for images
 [[r2_buckets]]
