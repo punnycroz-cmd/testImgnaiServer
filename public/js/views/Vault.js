@@ -123,11 +123,17 @@ export function createVaultView(state, api, toast, openHistoryGroup) {
     if (btn) btn.textContent = 'Summoning...';
     try {
       const cursor = state.get('vault.cursor');
-      const uid = state.get('auth.uid');
+      const uid = state.get('auth.uid') || 'uid_0';
       const showHidden = state.get('vault.showHidden');
+      
+      console.log(`[Vault] Summoning manifestations for: ${uid}`);
+      
       const url = `/history?limit=20${cursor ? `&before=${cursor}` : ''}&uid=${uid}&include_hidden=${showHidden}&_t=${Date.now()}`;
       const res = await api.apiFetch(url);
-      if (!res) return;
+      if (!res) {
+        state.set('vault.loading', false);
+        return;
+      }
       const items = res.items || [];
       const list = dom.list();
       const pending = state.get('forge.pendingDeletions') || new Set();
@@ -177,9 +183,13 @@ export function createVaultView(state, api, toast, openHistoryGroup) {
   function reload() {
     state.set('vault.loaded', false);
     state.set('vault.cursor', null);
+    state.set('vault.hasMore', true);
     const list = dom.list();
-    if (list) list.classList.add('opacity-50', 'pointer-events-none');
-    render();
+    if (list) {
+      list.innerHTML = '';
+      list.classList.remove('opacity-50', 'pointer-events-none');
+    }
+    render(true);
   }
 
   async function executeBulkAction(action) {
