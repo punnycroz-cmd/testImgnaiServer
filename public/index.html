@@ -208,6 +208,11 @@
         .view-section.active { display: block; animation: fadeUp 0.5s var(--tw-transition-timing-function-spring) forwards; }
         @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
+        /* Bubble Reveal (Lightbox) visibility */
+        #bubbleReveal.active { opacity: 1; }
+        #bubbleReveal.active > div { transform: scale(1); }
+        #bubbleReveal:not(.active) > div { transform: scale(0.95); }
+
         /* --- EFFECTS & ANIMATIONS --- */
         .animate-float { animation: float 8s ease-in-out infinite; }
         .animate-float-delayed { animation: float 9s ease-in-out infinite 2s; }
@@ -496,7 +501,7 @@
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
         
-        <div class="flex flex-col md:flex-row w-full max-w-[1400px] h-full max-h-[90vh] panel-obsidian rounded-2xl overflow-hidden shadow-rpg-panel transform transition-transform duration-500 scale-100" data-stop-propagation="true">
+        <div class="flex flex-col md:flex-row w-full max-w-[1400px] h-full max-h-[90vh] panel-obsidian rounded-2xl overflow-hidden shadow-rpg-panel transform transition-transform duration-500 scale-95" data-stop-propagation="true">
             <!-- Image Area -->
             <div class="flex-1 bg-black/80 relative flex items-center justify-center p-6 min-h-[40vh] border-r border-gold-400/10 image-viewer-container" style="background-image: radial-gradient(rgba(212, 175, 55, 0.05) 1px, transparent 0); background-size: 30px 30px;">
                 <img id="bubbleRevealImg" src="" alt="Enlarged Vision" class="max-w-full max-h-full object-contain shadow-2xl rounded" style="box-shadow: 0 0 50px rgba(0,0,0,0.8), 0 0 0 1px rgba(212,175,55,0.2);">
