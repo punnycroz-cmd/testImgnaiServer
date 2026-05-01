@@ -11,7 +11,7 @@ export function createVaultView(state, api, toast, openHistoryGroup) {
     const wrap = document.createElement('div');
     wrap.id = `batch-${entry.request_id}`;
     wrap.dataset.realm = entry.realm || 'day';
-    wrap.className = 'panel-obsidian p-4 pb-5 cursor-pointer group relative transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl border-2 border-red-500 mb-6 w-full md:w-80';
+    wrap.className = 'panel-obsidian p-4 pb-5 cursor-pointer group relative transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl border border-gold-400/20 mb-6 break-inside-avoid';
     const selIds = state.get('vault.selectedIds');
     if (selIds && selIds.has(entry.request_id)) wrap.classList.add('border-gold-400', 'bg-gold-400/10');
     if (entry.is_hidden) wrap.classList.add('opacity-65');
@@ -133,8 +133,9 @@ export function createVaultView(state, api, toast, openHistoryGroup) {
       const res = await api.apiFetch(url);
       const list = dom.list();
       if (!cursor) {
-        list.innerHTML = '<div style="width:100%;height:100px;background:yellow;border:5px solid black;color:black;font-size:20px;z-index:9999;">JS DOM APPEND TEST</div>';
+        list.innerHTML = '';
         state.set('vault.items', []);
+        pending.clear();
       }
       if (!res) {
         state.set('vault.loading', false);
