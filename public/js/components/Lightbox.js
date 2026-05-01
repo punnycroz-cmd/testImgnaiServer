@@ -8,19 +8,21 @@ export function createLightbox(state, api, toast) {
     download: () => document.getElementById('bubbleRevealDownload'),
     thumbsSection: () => document.getElementById('thumbsSection'),
     thumbsGrid: () => document.getElementById('bubbleRevealThumbs'),
-    metaModel: () => document.getElementById('metaModel'),
-    metaRealm: () => document.getElementById('metaRealm'),
-    metaPrompt: () => document.getElementById('metaPrompt'),
+    metaModel: () => null,
+    metaRealm: () => null,
+    metaPrompt: () => document.getElementById('lightboxPrompt'),
+    metaDims: () => document.getElementById('lightboxDims'),
+    metaNegative: () => document.getElementById('lightboxNegative'),
     bubbleMeta: () => document.getElementById('bubbleMeta'),
     publishBtn: () => document.getElementById('publishBtn'),
   };
 
   function populateInspector(data) {
-    const model = el.metaModel(), realm = el.metaRealm(), prompt = el.metaPrompt();
+    const prompt = el.metaPrompt(), dims = el.metaDims(), neg = el.metaNegative();
     if (!data || !data.prompt) return;
-    if (realm) realm.textContent = data.realm || 'day';
-    if (model) model.textContent = data.model || 'Standard';
     if (prompt) prompt.textContent = data.prompt;
+    if (dims) dims.textContent = data.payload?.aspect_ratio || '1024x1024';
+    if (neg) neg.textContent = data.payload?.negative_prompt || 'None specified.';
   }
 
   function open(entry, focusUrl = null) {

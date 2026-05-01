@@ -12,7 +12,7 @@ export function createForgeView(state, api, toast) {
     btnLoader: () => document.getElementById('btnLoader'),
     gallery: () => document.getElementById('gallery'),
     count: () => document.getElementById('count'),
-    aspect: () => document.getElementById('aspect'),
+    aspect: () => document.querySelector('input[name="aspectRatio"]:checked'),
     quality: () => document.getElementById('quality'),
     seed: () => document.getElementById('seed'),
     matrixBtn: () => document.getElementById('matrixBtn'),
@@ -46,11 +46,7 @@ export function createForgeView(state, api, toast) {
 
   function setLoading(loading) {
     const btn = dom.generateBtn();
-    if (btn) { btn.disabled = loading; btn.classList.toggle('opacity-50', loading); }
-    const txt = dom.btnText();
-    if (txt) txt.textContent = loading ? 'Weaving...' : 'Manifest';
-    const ldr = dom.btnLoader();
-    if (ldr) ldr.classList.toggle('hidden', !loading);
+    if (btn) { btn.disabled = loading; btn.classList.toggle('is-loading', loading); }
   }
 
   function applyMode(mode) {

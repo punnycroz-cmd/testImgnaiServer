@@ -10,23 +10,23 @@ export function createFeedView(state, api, toast) {
 
   function createPostCard(post) {
     const div = document.createElement('div');
-    div.className = 'glass-panel p-6 flex gap-4 border-white/5 hover:border-[var(--accent)]/20 transition-all';
+    div.className = 'panel-obsidian p-6 lg:p-8 w-full border border-gold-400/20 mb-6 relative group transition-all hover:-translate-y-1 hover:shadow-2xl';
     div.innerHTML = `
-      <img class="w-10 h-10 rounded-xl object-cover border border-white/10" src="${post.picture || ''}" alt="">
-      <div class="flex-1 min-w-0">
-        <div class="flex items-center justify-between mb-1">
-          <span class="font-black text-[10px] uppercase tracking-widest text-[var(--accent)]">${post.name || 'Unknown'}</span>
-          <span class="text-[9px] opacity-40 uppercase font-bold">${new Date(post.created_at).toLocaleString()}</span>
+      <div class="flex items-center gap-4 mb-5">
+        <img class="w-10 h-10 rounded border border-gold-400/50 bg-obsidian-900 shadow-glow-gold" src="${post.picture || 'https://api.dicebear.com/7.x/avataaars/svg?seed='+post.name+'&backgroundColor=141414'}" alt="">
+        <div>
+          <p class="text-sm font-bold text-gold-400 tracking-wide uppercase">${post.name || 'Unknown Mage'}</p>
+          <p class="text-[10px] text-white/40 uppercase tracking-[0.2em] font-semibold mt-0.5">${new Date(post.created_at).toLocaleString()}</p>
         </div>
-        <p class="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap mb-3">${escapeHtml(post.content)}</p>
-        ${post.preview_url ? `
-          <div class="relative group/feed-img cursor-pointer max-w-sm" onclick="window.Studio.vault.openById('${post.request_id}')">
-            <img class="rounded-2xl border border-white/10 shadow-2xl transition-transform group-hover/feed-img:scale-[1.02]" src="${post.preview_url}" alt="">
-            <div class="absolute inset-0 bg-black/20 group-hover/feed-img:bg-transparent transition-all rounded-2xl flex items-center justify-center">
-               <span class="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest text-white opacity-0 group-hover/feed-img:opacity-100 transition-opacity">Inspect</span>
-            </div>
-          </div>
-        ` : ''}
+      </div>
+      <p class="text-[15px] font-medium text-cinematic text-white mb-5 leading-relaxed italic">"${escapeHtml(post.content)}"</p>
+      ${post.preview_url ? `
+        <div class="art-frame overflow-hidden border border-gold-400/20 mb-6 cursor-pointer shadow-lg group-hover:border-gold-400/50 transition-colors" onclick="window.Studio.vault.openById('${post.request_id}')">
+          <img class="w-full object-cover hover:scale-105 transition-transform duration-1000" src="${post.preview_url}" alt="">
+        </div>
+      ` : ''}
+      <div class="flex gap-6 border-t border-gold-400/10 pt-4">
+        <button class="text-[11px] uppercase tracking-[0.2em] font-bold text-white/40 hover:text-gold-400 transition-colors flex items-center gap-2"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> Like</button>
       </div>`;
     return div;
   }

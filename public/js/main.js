@@ -45,7 +45,17 @@ function setView(v, pushState = true) {
     b.classList.toggle('opacity-100', match);
     b.classList.toggle('opacity-60', !match);
   });
-  const mainEl = document.querySelector('main');
+  
+  const titles = { 'history': 'Your Grimoire', 'discovery': 'Discovery', 'feed': 'Aether Feed' };
+  const subtitles = { 'history': 'Aether Studio Private Vault', 'discovery': 'Explore the Realms', 'feed': 'Global Scrying' };
+  const vt = document.getElementById('viewTitle');
+  const vs = document.getElementById('viewSubtitle');
+  if (vt && titles[v]) {
+    const split = titles[v].split(' ');
+    vt.innerHTML = split.length > 1 ? `${split[0]} <span class="italic text-gold-500">${split[1]}</span>` : titles[v];
+  }
+  if (vs && subtitles[v]) vs.textContent = subtitles[v];
+  const mainEl = document.getElementById('mainScrollArea');
   if (mainEl) mainEl.scrollTo({ top: 0, behavior: 'smooth' });
   state.set('app.activeView', v);
 

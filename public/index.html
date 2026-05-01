@@ -1,580 +1,543 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Aether Studio</title>
-  <meta name="description" content="Aether Studio — AI Image Generation Platform" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Aether Studio — Forge</title>
+    
+    <!-- Google Fonts: Playfair for Cinematic RPG headings, Outfit for clean UI data -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,600&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS Engine -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                        serif: ['Playfair Display', 'serif'],
+                    },
+                    colors: {
+                        parchment: {
+                            100: '#FDFBF7',
+                            200: '#F6EFE5',
+                            300: '#E8DCC8',
+                            800: '#4A4138',
+                            900: '#2D2823'
+                        },
+                        obsidian: {
+                            950: '#08080a',
+                            900: '#141414',
+                            800: '#1F1F1F',
+                            700: '#2C2C2C'
+                        },
+                        gold: {
+                            300: '#E6C180',
+                            400: '#CFA972',
+                            500: '#A6824C',
+                            600: '#806921'
+                        },
+                        aether: '#8B5CF6'
+                    },
+                    boxShadow: {
+                        'rpg-glass': '0 25px 50px -12px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(207, 169, 114, 0.25), inset 0 0 20px rgba(207, 169, 114, 0.05)',
+                        'glow-gold': '0 0 20px rgba(207, 169, 114, 0.4)',
+                        'glow-aether': '0 0 25px rgba(139, 92, 246, 0.5)',
+                        'light-panel': '0 10px 40px -10px rgba(45, 40, 35, 0.1), inset 0 0 0 1px rgba(255,255,255,0.6)'
+                    },
+                    transitionTimingFunction: {
+                        'spring': 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+                    }
+                }
+            }
+        }
+    </script>
 
-  <!-- Tailwind (temporary, for layout utilities) -->
-  <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Sign-In -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script>
+      const GOOGLE_CLIENT_ID = "206665134027-80oiqn378dq1jo49lgtmaueu0p30mf9a.apps.googleusercontent.com";
+      window.__SERVER_URL__ = "__STD_URL__";
+      window.__SERVER_URL_NSFW__ = "__NSFW_URL__";
+  
+      window.handleGoogleLogin = function(response) {
+        if (window.Studio && window.Studio.auth) {
+          window.Studio.auth.handleGoogleLogin(response);
+        } else {
+          setTimeout(() => window.handleGoogleLogin(response), 100);
+        }
+      };
+    </script>
 
-  <!-- Modular CSS Design System -->
-  <link rel="stylesheet" href="/css/variables.css" />
-  <link rel="stylesheet" href="/css/base.css" />
-  <link rel="stylesheet" href="/css/animations.css" />
-  <link rel="stylesheet" href="/css/components/glass-panel.css" />
-  <link rel="stylesheet" href="/css/components/button.css" />
-  <link rel="stylesheet" href="/css/components/bubble.css" />
-  <link rel="stylesheet" href="/css/components/card.css" />
-  <link rel="stylesheet" href="/css/components/lightbox.css" />
-  <link rel="stylesheet" href="/css/components/console.css" />
-  <link rel="stylesheet" href="/css/components/nav.css" />
-  <link rel="stylesheet" href="/css/components/modal.css" />
-  <link rel="stylesheet" href="/css/components/progress.css" />
-  <link rel="stylesheet" href="/css/layouts/responsive.css" />
+    <style type="text/tailwindcss">
+        /* --- CORE ENVIRONMENT --- */
+        :root {
+            --bg-pattern: radial-gradient(#d5c6b3 1.5px, transparent 0);
+        }
+        body {
+            background-color: #F6EFE5;
+            background-image: var(--bg-pattern);
+            background-size: 24px 24px;
+            color: #2D2823;
+            overflow: hidden; /* Main app handles its own scrolling */
+            -webkit-font-smoothing: antialiased;
+        }
 
-  <!-- Legacy inline styles (to be removed in Phase 4) -->
-  <style>
-    .btn-magic {
-      background: var(--accent);
-      color: var(--accent-text);
-      transition: all 0.25s ease;
-      border-radius: 1.25rem;
-      cursor: pointer;
-    }
-    .btn-magic:hover:not(:disabled) {
-      background: var(--accent-hover);
-      box-shadow: 0 14px 32px var(--accent-glow);
-      transform: translateY(-2px);
-    }
-    .btn-magic:disabled { opacity: 0.65; cursor: not-allowed; transform: none; }
-    .btn-magic:active:not(:disabled) { transform: scale(0.96); }
+        /* Clean Scrollbar */
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(207, 169, 114, 0.3); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(207, 169, 114, 0.6); }
 
-    /* Lightbox specifics that reference IDs */
-    #bubbleReveal {
-      position: fixed; inset: 0; z-index: 9999;
-      transition: opacity 0.4s ease, backdrop-filter 0.4s ease;
-      display: none; opacity: 0;
-      flex-direction: column; align-items: center; justify-content: flex-start;
-      background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(12px);
-      padding: 1rem; gap: 2rem;
-    }
-    #bubbleReveal img { max-height: 55vh; width: auto; max-width: 100%; object-fit: contain; border-radius: 1.25rem; }
-    @media (min-width: 1024px) {
-      #bubbleReveal { flex-direction: row; padding: 4rem; gap: 4rem; align-items: center; justify-content: center; }
-      #bubbleReveal .image-viewer-container { flex: 7; display: flex; justify-content: center; align-items: center; max-height: 85vh; }
-      #bubbleReveal img { max-height: 85vh; }
-      .glass-reveal-panel { flex: 3; max-width: 450px; min-width: 350px; height: min-content; max-height: 85vh; overflow-y: auto; }
-    }
-    #bubbleReveal.active { display: flex !important; opacity: 1; }
-    .glass-reveal-panel {
-      background: rgba(10, 10, 10, 0.85); backdrop-filter: blur(30px);
-      border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 28px;
-      transform: translateY(30px); transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-      color: white; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-    }
-    #bubbleReveal.active .glass-reveal-panel { transform: translateY(0); }
-    #bubbleReveal.active img { transform: scale(1); }
-    #bubbleReveal img { transform: scale(0.95); transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
-    #bubbleRevealImg[data-hidden="true"] { display: none; }
+        /* Typography Utilities */
+        .text-cinematic { font-family: 'Playfair Display', serif; letter-spacing: -0.02em; }
+        .text-gold-gradient {
+            background: linear-gradient(180deg, #FFF3D8 0%, #D4AF37 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
 
-    /* Console overrides */
-    .bottom-console {
-      position: fixed; bottom: 1.25rem; left: 50%; transform: translateX(-50%);
-      width: calc(100% - 1.5rem); max-width: 1100px; z-index: 100;
-      transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
-    }
-    .bottom-console.minimized { transform: translate(-50%, 100%); opacity: 0; pointer-events: none; }
-    @media (min-width: 1024px) {
-      .bottom-console.minimized { transform: translate(-50%, calc(100% - 1rem)); opacity: 0.9; pointer-events: auto; }
-      .bottom-console.minimized #consoleToggleBtn { top: -45px; opacity: 1; }
-    }
-    #mobileToggleStub { display: none; position: absolute; top: -38px; left: 50%; transform: translateX(-50%); z-index: 1001; }
+        /* --- GLASSMORPHISM PANELS --- */
+        .panel-obsidian {
+            background: rgba(20, 20, 22, 0.90);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            box-shadow: var(--tw-shadow-rpg-glass);
+        }
 
-    /* Progress matrix (legacy) */
-    .progress-matrix { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; margin-top: 1rem; opacity: 0; transition: opacity 0.3s ease; }
-    .progress-matrix.active { opacity: 1; }
-    .progress-label { font-size: 8px; text-transform: uppercase; font-weight: 800; letter-spacing: 1px; margin-top: 4px; color: var(--text-muted); }
-  </style>
+        /* --- FORGE INPUTS (RPG Edged) --- */
+        .rpg-input {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(207, 169, 114, 0.15);
+            color: #FDFBF7;
+            /* Chamfered corners for inputs */
+            clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+            transition: all 0.3s var(--tw-transition-timing-function-spring);
+        }
+        .rpg-input:focus {
+            outline: none; 
+            border: none;
+            background: rgba(207, 169, 114, 0.05);
+            box-shadow: inset 0 0 0 1px #CFA972, inset 0 0 15px rgba(207, 169, 114, 0.1);
+        }
+        .rpg-input::placeholder { color: rgba(253, 251, 247, 0.3); font-weight: 300; }
 
-  <!-- Google Sign-In -->
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script>
-    const GOOGLE_CLIENT_ID = "206665134027-80oiqn378dq1jo49lgtmaueu0p30mf9a.apps.googleusercontent.com";
-    window.__SERVER_URL__ = "__STD_URL__";
-    window.__SERVER_URL_NSFW__ = "__NSFW_URL__";
+        /* Custom Aspect Radio Buttons */
+        .aspect-radio input[type="radio"] { display: none; }
+        .aspect-radio label {
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+            background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.05);
+            color: rgba(255,255,255,0.4); cursor: pointer;
+            transition: all 0.3s var(--tw-transition-timing-function-spring);
+            height: 52px; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.05em;
+            clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+        }
+        .aspect-radio label:hover { background: rgba(255, 255, 255, 0.05); }
+        .aspect-radio input[type="radio"]:checked + label {
+            background: rgba(207, 169, 114, 0.15); border-color: #CFA972; color: #CFA972;
+            box-shadow: inset 0 0 10px rgba(207, 169, 114, 0.1);
+        }
 
-    // Global bridge for Google Sign-In callback
-    window.handleGoogleLogin = function(response) {
-      if (window.Studio && window.Studio.auth) {
-        window.Studio.auth.handleGoogleLogin(response);
-      } else {
-        console.warn('Auth module not ready. Retrying login...');
-        setTimeout(() => window.handleGoogleLogin(response), 100);
-      }
-    };
-  </script>
+        /* Manifest Magic Button */
+        .btn-manifest {
+            position: relative; overflow: hidden;
+            background: linear-gradient(135deg, #FDE08B 0%, #CFA972 50%, #A6824C 100%);
+            color: #08080a; font-weight: 800; text-transform: uppercase; letter-spacing: 0.15em;
+            clip-path: polygon(14px 0, 100% 0, calc(100% - 14px) 100%, 0 100%);
+            transition: all 0.4s var(--tw-transition-timing-function-spring);
+        }
+        .btn-manifest::before {
+            content: ''; position: absolute; inset: 1px;
+            background: linear-gradient(135deg, transparent, rgba(255,255,255,0.4), transparent);
+            clip-path: polygon(13px 0, 100% 0, calc(100% - 13px) 100%, 0 100%);
+            z-index: 1; pointer-events: none;
+        }
+        .btn-manifest::after {
+            content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
+            transform: skewX(-20deg); transition: all 0.6s ease; z-index: 2;
+        }
+        .btn-manifest:hover { transform: translateY(-3px) scale(1.02); box-shadow: var(--tw-shadow-glow-gold); }
+        .btn-manifest:hover::after { left: 200%; }
+        .btn-manifest:active { transform: translateY(1px) scale(0.98); }
+        .btn-text { position: relative; z-index: 3; }
+
+        /* --- ART CARDS (Gallery) --- */
+        .art-frame {
+            position: relative; overflow: hidden;
+            transition: all 0.5s var(--tw-transition-timing-function-spring);
+            cursor: pointer; box-shadow: 0 10px 30px rgba(45,40,35,0.1);
+            background: #141414;
+            /* Angled card corners */
+            clip-path: polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px);
+        }
+        .art-frame-border {
+            position: absolute; inset: 0; pointer-events: none; z-index: 10;
+            border: 2px solid #CFA972; opacity: 0; transition: opacity 0.3s ease;
+            clip-path: polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px);
+        }
+        .art-frame:hover { transform: translateY(-8px) scale(1.02); box-shadow: 0 25px 50px rgba(45,40,35,0.2); z-index: 20; }
+        .art-frame:hover .art-frame-border { opacity: 1; }
+        .art-frame img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1); }
+        .art-frame:hover img { transform: scale(1.08); filter: brightness(1.1); }
+        
+        .art-overlay {
+            background: linear-gradient(to top, rgba(8,8,10,0.95) 0%, rgba(8,8,10,0.4) 50%, transparent 100%);
+            opacity: 0; transition: opacity 0.4s ease;
+        }
+        .art-frame:hover .art-overlay { opacity: 1; }
+
+        /* --- ROUTER VIEWS --- */
+        .nav-pill {
+            padding: 8px 24px; border-radius: 8px; font-size: 11px; font-weight: 800;
+            text-transform: uppercase; letter-spacing: 0.15em; transition: all 0.3s ease;
+            color: rgba(45,40,35,0.5); cursor: pointer; position: relative;
+        }
+        .nav-pill:hover { color: #2D2823; }
+        .nav-pill.active { color: #CFA972; }
+        .nav-pill.active::after {
+            content: ''; position: absolute; bottom: -4px; left: 50%; transform: translateX(-50%);
+            width: 4px; height: 4px; background: #CFA972; border-radius: 50%;
+            box-shadow: var(--tw-shadow-glow-gold);
+        }
+
+        .view-section { display: none; opacity: 0; animation: fadeUp 0.5s var(--tw-transition-timing-function-spring) forwards; }
+        .view-section.active { display: block; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- EFFECTS & ANIMATIONS --- */
+        .animate-float { animation: float 8s ease-in-out infinite; }
+        .animate-float-delayed { animation: float 9s ease-in-out infinite 2s; }
+        @keyframes float { 0% { transform: translateY(0px) rotate(0deg); } 50% { transform: translateY(-20px) rotate(3deg); } 100% { transform: translateY(0px) rotate(0deg); } }
+
+        .loader-rune {
+            width: 24px; height: 24px; display: none; position: relative; z-index: 3;
+        }
+        .loader-rune::before, .loader-rune::after {
+            content: ''; position: absolute; inset: 0; border-radius: 50%;
+            border: 2px solid transparent; border-top-color: #08080a;
+            animation: spin 1s linear infinite;
+        }
+        .loader-rune::after { border-top-color: transparent; border-bottom-color: rgba(8,8,10,0.5); animation-direction: reverse; animation-duration: 1.5s; }
+        .is-loading .loader-rune { display: block; }
+        .is-loading .btn-text { display: none; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Toasts */
+        .toast-enter { animation: toastIn 0.4s var(--tw-transition-timing-function-spring) forwards; }
+        .toast-exit { animation: toastOut 0.3s ease-in forwards; }
+        @keyframes toastIn { from { transform: translate(-50%, -20px) scale(0.9); opacity: 0; } to { transform: translate(-50%, 0) scale(1); opacity: 1; } }
+        @keyframes toastOut { from { transform: translate(-50%, 0) scale(1); opacity: 1; } to { transform: translate(-50%, -20px) scale(0.9); opacity: 0; } }
+
+        /* Custom Ornate Dividers */
+        .ornate-divider {
+            position: relative; height: 1px; width: 100%;
+            background: linear-gradient(90deg, transparent, rgba(207, 169, 114, 0.3), transparent);
+        }
+        .ornate-divider::after {
+            content: '♦'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            color: #CFA972; font-size: 10px; text-shadow: var(--tw-shadow-glow-gold);
+        }
+    </style>
 </head>
+<body class="flex flex-col md:flex-row h-screen w-full relative">
 
-<body data-mode="standard">
-  <div id="auth-overlay" class="fixed inset-0 z-[1000] flex items-center justify-center bg-[#0f172a] transition-opacity duration-700 hidden">
-    <div class="glass-panel p-12 max-w-md w-full text-center space-y-8 border-violet-500/20">
+  <!-- AUTHENTICATION OVERLAY (from our FE) -->
+  <div id="auth-overlay" class="fixed inset-0 z-[1000] flex items-center justify-center bg-obsidian-950/90 backdrop-blur-md transition-opacity duration-700 hidden">
+    <div class="glass-light p-12 max-w-md w-full text-center space-y-8 rounded-2xl shadow-rpg-glass border border-gold-400/20 panel-obsidian relative overflow-hidden">
       <div class="space-y-4">
-        <h1 class="text-4xl font-black text-white tracking-tighter">AETHER <span class="text-[var(--accent)]">STUDIO</span></h1>
-        <p class="text-slate-400 text-sm font-medium">Please sign in to access your creative sanctuary.</p>
+        <h1 class="text-4xl font-black text-cinematic text-gold-gradient tracking-tighter">AETHER STUDIO</h1>
+        <p class="text-parchment-200/60 text-sm font-medium">Please sign in to access your Grimoire.</p>
       </div>
-      
-      <div id="g_id_onload"
-           data-client_id="206665134027-80oiqn378dq1jo49lgtmaueu0p30mf9a.apps.googleusercontent.com"
-           data-callback="handleGoogleLogin"
-           data-auto_prompt="false">
-      </div>
-      <div class="g_id_signin flex justify-center"
-           data-type="standard"
-           data-size="large"
-           data-theme="outline"
-           data-text="sign_in_with"
-           data-shape="pill"
-           data-logo_alignment="left">
-      </div>
-    </div>
-  </div>
-  <canvas id="aetherCanvas" class="fixed inset-0 pointer-events-none z-[-1]"></canvas>
-
-  <header class="fixed top-5 left-0 right-0 z-[110] px-4 sm:px-8">
-    <div
-      class="max-w-7xl mx-auto glass-panel p-4 border-t-4 border-t-[var(--accent)] flex items-center justify-between gap-4 shadow-2xl">
-      <div class="flex items-center gap-4 min-w-0">
-        <div
-          class="w-10 h-10 rounded-xl bg-[var(--accent)] text-white flex items-center justify-center shadow-lg transform -rotate-3 shrink-0">
-          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" stroke-width="2.5">
-            <path
-              d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
-          </svg>
-        </div>
-        <div class="min-w-0">
-          <h1 class="text-2xl sm:text-3xl font-black cinematic-text tracking-[0.3em] truncate text-[var(--accent)]">
-            AETHER WORLD</h1>
-        </div>
-      </div>
-
-      <nav class="hidden sm:flex items-center gap-2 bg-black/5 p-1 rounded-2xl shrink-0">
-        <button data-view="generate"
-          class="nav-pill active px-4 sm:px-5 py-2 rounded-xl font-bold uppercase text-[10px] tracking-widest">Forge</button>
-        <!-- Queue Disabled -->
-        <button data-view="history"
-          class="nav-pill px-4 sm:px-5 py-2 rounded-xl font-bold uppercase text-[10px] tracking-widest">Vault</button>
-        <button data-view="discovery"
-          class="nav-pill px-4 sm:px-5 py-2 rounded-xl font-bold uppercase text-[10px] tracking-widest">Discovery</button>
-        <button data-view="feed"
-          class="nav-pill px-4 sm:px-5 py-2 rounded-xl font-bold uppercase text-[10px] tracking-widest">Feed</button>
-      </nav>
-
-      <div class="flex items-center gap-4">
-        <div id="user-profile" class="hidden items-center gap-3 bg-black/5 p-1 pr-3 rounded-2xl border border-white/5">
-            <img id="user-avatar" class="w-8 h-8 rounded-xl object-cover border border-white/10" src="" alt="">
-            <div class="hidden lg:block text-[10px] font-bold uppercase tracking-widest text-[var(--text-main)]" id="user-name"></div>
-            <button data-action="logout" class="p-2 hover:text-red-500 transition-colors" title="Logout">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-            </button>
-        </div>
-        <div class="status-pill hidden sm:inline-flex" id="backendStatus">Checking backend...</div>
-      </div>
-    </div>
-  </header>
-
-  <div id="bubbleReveal"
-    class="fixed inset-0 z-[2000] hidden flex-col items-center justify-start p-4 pt-12 sm:p-12 bg-black/80 backdrop-blur-md overflow-y-auto"
-    data-action="closeLightbox">
-    <!-- Floating Image Container -->
-    <div class="image-viewer-container w-full relative flex items-center justify-center my-4 pb-4"
-      data-stop-propagation="true">
-      <img id="bubbleRevealImg" src="" alt="Manifestation"
-        class="shadow-[0_20px_80px_rgba(0,0,0,0.9)] border border-white/10 transition-all duration-500 hover:scale-[1.01]">
-    </div>
-
-    <!-- Floating Glass Info Panel -->
-    <div class="glass-reveal-panel w-full p-8 sm:p-10 flex flex-col gap-6 shadow-2xl mb-24 sm:mb-0"
-      data-stop-propagation="true">
-      <div id="thumbsSection" class="hidden flex-col gap-3">
-        <div class="flex items-center justify-between mb-1">
-            <span class="opacity-60 uppercase font-black text-[9px] tracking-[0.2em] text-[var(--accent)]">The Batch</span>
-            <span id="bubbleMeta" class="opacity-40 uppercase font-black text-[9px] tracking-[0.2em] text-white"># -</span>
-        </div>
-        <div id="bubbleRevealThumbs" class="grid grid-cols-4 gap-2"></div>
-      </div>
-
-      <div id="metaInspector" class="grid grid-cols-2 gap-8 border-t border-white/10 pt-6">
-        <div class="flex flex-col"><span
-            class="opacity-60 uppercase font-black text-[10px] tracking-[0.2em] mb-2 text-[var(--accent)]">Casting
-            Engine</span><span class="font-bold text-lg tracking-tight" id="metaModel">-</span></div>
-        <div class="flex flex-col items-end"><span
-            class="opacity-60 uppercase font-black text-[10px] tracking-[0.2em] mb-2 text-[var(--accent)]">Celestial
-            Realm</span><span class="font-bold text-white text-lg uppercase tracking-wide" id="metaRealm">-</span></div>
-        <div class="col-span-2 pt-6 border-t border-white/10">
-          <span
-            class="opacity-60 uppercase font-black text-[10px] tracking-[0.2em] mb-3 block text-[var(--accent)]">Inscription</span>
-          <p id="metaPrompt" class="text-base sm:text-lg leading-relaxed text-white font-medium italic tracking-tight">-
-          </p>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-2 lg:grid-cols-3 gap-3 pt-6 border-t border-white/5">
-        <a id="bubbleRevealDownload" href="#" download
-          class="btn-magic h-12 flex items-center justify-center rounded-xl text-[10px] font-black uppercase tracking-[0.15em] shadow-2xl">Collect</a>
-        <button data-action="cloneManifestation"
-          class="h-12 rounded-xl border-2 border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white transition-all text-[10px] font-black uppercase tracking-[0.15em]">Invoke</button>
-        <button data-action="closeLightbox"
-          class="h-12 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-[10px] font-black uppercase tracking-[0.15em] hidden lg:block">Close</button>
-
-        <div class="col-span-2 lg:col-span-3 grid grid-cols-2 gap-3 mt-1">
-          <button data-action="hideCurrentItem"
-            class="h-12 rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all text-[10px] font-black uppercase tracking-[0.15em]">Hide
-            One</button>
-          <button data-action="banishCurrentItem"
-            class="h-12 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all text-[10px] font-black uppercase tracking-[0.15em]">Banish
-            One</button>
-          <button data-action="showCurrentItem"
-            class="h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all text-[10px] font-black uppercase tracking-[0.15em]">Show
-            One</button>
-          <button data-action="toggleBatchHidden"
-            class="h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-300 hover:bg-blue-500 hover:text-white transition-all text-[10px] font-black uppercase tracking-[0.15em]">Toggle
-            Batch</button>
-          <button data-action="banishBatch"
-            class="h-12 rounded-xl bg-red-900/20 border border-red-500/30 text-red-400 hover:bg-red-600 hover:text-white transition-all text-[10px] font-black uppercase tracking-[0.15em]">Banish
-            Batch</button>
-          <button id="publishBtn" data-action="togglePublishCurrentBatch"
-            class="h-12 rounded-xl bg-violet-600/20 border border-violet-500/30 text-violet-400 hover:bg-violet-600/40 transition-all text-[10px] font-black uppercase tracking-[0.15em] col-span-2">Post to Public</button>
-        </div>
-        <button data-action="closeLightbox"
-          class="h-12 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-[10px] font-black uppercase tracking-[0.15em] lg:hidden col-span-2">Close</button>
-      </div>
-
-
+      <div id="g_id_onload" data-client_id="206665134027-80oiqn378dq1jo49lgtmaueu0p30mf9a.apps.googleusercontent.com" data-callback="handleGoogleLogin" data-auto_prompt="false"></div>
+      <div class="g_id_signin flex justify-center" data-type="standard" data-size="large" data-theme="outline" data-text="sign_in_with" data-shape="pill" data-logo_alignment="left"></div>
     </div>
   </div>
 
-  <main id="mainContent" class="pt-44 pb-40">
-    <section id="view-generate" class="view">
-      <div class="max-w-7xl mx-auto px-4 sm:px-8">
+    <!-- SERVICES: Aether Particles System -->
+    <canvas id="particlesCanvas" class="fixed inset-0 z-[-1] pointer-events-none opacity-60"></canvas>
 
+    <!-- Ambient Painted Background Elements (Ghibli vibe) -->
+    <div class="fixed -top-20 -left-20 opacity-40 animate-float pointer-events-none z-[-2]">
+        <svg width="400" height="400" viewBox="0 0 200 200" fill="none"><path d="M45.7 75.8C35.2 65.3 45.1 42.1 63.4 42.1C68.6 42.1 72.8 44.5 76.5 47.9C83.2 27.8 103.5 15.6 122.9 15.6C145.4 15.6 161.4 34.6 161.4 57.1C161.4 58.2 161.3 59.3 161.2 60.4C172.9 64.2 181.4 75.3 181.4 88.6C181.4 103.8 168.9 116.1 153.6 116.1H40.7C19.7 116.1 2.7 99.1 2.7 78.1C2.7 61.4 14.3 47.3 30.2 43.6C34.2 53.6 39.5 64.6 45.7 75.8Z" fill="#E8DCC8" filter="blur(20px)"/></svg>
+    </div>
+    <div class="fixed top-1/3 -right-32 opacity-30 animate-float-delayed pointer-events-none z-[-2] scale-150">
+        <svg width="400" height="400" viewBox="0 0 200 200" fill="none"><path d="M45.7 75.8C35.2 65.3 45.1 42.1 63.4 42.1C68.6 42.1 72.8 44.5 76.5 47.9C83.2 27.8 103.5 15.6 122.9 15.6C145.4 15.6 161.4 34.6 161.4 57.1C161.4 58.2 161.3 59.3 161.2 60.4C172.9 64.2 181.4 75.3 181.4 88.6C181.4 103.8 168.9 116.1 153.6 116.1H40.7C19.7 116.1 2.7 99.1 2.7 78.1C2.7 61.4 14.3 47.3 30.2 43.6C34.2 53.6 39.5 64.6 45.7 75.8Z" fill="#E8DCC8" filter="blur(20px)"/></svg>
+    </div>
 
-        <div id="gallery" class="bubble-container">
-          <div id="galleryEmpty"
-            class="col-span-full py-20 text-center opacity-15 text-3xl font-light cinematic-text tracking-[0.3em] uppercase">
-            Void Awaiting Light</div>
+    <!-- LEFT PANEL: THE FORGE (Controls) -->
+    <aside class="panel-obsidian w-full md:w-[420px] lg:w-[460px] h-[55vh] md:h-screen flex flex-col z-30 border-r border-gold-400/20 flex-shrink-0 relative">
+        <!-- Ornate SVG Corners -->
+        <svg class="absolute top-0 left-0 w-12 h-12 text-gold-400/50 pointer-events-none" viewBox="0 0 48 48" fill="none"><path d="M0 0H48V1H1V48H0V0Z" fill="currentColor"/><path d="M6 6H12V7H7V12H6V6Z" fill="currentColor"/></svg>
+        <svg class="absolute top-0 right-0 w-12 h-12 text-gold-400/50 pointer-events-none transform rotate-90" viewBox="0 0 48 48" fill="none"><path d="M0 0H48V1H1V48H0V0Z" fill="currentColor"/><path d="M6 6H12V7H7V12H6V6Z" fill="currentColor"/></svg>
+
+        <!-- Brand Header -->
+        <div class="p-8 pb-6 flex items-center gap-4 relative z-10">
+            <div class="w-12 h-12 border border-gold-400/80 bg-obsidian-950 flex items-center justify-center shadow-glow-gold transform rotate-45">
+                <div class="w-4 h-4 bg-gradient-to-br from-aether-light to-aether-dark rounded-sm transform -rotate-45 shadow-glow-aether"></div>
+            </div>
+            <div>
+                <h1 class="text-3xl font-black text-cinematic text-gold-gradient leading-none">The Forge</h1>
+                <p class="text-[10px] uppercase tracking-[0.3em] text-white/40 font-semibold mt-1">Aether Studio v4</p>
+            </div>
         </div>
 
-        <!-- The Matrix Grid -->
-        <div id="matrixControls"
-          class="hidden flex items-center justify-between gap-4 py-4 px-2 bg-white/5 rounded-2xl border border-white/10 mb-4 animate-in fade-in slide-in-from-top-4 duration-500">
-          <div class="flex items-center gap-3">
-            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" id="matrixStatusPulse"></span>
-            <span class="text-[10px] font-black uppercase tracking-widest" id="matrixStatusText">Matrix Active</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <button data-action="toggleMatrixPause" id="matrixPauseBtn"
-              class="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-[9px] font-black uppercase tracking-widest transition-all">Pause</button>
-            <button data-action="cancelMatrix"
-              class="px-4 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-500 text-[9px] font-black uppercase tracking-widest transition-all border border-red-500/20">Cancel</button>
-          </div>
+        <!-- Navigation Tabs -->
+        <div class="px-8 mb-4">
+            <div class="glass-light p-1.5 rounded-xl flex items-center justify-between pointer-events-auto border border-white/40 overflow-hidden shadow-sm">
+                <!-- Data-view attributes bind to our Router.js -->
+                <button data-view="history" class="nav-pill active flex-1 text-center">Vault</button>
+                <button data-view="discovery" class="nav-pill flex-1 text-center">Discovery</button>
+                <button data-view="feed" class="nav-pill flex-1 text-center">Feed</button>
+            </div>
         </div>
-        <div id="matrixGallery" class="hidden grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 py-8"></div>
-      </div>
-    </section>
 
-    <section id="view-tasks" class="view hidden px-4 sm:px-8">
-      <div class="max-w-7xl mx-auto glass-panel p-6 sm:p-10 min-h-[400px]">
-        <div class="flex items-center justify-between gap-4 mb-8">
-          <h2 class="text-xl font-bold uppercase tracking-widest text-[var(--text-muted)]">Active Queue</h2>
-          <button data-action="cancelAllJobs"
-            class="px-4 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-500 text-[10px] font-black uppercase tracking-widest transition-all border border-red-500/20">Halt
-            All</button>
-        </div>
-        <div id="taskList" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
-      </div>
-    </section>
+        <!-- Forge Scrollable Controls -->
+        <div id="forgeControls" class="flex-1 overflow-y-auto px-8 space-y-7 pb-32 md:pb-8 relative z-10 custom-scrollbar">
+            <div class="ornate-divider"></div>
 
-    <section id="view-history" class="view hidden px-4 sm:px-8">
-      <div class="max-w-7xl mx-auto min-h-[400px] relative">
-        <h2 class="text-4xl font-black uppercase tracking-[0.2em] text-white/20 mb-8">Vault</h2>
-        <div class="flex flex-col lg:flex-row items-center justify-between gap-4 mb-10">
-          <div class="flex flex-wrap items-center justify-center lg:justify-start gap-4">
-            <!-- Realm Filter Buttons -->
-            <div class="flex items-center gap-1 bg-black/10 p-1 rounded-xl border border-white/5">
-              <button data-action="filterRealm" data-realm="all" id="filterRealmAll"
-                class="px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all bg-[var(--accent)] text-white shadow-sm">
-                All
-              </button>
-              <button data-action="filterRealm" data-realm="day" id="filterRealmDay"
-                class="px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all opacity-50 hover:opacity-100">
-                Day
-              </button>
-              <button data-action="filterRealm" data-realm="star" id="filterRealmStar"
-                class="px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all opacity-50 hover:opacity-100">
-                Star
-              </button>
+            <!-- Incantation (Prompt) -->
+            <div class="space-y-3">
+                <div class="flex justify-between items-end">
+                    <label class="text-[11px] font-bold uppercase text-gold-400/90 tracking-[0.2em] flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 bg-aether rounded-full shadow-glow-aether animate-pulse"></span>
+                        The Incantation
+                    </label>
+                </div>
+                <textarea id="prompt" rows="4" placeholder="Describe the masterpiece you wish to manifest..." class="rpg-input w-full p-4 text-[15px] font-medium leading-relaxed resize-none"></textarea>
             </div>
 
-            <div class="hidden sm:block w-px h-6 bg-white/10"></div>
-            
-            <div class="flex items-center gap-6">
-              <button data-action="toggleHiddenVault" id="toggleHiddenVaultBtn"
-                class="text-[10px] font-bold uppercase tracking-widest opacity-60 hover:opacity-100 transition-all">Show Hidden</button>
-              <button data-action="toggleSelectionMode" id="toggleSelectBtn"
-                class="text-[10px] font-bold uppercase tracking-widest opacity-60 hover:opacity-100 transition-all">Select Mode</button>
+            <!-- Wards (Negative Prompt) -->
+            <div class="space-y-3">
+                <label class="text-[10px] font-bold uppercase text-gold-400/50 tracking-[0.2em] flex items-center gap-2">
+                    <span class="w-1.5 h-1.5 bg-red-900/80 rounded-full border border-red-500/50"></span>
+                    Wards (Exclusions)
+                </label>
+                <textarea id="negativePrompt" rows="2" placeholder="Elements to banish (e.g. low quality, bad anatomy)..." class="rpg-input w-full p-4 text-sm leading-relaxed resize-none opacity-80 focus:opacity-100"></textarea>
             </div>
-            
-            <div class="hidden sm:block w-px h-6 bg-white/10"></div>
-            
-            <div class="flex items-center gap-6">
-              <button data-action="reloadHistory"
-                class="text-[10px] font-bold uppercase tracking-widest text-[var(--accent)] hover:brightness-125">Reload</button>
-              <button data-action="clearVault" class="text-[10px] font-bold uppercase text-red-500/80 hover:text-red-500 transition-all">Purge
-                Cache</button>
-            </div>
-          </div>
-        </div>
 
+            <div class="ornate-divider"></div>
 
-
-
-
-        <div id="historyList" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 transition-all"
-          data-select-mode="false"></div>
-        <div class="mt-8 flex justify-center">
-          <button id="loadMoreBtn" data-action="loadHistoryPage"
-            class="btn-magic px-8 py-3 font-bold uppercase tracking-widest text-xs hidden">Deep Dive</button>
-        </div>
-      </div>
-    </section>
-
-    <!-- Discovery View -->
-    <section id="view-discovery" class="view hidden px-4 sm:px-8">
-      <div class="max-w-7xl mx-auto min-h-[400px] relative">
-        <h2 class="text-4xl font-black uppercase tracking-[0.2em] text-white/20 mb-8">Discovery</h2>
-        <div class="flex flex-col sm:flex-row items-center justify-between gap-6 mb-10">
-          <div class="flex items-center gap-4">
-            <button data-action="reloadDiscovery" class="text-[10px] font-bold uppercase tracking-widest text-[var(--accent)]">Refresh</button>
-          </div>
-        </div>
-        <div id="discoveryList" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 transition-all"></div>
-        <div class="mt-8 flex justify-center">
-            <button id="loadMoreDiscoveryBtn" data-action="loadDiscoveryPage" class="btn-magic px-8 py-3 font-bold uppercase tracking-widest text-xs hidden">Load More</button>
-        </div>
-      </div>
-    </section>
-
-    <!-- Feed View -->
-    <section id="view-feed" class="view hidden px-4 sm:px-8 pb-20">
-      <div class="max-w-3xl mx-auto min-h-[400px] relative">
-        <div class="flex flex-col sm:flex-row items-center justify-between gap-6 mb-10">
-          <div class="flex items-center gap-4">
-            <h2 class="text-3xl font-black cinematic-text tracking-widest text-[var(--accent)]">Community Feed</h2>
-            <div class="w-px h-4 bg-white/10"></div>
-            <button data-action="reloadFeed" class="text-[10px] font-bold uppercase tracking-widest text-[var(--accent)]">Refresh</button>
-          </div>
-        </div>
-
-        <!-- Post Creation Area -->
-        <div class="glass-panel p-6 mb-10 border-violet-500/20">
-            <div class="flex gap-4">
-                <img class="feed-user-avatar w-10 h-10 rounded-xl object-cover border border-white/10" src="" alt="">
-                <div class="flex-1 space-y-4">
-                    <textarea id="feed-post-content" 
-                        class="w-full bg-black/20 border border-white/5 rounded-xl p-4 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-[var(--accent)]/50 transition-all resize-none"
-                        placeholder="Share your favorite prompts or settings... (AI Art related only)"
-                        rows="3"></textarea>
-                    <div class="flex justify-between items-center">
-                        <p class="text-[9px] text-slate-500 uppercase font-bold tracking-widest">Only AI image related content allowed</p>
-                        <button data-action="createPost" class="btn-magic px-6 py-2 font-bold uppercase tracking-widest text-[10px]">Broadcast</button>
+            <!-- Casting Engine -->
+            <div class="space-y-3">
+                <label class="text-[10px] font-bold uppercase text-gold-400/80 tracking-[0.2em]">Casting Engine</label>
+                <div class="relative">
+                    <select id="model" class="rpg-input w-full h-12 px-4 appearance-none text-sm font-semibold cursor-pointer">
+                        <option value="Aether Synthesis v4.2">Aether Synthesis v4.2</option>
+                        <option value="Ghibli Cinematic v2">Ghibli Cinematic v2</option>
+                        <option value="Epic Concept Art">Epic Concept Art</option>
+                        <option value="Retro Pixel Forge">Retro Pixel Forge</option>
+                    </select>
+                    <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gold-400">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
                     </div>
                 </div>
             </div>
+
+            <!-- Advanced Controls for our FE -->
+            <div class="grid grid-cols-2 gap-4">
+                <div class="space-y-3">
+                    <label class="text-[10px] font-bold uppercase text-gold-400/80 tracking-[0.2em]">Images</label>
+                    <div class="relative">
+                        <select id="count" class="rpg-input w-full h-12 px-4 appearance-none text-sm font-semibold cursor-pointer">
+                            <option value="1">1 Manifestation</option>
+                            <option value="2">2 Manifestations</option>
+                            <option value="4" selected>4 Manifestations</option>
+                        </select>
+                        <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gold-400"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg></div>
+                    </div>
+                </div>
+                <div class="space-y-3">
+                    <label class="text-[10px] font-bold uppercase text-gold-400/80 tracking-[0.2em]">Quality</label>
+                    <div class="relative">
+                        <select id="quality" class="rpg-input w-full h-12 px-4 appearance-none text-sm font-semibold cursor-pointer">
+                            <option value="standard">Standard</option>
+                            <option value="hd" selected>High-Res</option>
+                        </select>
+                        <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gold-400"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Aspect Ratio -->
+            <div class="space-y-3">
+                <label class="text-[10px] font-bold uppercase text-gold-400/80 tracking-[0.2em]">Canvas Dimensions</label>
+                <div class="grid grid-cols-4 gap-2">
+                    <div class="aspect-radio">
+                        <input type="radio" name="aspectRatio" id="ar-1-1" value="aspect-square" data-dim="1024x1024" checked>
+                        <label for="ar-1-1"><div class="w-3.5 h-3.5 border-2 border-current rounded-sm"></div>1:1</label>
+                    </div>
+                    <div class="aspect-radio">
+                        <input type="radio" name="aspectRatio" id="ar-16-9" value="aspect-video" data-dim="1920x1080">
+                        <label for="ar-16-9"><div class="w-5 h-3 border-2 border-current rounded-sm"></div>16:9</label>
+                    </div>
+                    <div class="aspect-radio">
+                        <input type="radio" name="aspectRatio" id="ar-9-16" value="aspect-[9/16]" data-dim="1080x1920">
+                        <label for="ar-9-16"><div class="w-3 h-5 border-2 border-current rounded-sm"></div>9:16</label>
+                    </div>
+                    <div class="aspect-radio">
+                        <input type="radio" name="aspectRatio" id="ar-21-9" value="aspect-[21/9]" data-dim="2560x1080">
+                        <label for="ar-21-9"><div class="w-6 h-2.5 border-2 border-current rounded-sm"></div>21:9</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Seed (Optional) -->
+            <div class="space-y-3">
+                <label class="text-[10px] font-bold uppercase text-gold-400/50 tracking-[0.2em] flex items-center gap-2">
+                    Magic Seed (Optional)
+                </label>
+                <input id="seed" type="number" placeholder="Leave empty for random..." class="rpg-input w-full p-3 text-sm" />
+            </div>
+
+            <!-- Local Gallery (for current forge generation) -->
+            <div id="gallery" class="grid grid-cols-2 gap-4 mt-8"></div>
         </div>
 
-        <div id="feedList" class="flex flex-col gap-6"></div>
+        <!-- Sticky Bottom Action -->
+        <div class="p-6 md:p-8 bg-obsidian-950/90 backdrop-blur-xl border-t border-gold-400/20 absolute md:relative bottom-0 w-full z-30 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
+            <button id="generateBtn" class="btn-manifest w-full h-14 flex items-center justify-center gap-3">
+                <span id="btnText" class="btn-text flex items-center gap-2">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48 2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48 2.83-2.83"/></svg>
+                    Manifest Vision
+                </span>
+                <div id="btnLoader" class="loader-rune"></div>
+            </button>
+            <div class="hidden">
+                <button id="matrixBtn"></button>
+                <span id="btnMatrixText"></span>
+                <span id="btnMatrixLoader"></span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- RIGHT PANEL: CONTENT AREA (Vault, Discovery, Feed) -->
+    <main class="flex-1 h-[50vh] md:h-screen flex flex-col relative z-20">
+        <!-- Top Toolbar -->
+        <header class="p-6 md:p-10 flex justify-between items-start z-30 sticky top-0 bg-gradient-to-b from-parchment-200 via-parchment-200/80 to-transparent pointer-events-none">
+            <div class="pointer-events-auto">
+                <h2 id="viewTitle" class="text-4xl md:text-5xl font-black text-cinematic text-parchment-900 tracking-tight leading-none drop-shadow-md">
+                    Your <span class="italic text-gold-500">Grimoire</span>
+                </h2>
+                <p id="viewSubtitle" class="text-parchment-900/60 font-bold uppercase tracking-[0.2em] text-[10px] mt-2 ml-1">Aether Studio Private Vault</p>
+                <div class="status-pill text-xs mt-2 text-parchment-800" id="backendStatus">Checking backend...</div>
+            </div>
+            
+            <div class="pointer-events-auto flex items-center gap-4">
+                <!-- User Profile (Managed by main.js) -->
+                <div id="user-profile" class="hidden flex items-center gap-3">
+                    <button data-action="logout" class="text-[10px] uppercase font-bold tracking-wider hover:text-red-600 transition-colors">Logout</button>
+                    <div class="h-12 w-12 rounded-xl border-2 border-gold-400 overflow-hidden cursor-pointer shadow-glow-gold bg-parchment-300 transform transition-transform hover:-translate-y-1">
+                        <img id="user-avatar" src="https://api.dicebear.com/7.x/avataaars/svg?seed=AetherMage&backgroundColor=E8DCC8" alt="Profile" class="w-full h-full object-cover">
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- View Containers -->
+        <div class="flex-1 overflow-y-auto px-6 md:px-10 pb-24 pt-4 custom-scrollbar" id="mainScrollArea">
+            
+            <!-- VIEW: VAULT -->
+            <section id="view-history" class="view view-section active min-h-full">
+                <!-- Masonry Grid -->
+                <div id="historyList" class="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-6 space-y-6 w-full"></div>
+            </section>
+
+            <!-- VIEW: DISCOVERY -->
+            <section id="view-discovery" class="view view-section hidden min-h-full">
+                <div id="discoveryList" class="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-6 space-y-6 w-full"></div>
+            </section>
+
+            <!-- VIEW: FEED -->
+            <section id="view-feed" class="view view-section hidden flex flex-col items-center min-h-full">
+                <div class="w-full max-w-2xl flex flex-col gap-8 pb-12" id="feedList"></div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- COMPONENTS: LIGHTBOX MODAL -->
+    <div id="bubbleReveal" class="fixed inset-0 z-[100] bg-obsidian-950/90 backdrop-blur-xl hidden opacity-0 transition-opacity duration-400 flex items-center justify-center p-4 md:p-8" data-action="closeLightbox">
+        <button data-action="closeLightbox" class="absolute top-6 right-6 text-white/50 hover:text-gold-400 bg-white/5 w-12 h-12 rounded-full flex items-center justify-center transition-all z-[150] border border-white/10 hover:border-gold-400/50 hover:scale-110">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
         
-        <div class="mt-8 flex justify-center">
-            <button id="loadMoreFeedBtn" data-action="loadFeedPage" class="btn-magic px-8 py-3 font-bold uppercase tracking-widest text-xs hidden">Venture Deeper</button>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <div id="desktopConsole" class="bottom-console glass-panel p-4 border-2 border-[var(--accent)]">
-    <button data-action="toggleConsole" id="consoleToggleBtn"
-      class="absolute -top-10 left-1/2 -translate-x-1/2 bg-[var(--accent)] text-white px-6 py-2 rounded-t-xl font-bold text-[10px] uppercase tracking-widest shadow-lg">
-      <span id="consoleToggleText">Minimize</span>
-    </button>
-
-    <div class="grid grid-cols-12 gap-4 items-stretch">
-      <div class="col-span-12 lg:col-span-4 flex flex-col gap-3">
-        <div class="flex items-center gap-1 bg-black/5 p-1 rounded-xl h-9">
-          <button data-mode="standard"
-            class="nav-pill active w-1/2 h-full rounded-lg text-[9px] font-bold uppercase">Day</button>
-          <button data-mode="nsfw" class="nav-pill w-1/2 h-full rounded-lg text-[9px] font-bold uppercase">Star</button>
-        </div>
-        <div class="space-y-1">
-          <label class="text-[9px] font-bold uppercase opacity-50 ml-1">Engine</label>
-          <select id="model" class="w-full h-9 px-3 font-bold text-xs"></select>
-        </div>
-        <div class="grid grid-cols-2 gap-3">
-          <div class="space-y-1">
-            <label class="text-[9px] font-bold uppercase opacity-50 ml-1">Quality</label>
-            <select id="quality" class="w-full h-9 px-3 font-bold text-xs"></select>
-          </div>
-          <div class="space-y-1">
-            <label class="text-[9px] font-bold uppercase opacity-50 ml-1">Size</label>
-            <select id="aspect" class="w-full h-9 px-3 font-bold text-xs"></select>
-          </div>
-        </div>
-        <div class="grid grid-cols-2 gap-3">
-          <div class="space-y-1">
-            <label class="text-[9px] font-bold uppercase opacity-50 ml-1">Images</label>
-            <select id="count" class="w-full h-9 px-3 font-bold text-xs">
-              <option value="1">1 Spirit</option>
-              <option value="4" selected>4 Spirits</option>
-            </select>
-          </div>
-          <div class="space-y-1">
-            <label class="text-[9px] font-bold uppercase opacity-50 ml-1">Seed</label>
-            <input id="seed" type="number" placeholder="Divine Seed" class="w-full h-9 px-3 font-bold text-xs">
-          </div>
-        </div>
-      </div>
-
-      <div class="col-span-12 lg:col-span-8 flex flex-col gap-3">
-        <div class="flex-1 flex flex-col space-y-1">
-          <div class="flex justify-between px-1">
-            <label class="text-[9px] font-bold uppercase opacity-50">The Vision</label>
-            <div class="flex gap-4 items-center">
-              <button data-action="clearPrompt"
-                class="px-2 py-1 text-xs font-bold text-red-500 uppercase hover:text-red-400 transition-colors">Clear</button>
-              <button data-action="pastePrompt"
-                class="px-2 py-1 text-xs font-bold text-[var(--text-main)] uppercase hover:opacity-70 transition-colors">Paste</button>
-              <button data-action="rollOracle"
-                class="px-3 py-2 text-xs font-bold text-[var(--accent)] uppercase flex items-center gap-1.5 hover:brightness-125 transition-all border border-[var(--panel-border)] rounded-lg">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                  <path
-                    d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
-                </svg> Oracle
-              </button>
+        <div class="flex flex-col md:flex-row w-full max-w-[1400px] h-full max-h-[90vh] panel-obsidian rounded-2xl overflow-hidden shadow-rpg-panel transform transition-transform duration-500 scale-100" data-stop-propagation="true">
+            <!-- Image Area -->
+            <div class="flex-1 bg-black/80 relative flex items-center justify-center p-6 min-h-[40vh] border-r border-gold-400/10 image-viewer-container" style="background-image: radial-gradient(rgba(212, 175, 55, 0.05) 1px, transparent 0); background-size: 30px 30px;">
+                <img id="bubbleRevealImg" src="" alt="Enlarged Vision" class="max-w-full max-h-full object-contain shadow-2xl rounded" style="box-shadow: 0 0 50px rgba(0,0,0,0.8), 0 0 0 1px rgba(212,175,55,0.2);">
             </div>
-          </div>
-          <textarea id="prompt" placeholder="What do you seek to manifest?"
-            class="w-full flex-1 p-3 resize-none text-sm leading-relaxed"></textarea>
-        </div>
-        <div class="grid grid-cols-6 gap-3">
-          <div class="col-span-3">
-            <textarea id="negativePrompt" placeholder="Wards (Banish artifacts...)"
-              class="w-full h-11 px-3 py-2 text-xs resize-none"></textarea>
-          </div>
-          <button id="matrixBtn" data-action="runMatrixCast"
-            class="col-span-1 rounded-xl border-2 border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white transition-colors flex items-center justify-center font-bold uppercase text-[10px] sm:text-[11px] tracking-widest shadow-lg min-h-[44px]">
-            <span id="btnMatrixText">Matrix</span>
-            <div id="btnMatrixLoader" class="hidden ml-2">
-              <div class="loader" style="width:12px;height:12px;border-width:2px;animation-duration:2s"></div>
+            <!-- Details Area -->
+            <div class="w-full md:w-[420px] p-8 lg:p-10 flex flex-col gap-8 overflow-y-auto custom-scrollbar glass-reveal-panel">
+                <div class="border-b border-gold-400/10 pb-6">
+                    <h4 class="text-[10px] font-bold uppercase text-gold-400 tracking-[0.3em] mb-3 flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 bg-aether rounded-full shadow-glow-aether"></span> The Incantation
+                    </h4>
+                    <p id="lightboxPrompt" class="text-base text-white/90 leading-relaxed font-serif italic tracking-wide"></p>
+                </div>
+                <div class="border-b border-gold-400/10 pb-6">
+                    <h4 class="text-[10px] font-bold uppercase text-red-500/80 tracking-[0.3em] mb-3 flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 bg-red-500 rounded-full"></span> The Wards
+                    </h4>
+                    <p id="lightboxNegative" class="text-xs text-white/40 leading-relaxed"></p>
+                </div>
+                <div class="mt-auto">
+                    <div class="space-y-5 text-xs text-white/50 font-semibold tracking-wider bg-black/40 p-6 rounded-xl border border-white/5">
+                        <div class="flex justify-between items-center">
+                            <span>Dimensions</span> <span class="text-white" id="lightboxDims">1024 x 1024</span>
+                        </div>
+                    </div>
+                </div>
+                <!-- Thumbs Section (for batch viewing) -->
+                <div id="thumbsSection" class="hidden flex-col gap-3 mt-4">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="opacity-60 uppercase font-black text-[9px] tracking-[0.2em] text-gold-400">The Batch</span>
+                    </div>
+                    <div id="bubbleRevealThumbs" class="grid grid-cols-4 gap-2"></div>
+                </div>
             </div>
-          </button>
-          <button id="generateBtn" data-action="runGeneration"
-            class="col-span-2 btn-magic flex items-center justify-center gap-2 font-bold uppercase text-[11px] sm:text-xs tracking-widest shadow-lg min-h-[44px]">
-            <span id="btnText">Manifest</span>
-            <div id="btnLoader" class="hidden">
-              <div class="loader"></div>
-            </div>
-          </button>
         </div>
-      </div>
     </div>
-  </div>
 
-  <div id="footerStatus"
-    class="fixed bottom-8 left-1/2 -translate-x-1/2 glass-panel py-3 px-8 text-xs font-bold transition-all translate-y-32 opacity-0 pointer-events-none z-[150]">
-  </div>
+    <!-- MAIN APP SCRIPT INJECTION -->
+    <script type="module" src="/js/main.js"></script>
 
-  <!-- Mobile Nav -->
-  <nav
-    class="sm:hidden fixed bottom-0 left-0 right-0 z-[200] glass-panel p-4 rounded-b-none border-t border-[var(--panel-border)] flex items-center justify-around shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
-    <!-- Pinned Toggle Button for Mobile -->
-    <div id="mobileToggleStub"
-      style="display: none; position: absolute; top: -42px; left: 50%; transform: translateX(-50%); z-index: 1001;">
-      <button data-action="toggleConsole"
-        class="bg-[var(--accent)] text-white px-8 py-2.5 rounded-t-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-2xl">
-        Expand
-      </button>
-    </div>
-    <button data-view="generate"
-      class="mobile-nav-item flex flex-col items-center p-2 transition-all opacity-60 active">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-      </svg>
-      <span class="text-[9px] font-black uppercase tracking-tighter">Forge</span>
-    </button>
-    <!-- Mobile Queue Disabled -->
-    <button data-view="history" class="mobile-nav-item flex flex-col items-center p-2 transition-all opacity-60">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-          d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-      </svg>
-      <span class="text-[9px] font-black uppercase tracking-tighter">Vault</span>
-    </button>
-  </nav>
-
-  <!-- Custom Confirm Modal -->
-  <div id="confirmModal"
-    class="fixed inset-0 z-[10000] hidden flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl">
-    <div
-      class="glass-panel max-w-sm w-full p-8 flex flex-col gap-6 text-center animate-in zoom-in duration-300 border-2 border-white/5">
-      <div class="flex justify-center">
-        <div class="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center border border-red-500/20">
-          <svg class="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-          </svg>
-        </div>
-      </div>
-      <div>
-        <h3 id="confirmTitle" class="text-xl font-black uppercase tracking-[0.1em] text-white">Banish Manifestation?
-        </h3>
-        <p id="confirmMsg" class="opacity-60 text-xs leading-relaxed mt-2 uppercase tracking-widest font-bold">This
-          action will return the spirit to the void forever.</p>
-      </div>
-      <div class="grid grid-cols-2 gap-4 mt-2">
-        <button id="confirmYes"
-          class="bg-red-600 text-white py-4 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl hover:bg-red-500 transition-colors">Banish</button>
-        <button data-action="closeConfirm"
-          class="bg-white/5 py-4 rounded-xl border border-white/10 font-black text-[10px] uppercase tracking-[0.2em] hover:bg-white/10 transition-colors">Cancel</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Multi-Select Action Bar: True Viewport Fixed -->
-  <div id="selectionBar"
-    class="hidden fixed bottom-10 left-1/2 -translate-x-1/2 z-[10000] glass-panel p-5 px-10 border-2 border-[var(--accent)] flex flex-col sm:flex-row items-center gap-8 shadow-[0_50px_120px_rgba(0,0,0,1)] animate-in slide-in-from-bottom-12 duration-500 rounded-[2.5rem]">
-    <div class="flex items-center gap-8">
-      <div class="flex flex-col">
-        <span id="selectCount" class="text-3xl font-black tracking-tighter text-[var(--accent)]">0</span>
-        <span class="text-[10px] uppercase tracking-[0.2em] opacity-60 font-black">Spirits</span>
-      </div>
-      <div class="w-px h-12 bg-white/10"></div>
-      <div class="flex items-center gap-4">
-        <button data-action="bulkHide"
-          class="bg-white/5 border border-white/10 text-white px-8 py-4 rounded-3xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-white/15 transition-all">Hide</button>
-        <button data-action="bulkDelete"
-          class="bg-red-600 text-white px-8 py-4 rounded-3xl font-black text-[10px] uppercase tracking-[0.2em] shadow-2xl hover:bg-red-500 hover:scale-105 transition-all">Banish</button>
-      </div>
-    </div>
-    <div class="flex items-center gap-8 mt-4 sm:mt-0 sm:border-l sm:border-white/10 sm:pl-10 w-full sm:w-auto">
-      <button data-action="cancelSelectionMode"
-        class="w-full sm:w-auto text-[10px] font-black uppercase tracking-[0.2em] opacity-40 hover:opacity-100 transition-all">Cancel</button>
-    </div>
-  </div>
-
-
-
-  <!-- Modular JS Entry Point -->
-  <script type="module" src="/js/main.js"></script>
-  <div id="progressMatrix"
-    class="fixed top-0 left-0 right-0 h-1 z-[10000] pointer-events-none opacity-0 transition-opacity duration-500 flex gap-1">
-    <div class="progress-step flex-1 h-full"></div>
-    <div class="progress-step flex-1 h-full"></div>
-    <div class="progress-step flex-1 h-full"></div>
-    <div class="progress-step flex-1 h-full"></div>
-  </div>
+    <!-- Particles Script -->
+    <script>
+        const canvas = document.getElementById('particlesCanvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.addEventListener('resize', resize); resize();
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width; this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 2 + 0.5;
+                this.speedX = Math.random() * 0.4 - 0.2; this.speedY = Math.random() * -0.6 - 0.1; 
+                this.color = Math.random() > 0.5 ? 'rgba(212, 175, 55, ' : 'rgba(255, 255, 255, ';
+                this.opacity = Math.random() * 0.6 + 0.2;
+            }
+            update() {
+                this.x += this.speedX; this.y += this.speedY;
+                if (this.y < 0) this.y = canvas.height;
+                if (this.x < 0) this.x = canvas.width; if (this.x > canvas.width) this.x = 0;
+            }
+            draw() {
+                ctx.fillStyle = this.color + this.opacity + ')';
+                ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill();
+                ctx.shadowBlur = 10; ctx.shadowColor = this.color + '0.8)';
+            }
+        }
+        for (let i = 0; i < 50; i++) particles.push(new Particle());
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => { p.update(); p.draw(); });
+            requestAnimationFrame(animate);
+        }
+        animate();
+    </script>
 </body>
-
 </html>
