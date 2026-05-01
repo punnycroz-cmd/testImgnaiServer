@@ -60,7 +60,13 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware, 
-    allow_origins=["https://promptpromax.pages.dev", "http://localhost:8000", "http://localhost:3000"], 
+    allow_origins=[
+        "https://promptpromax.pages.dev", 
+        "https://promptpromax.pages.dev/", 
+        "http://localhost:8000", 
+        "http://localhost:3000"
+    ],
+    allow_origin_regex="https://.*\.pages\.dev",
     allow_credentials=True, 
     allow_methods=["*"], 
     allow_headers=["*"]
