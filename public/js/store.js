@@ -153,7 +153,7 @@ export function createAppState() {
     app: {
       mode: 'standard',
       activeRequestId: '',
-      serverUrl: window.location.origin,
+      serverUrl: 'https://f70cef08-b1c6-4363-88e3-774e02123f6e-00-1btn7n40xrnba.kirk.replit.dev',
       isGenerating: false,
       isTabVisible: true,
       activeView: 'history',
