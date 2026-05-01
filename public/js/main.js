@@ -253,14 +253,14 @@ try {
   document.querySelectorAll('[data-mode]').forEach(btn =>
     btn.addEventListener('click', () => forge.applyMode(btn.dataset.mode)));
 
-  // Mobile Forge Toggle (Click on Header)
+  // Mobile Forge Toggle
   const forgeSidebar = document.getElementById('forgeSidebar');
-  const forgeHeader = forgeSidebar?.querySelector('.BrandHeader');
+  const forgeToggle = document.getElementById('mobileForgeToggle');
   const backdrop = document.getElementById('consoleBackdrop');
   
-  if (forgeSidebar && forgeHeader) {
-    forgeHeader.addEventListener('click', () => {
-      if (window.innerWidth < 768) forgeSidebar.classList.toggle('minimized');
+  if (forgeSidebar && forgeToggle) {
+    forgeToggle.addEventListener('click', () => {
+      forgeSidebar.classList.toggle('minimized');
     });
     if (backdrop) {
       backdrop.addEventListener('click', () => {
