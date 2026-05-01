@@ -254,7 +254,7 @@
         }
     </style>
 </head>
-<body class="flex flex-col md:flex-row h-screen w-full relative">
+<body class="flex flex-col md:flex-row min-h-screen md:h-screen w-full relative overflow-y-auto md:overflow-hidden">
 
   <!-- AUTHENTICATION OVERLAY (from our FE) -->
   <div id="auth-overlay" class="fixed inset-0 z-[1000] flex items-center justify-center bg-obsidian-950/90 backdrop-blur-md transition-opacity duration-700 hidden">
@@ -280,7 +280,7 @@
     </div>
 
     <!-- LEFT PANEL: THE FORGE (Controls) -->
-    <aside class="panel-obsidian w-full md:w-[400px] lg:w-[440px] xl:w-[480px] h-[45vh] md:h-screen flex flex-col z-30 border-r border-gold-400/20 flex-shrink-0 relative">
+    <aside class="panel-obsidian w-full md:w-[400px] lg:w-[440px] xl:w-[480px] h-auto md:h-screen flex flex-col z-30 border-b md:border-r border-gold-400/20 flex-shrink-0 relative">
         <!-- Ornate SVG Corners -->
         <svg class="absolute top-0 left-0 w-12 h-12 text-gold-400/50 pointer-events-none" viewBox="0 0 48 48" fill="none"><path d="M0 0H48V1H1V48H0V0Z" fill="currentColor"/><path d="M6 6H12V7H7V12H6V6Z" fill="currentColor"/></svg>
         <svg class="absolute top-0 right-0 w-12 h-12 text-gold-400/50 pointer-events-none transform rotate-90" viewBox="0 0 48 48" fill="none"><path d="M0 0H48V1H1V48H0V0Z" fill="currentColor"/><path d="M6 6H12V7H7V12H6V6Z" fill="currentColor"/></svg>
@@ -307,7 +307,7 @@
         </div>
 
         <!-- Forge Scrollable Controls -->
-        <div id="forgeControls" class="flex-1 overflow-y-auto px-4 md:px-8 space-y-4 md:space-y-7 pb-32 md:pb-8 relative z-10 custom-scrollbar">
+        <div id="forgeControls" class="flex-none md:flex-1 h-auto md:overflow-y-auto px-4 md:px-8 space-y-4 md:space-y-7 pb-12 md:pb-8 relative z-10 custom-scrollbar">
             <div class="ornate-divider"></div>
 
             <!-- Incantation (Prompt) -->
@@ -422,8 +422,8 @@
             <div id="matrixGallery" class="grid-cols-2 gap-4 mt-8 hidden"></div>
         </div>
 
-        <!-- Sticky Bottom Action -->
-        <div class="p-6 md:p-8 bg-obsidian-950/90 backdrop-blur-xl border-t border-gold-400/20 absolute md:relative bottom-0 w-full z-30 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
+        <!-- Bottom Action -->
+        <div class="p-6 md:p-8 bg-obsidian-950/90 backdrop-blur-xl border-t border-gold-400/20 relative mt-auto w-full z-30 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
             <button id="generateBtn" data-action="runGeneration" class="btn-manifest w-full h-14 flex items-center justify-center gap-3">
                 <span id="btnText" class="btn-text flex items-center gap-2">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48 2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48 2.83-2.83"/></svg>
@@ -442,7 +442,7 @@
     </aside>
 
     <!-- RIGHT PANEL: CONTENT AREA (Vault, Discovery, Feed) -->
-    <main class="flex-1 h-[55vh] md:h-screen flex flex-col relative z-20">
+    <main class="flex-1 h-auto md:h-screen flex flex-col relative z-20">
         <!-- Top Toolbar -->
         <header class="p-4 md:p-10 flex justify-between items-start z-30 sticky top-0 bg-gradient-to-b from-obsidian-950 via-obsidian-950/80 to-transparent pointer-events-none">
             <div class="pointer-events-auto">
@@ -465,7 +465,7 @@
         </header>
 
         <!-- View Containers -->
-        <div class="flex-1 overflow-y-auto px-6 md:px-10 pb-24 pt-4 custom-scrollbar" id="mainScrollArea">
+        <div class="flex-1 h-auto md:overflow-y-auto px-4 md:px-10 pb-24 pt-4 custom-scrollbar" id="mainScrollArea">
             
             <!-- VIEW: VAULT -->
             <section id="view-history" class="view view-section active min-h-full pb-12">
