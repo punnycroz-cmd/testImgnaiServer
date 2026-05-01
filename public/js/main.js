@@ -167,6 +167,7 @@ EventDelegate.on(document.body, 'click', '[data-action]', (e, target) => {
     case 'banishBatch': openConfirm('Banish Batch?', 'Return all spirits to the void forever.', lightbox.banishBatch); break;
     case 'toggleBatchHidden': lightbox.toggleBatchHidden(); break;
     case 'togglePublishCurrentBatch': lightbox.togglePublish(); break;
+    case 'switchMode': forge.applyMode(target.dataset.mode); break;
     case 'runGeneration': forge.runGeneration(handleSuccess); break;
     case 'runMatrixCast': forge.runMatrixCast(); break;
     case 'rollOracle': forge.rollOracle(); break;

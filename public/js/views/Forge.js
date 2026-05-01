@@ -126,6 +126,10 @@ export function createForgeView(state, api, toast) {
     state.set('app.isGenerating', true);
     const gallery = dom.gallery();
     if (gallery) { gallery.style.display = ''; gallery.innerHTML = '<div class="col-span-full py-24 animate-pulse opacity-50 cinematic-text text-2xl uppercase tracking-widest text-center">Weaving Vision...</div>'; }
+    const mGallery = document.getElementById('matrixGallery');
+    if (mGallery) mGallery.classList.add('hidden');
+    const mControls = document.getElementById('matrixControls');
+    if (mControls) mControls.classList.add('hidden');
     try {
       const res = await api.apiFetch('/generate', { method: 'POST', body: JSON.stringify(payload) });
       state.set('app.activeRequestId', res.request_id);
@@ -154,7 +158,7 @@ export function createForgeView(state, api, toast) {
     if (mGallery) { mGallery.classList.remove('hidden'); mGallery.classList.add('grid'); mGallery.innerHTML = models.map(m => `
       <div id="matrix-cell-${m.replace(/\s+/g, '-')}" class="art-frame aspect-square flex flex-col items-center justify-center bg-black/40 border border-white/10 relative group overflow-hidden" data-realm="${payload.realm}">
         <span class="text-[10px] font-bold uppercase text-[var(--text-muted)] tracking-widest absolute bottom-3 z-20 bg-black/50 px-2 py-0.5 rounded-lg border border-white/5">${m}</span>
-        <div class="loader opacity-40 hidden z-20" style="width:20px;height:20px;"></div>
+        <div class="loader-rune opacity-40 hidden z-20" style="width:20px;height:20px;display:none;"></div>
         <img src="" class="absolute inset-0 w-full h-full object-cover hidden transition-all duration-1000 opacity-0 scale-110 z-10">
       </div>`).join(''); }
     const genBtn = dom.generateBtn();
@@ -180,14 +184,14 @@ export function createForgeView(state, api, toast) {
       const model = models[i];
       const cell = document.getElementById(`matrix-cell-${model.replace(/\s+/g, '-')}`);
       if (cell) {
-        const loader = cell.querySelector('.loader');
+        const loader = cell.querySelector('.loader-rune');
         if (loader) loader.classList.remove('hidden');
       }
       try {
         const res = await api.apiFetch('/generate', { method: 'POST', body: JSON.stringify({ ...payload, model }) });
         if (cell) cell.dataset.requestId = res.request_id;
         pollMatrixCell(res.request_id, cell, isStar).then(() => { completed++; if (statusText) statusText.textContent = `Manifesting: ${completed} / ${models.length} complete`; });
-      } catch (e) { completed++; if (cell) cell.querySelector('.loader')?.classList.add('hidden'); }
+      } catch (e) { completed++; if (cell) cell.querySelector('.loader-rune')?.classList.add('hidden'); }
       await sleep(delay);
     }
     while (completed < models.length && !state.get('matrix.cancelled')) await sleep(2000);
@@ -209,7 +213,7 @@ export function createForgeView(state, api, toast) {
         if (res.status === 'done' && urls.length) {
           if (cell) {
             const img = cell.querySelector('img');
-            const ldr = cell.querySelector('.loader');
+            const ldr = cell.querySelector('.loader-rune');
             if (ldr) ldr.classList.add('hidden');
             if (img) { img.src = urls[0]; img.classList.remove('hidden', 'opacity-0', 'scale-110'); img.classList.add('opacity-100'); }
           }
@@ -217,7 +221,7 @@ export function createForgeView(state, api, toast) {
         }
         if (res.status === 'failed') {
           if (cell) {
-            const loader = cell.querySelector('.loader');
+            const loader = cell.querySelector('.loader-rune');
             if (loader) loader.classList.add('hidden');
             cell.style.boxShadow = 'inset 0 0 40px rgba(239,68,68,0.2)';
           }
