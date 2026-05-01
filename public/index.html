@@ -229,6 +229,7 @@
             #forgeSidebar.minimized .BrandHeader { background: rgba(207, 169, 114, 0.1); border-bottom: 1px solid rgba(207,169,114,0.1); }
             
             /* Hidden ONLY when minimized */
+            /* Hidden ONLY when minimized */
             #forgeSidebar.minimized #forgeControls, 
             #forgeSidebar.minimized .ornate-divider,
             #forgeSidebar.minimized .BottomAction { 
@@ -236,14 +237,17 @@
             }
             #forgeSidebar.minimized p.uppercase { display: none; } /* Hide subtitle when closed */
 
+            /* Backdrop Logic */
+            #forgeSidebar:not(.minimized) ~ #consoleBackdrop { 
+                opacity: 1; pointer-events: auto; backdrop-filter: blur(12px);
+            }
+
             /* Visible when expanded */
             #forgeSidebar:not(.minimized) #forgeControls,
             #forgeSidebar:not(.minimized) .BrandHeader,
             #forgeSidebar:not(.minimized) .BottomAction {
                 opacity: 1; visibility: visible; pointer-events: auto;
             }
-            
-            #forgeSidebar:not(.minimized) + #consoleBackdrop { opacity: 1; pointer-events: auto; }
             
             .mobile-nav-item.active { color: #CFA972; }
             .mobile-nav-item.active svg { filter: drop-shadow(0 0 8px rgba(207,169,114,0.5)); }
@@ -297,8 +301,144 @@
     <!-- Login Card... -->
   </div>
 
-  <!-- CONSOLE BACKDROP (For Mobile focus) -->
-  <div id="consoleBackdrop" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[90] opacity-0 pointer-events-none transition-opacity duration-500"></div>
+  <!-- LEFT PANEL: THE FORGE (Controls) — Now a Floating Console on Mobile -->
+  <aside id="forgeSidebar" class="panel-obsidian w-full md:w-[400px] lg:w-[440px] xl:w-[480px] fixed md:relative bottom-0 left-0 h-[85vh] md:h-screen flex flex-col z-[100] md:z-30 border-t md:border-t-0 md:border-r border-gold-400/20 flex-shrink-0 transition-all duration-500 ease-in-out group/forge shadow-[0_-20px_50px_rgba(0,0,0,0.8)] md:shadow-none">
+        <!-- Ornate SVG Corners -->
+        <svg class="absolute top-0 left-0 w-12 h-12 text-gold-400/50 pointer-events-none" viewBox="0 0 48 48" fill="none"><path d="M0 0H48V1H1V48H0V0Z" fill="currentColor"/><path d="M6 6H12V7H7V12H6V6Z" fill="currentColor"/></svg>
+        <svg class="absolute top-0 right-0 w-12 h-12 text-gold-400/50 pointer-events-none transform rotate-90" viewBox="0 0 48 48" fill="none"><path d="M0 0H48V1H1V48H0V0Z" fill="currentColor"/><path d="M6 6H12V7H7V12H6V6Z" fill="currentColor"/></svg>
+ 
+        <!-- Brand Header (Acts as Mobile Handle) -->
+        <div class="BrandHeader p-4 md:p-8 pb-4 flex items-center gap-4 relative z-10 transition-all duration-300">
+            <div class="w-8 h-8 md:w-12 md:h-12 border border-gold-400/80 bg-obsidian-950 flex items-center justify-center shadow-glow-gold transform rotate-45 shrink-0">
+                <div class="w-2.5 h-2.5 md:w-4 md:h-4 bg-gradient-to-br from-aether-light to-aether-dark rounded-sm transform -rotate-45 shadow-glow-aether"></div>
+            </div>
+            <div class="flex-1">
+                <div class="flex items-center justify-between">
+                    <h1 class="text-xl md:text-3xl font-black text-cinematic text-gold-gradient leading-none">The Forge</h1>
+                    <!-- Mobile Toggle Icon -->
+                    <svg class="md:hidden w-5 h-5 text-gold-400 transition-transform duration-500 group-[.minimized]/forge:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m6 9 6 6 6-6"/></svg>
+                </div>
+                <p class="text-[9px] md:text-[10px] uppercase tracking-[0.3em] text-white/40 font-semibold mt-1">Aether Studio v4</p>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs (Hidden on mobile, use bottom nav instead) -->
+        <div class="px-4 md:px-8 mb-4 hidden md:block">
+            <div class="glass-light p-1.5 rounded-xl flex items-center justify-between pointer-events-auto border border-white/40 overflow-hidden shadow-sm">
+                <!-- Data-view attributes bind to our Router.js -->
+                <button data-view="history" class="nav-pill active flex-1 text-center">Vault</button>
+                <button data-view="discovery" class="nav-pill flex-1 text-center">Global</button>
+                <button data-view="feed" class="nav-pill flex-1 text-center">Feed</button>
+            </div>
+        </div>
+
+        <!-- Main Controls Area -->
+        <div id="forgeControls" class="flex-1 overflow-y-auto px-8 space-y-7 pb-32 md:pb-8 relative z-10 custom-scrollbar">
+            <!-- The Incantation (Prompt Input) -->
+            <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-aether-light shadow-glow-aether"></span>
+                        <label class="text-[10px] font-bold uppercase tracking-[0.2em] text-parchment-300">The Incantation</label>
+                    </div>
+                </div>
+                <div class="relative group">
+                    <textarea id="promptInput" 
+                        class="rpg-input w-full min-h-[120px] p-5 text-sm leading-relaxed"
+                        placeholder="Speak your vision into the void..."></textarea>
+                </div>
+            </div>
+
+            <!-- Ornate Divider -->
+            <div class="ornate-divider w-full h-px bg-gradient-to-r from-transparent via-gold-400/30 to-transparent relative my-8"></div>
+
+            <!-- Wards (Negative Prompt) -->
+            <div class="space-y-3">
+                <label class="text-[10px] font-bold uppercase tracking-[0.2em] text-parchment-300 flex items-center gap-2">
+                    <span class="w-1.5 h-1.5 rounded-full bg-red-500/60 shadow-[0_0_8px_rgba(239,68,68,0.4)]"></span>
+                    Wards (Exclusions)
+                </label>
+                <textarea id="negativePromptInput" 
+                    class="rpg-input w-full min-h-[80px] p-4 text-[13px]"
+                    placeholder="Elements to banish (e.g. low quality, bad anatomy)..."></textarea>
+            </div>
+
+            <div class="ornate-divider w-full h-px bg-gradient-to-r from-transparent via-gold-400/30 to-transparent relative my-8"></div>
+
+            <div class="grid grid-cols-1 gap-8">
+                <!-- Dimensional Realm (Model Selection) -->
+                <div class="space-y-3">
+                    <label class="text-[10px] font-bold uppercase tracking-[0.2em] text-parchment-300">Dimensional Realm</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button data-mode="day" class="h-12 text-[10px] font-bold uppercase tracking-widest rounded-xl border border-gold-400/20 bg-black/40 transition-all hover:bg-gold-400/10 active">Day Realm</button>
+                        <button data-mode="star" class="h-12 text-[10px] font-bold uppercase tracking-widest rounded-xl border border-gold-400/20 bg-black/40 transition-all hover:bg-gold-400/10">Star Realm</button>
+                    </div>
+                </div>
+
+                <!-- Casting Engine (Style/Sampler) -->
+                <div class="space-y-3">
+                    <label class="text-[10px] font-bold uppercase tracking-[0.2em] text-parchment-300">Casting Engine</label>
+                    <div class="relative">
+                        <select id="engine" class="rpg-input w-full h-12 px-4 appearance-none text-sm font-semibold cursor-pointer">
+                            <option value="ani" selected>Ani</option>
+                            <option value="cinematic">Cinematic</option>
+                            <option value="fantasy">Fantasy</option>
+                        </select>
+                        <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gold-400">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Manifestation Stats -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-3">
+                        <label class="text-[10px] font-bold uppercase tracking-[0.2em] text-parchment-300">Images</label>
+                        <div class="relative">
+                            <select id="batchSize" class="rpg-input w-full h-12 px-4 appearance-none text-sm font-semibold cursor-pointer">
+                                <option value="1">1 Manifestation</option>
+                                <option value="4" selected>4 Manifestations</option>
+                                <option value="8">8 Manifestations</option>
+                            </select>
+                            <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gold-400"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg></div>
+                        </div>
+                    </div>
+                    <div class="space-y-3">
+                        <label class="text-[10px] font-bold uppercase tracking-[0.2em] text-parchment-300">Quality</label>
+                        <div class="relative">
+                            <select id="quality" class="rpg-input w-full h-12 px-4 appearance-none text-sm font-semibold cursor-pointer">
+                                <option value="standard">Standard</option>
+                                <option value="hd" selected>High-Res</option>
+                            </select>
+                            <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gold-400"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Matrix Gallery Container -->
+            <div id="matrixGallery" class="grid-cols-2 gap-4 mt-8 hidden"></div>
+        </div>
+
+        <!-- Bottom Action -->
+        <div class="BottomAction p-6 md:p-8 bg-obsidian-950/90 backdrop-blur-xl border-t border-gold-400/20 absolute md:relative bottom-0 w-full z-30 shadow-[0_-10px_30px_rgba(0,0,0,0.5)] transition-opacity duration-300">
+            <button id="generateBtn" data-action="runGeneration" class="btn-manifest w-full h-14 flex items-center justify-center gap-3">
+                <span id="btnText" class="btn-text flex items-center gap-2">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48 2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48 2.83-2.83"/></svg>
+                    Manifest Vision
+                </span>
+                <div id="btnLoader" class="loader-rune"></div>
+            </button>
+            <button id="matrixBtn" data-action="runMatrixCast" class="mt-4 w-full py-3 bg-black/40 hover:bg-gold-400/10 border border-gold-400/20 text-gold-400/70 hover:text-gold-400 text-[10px] font-bold uppercase tracking-[0.2em] transition-all rounded-xl flex items-center justify-center gap-2">
+                <span id="btnMatrixText">Matrix Cast (All Models)</span>
+                <div id="btnMatrixLoader" class="loader-rune !w-4 !h-4 hidden"></div>
+            </button>
+            <div id="matrixControls" class="hidden flex justify-between mt-3 px-2">
+                <span id="matrixStatusText" class="text-[10px] font-bold text-gold-400 uppercase tracking-widest animate-pulse">Initializing...</span>
+            </div>
+        </div>
+    </aside>
+
+
 
   <!-- MOBILE BOTTOM NAV -->
   <nav class="md:hidden fixed bottom-0 left-0 w-full h-16 bg-obsidian-950/95 backdrop-blur-xl border-t border-gold-400/20 z-[110] flex items-center justify-around px-4 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
@@ -557,7 +697,7 @@
     </main>
 
     <!-- COMPONENTS: LIGHTBOX MODAL -->
-    <div id="bubbleReveal" class="fixed inset-0 z-[100] bg-obsidian-950/90 backdrop-blur-xl hidden opacity-0 transition-opacity duration-400 flex items-center justify-center p-4 md:p-8" data-action="closeLightbox">
+    <div id="bubbleReveal" class="fixed inset-0 z-[100] bg-obsidian-950/80 backdrop-blur-2xl hidden opacity-0 transition-opacity duration-400 flex items-center justify-center p-4 md:p-8" data-action="closeLightbox">
         <button data-action="closeLightbox" class="absolute top-6 right-6 text-white/50 hover:text-gold-400 bg-white/5 w-12 h-12 rounded-full flex items-center justify-center transition-all z-[150] border border-white/10 hover:border-gold-400/50 hover:scale-110">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
@@ -636,5 +776,7 @@
         }
         animate();
     </script>
+    <!-- CONSOLE BACKDROP (Subsequent sibling for CSS logic) -->
+    <div id="consoleBackdrop" class="fixed inset-0 bg-black/40 z-[90] opacity-0 pointer-events-none transition-all duration-500"></div>
 </body>
 </html>
