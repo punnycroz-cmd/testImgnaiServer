@@ -17,7 +17,12 @@ export function createApiClient(state) {
    * @returns {Promise<*>} parsed JSON response, or null for 304
    */
   async function apiFetch(path, opts = {}) {
-    const serverUrl = state.get('app.serverUrl');
+    let serverUrl = state.get('app.serverUrl') || 'https://f70cef08-b1c6-4363-88e3-774e02123f6e-00-1btn7n40xrnba.kirk.replit.dev';
+    
+    // Safety: If it's still pointing to pages.dev, force the Replit URL
+    if (serverUrl.includes('pages.dev')) {
+      serverUrl = 'https://f70cef08-b1c6-4363-88e3-774e02123f6e-00-1btn7n40xrnba.kirk.replit.dev';
+    }
     
     if (!serverUrl || serverUrl.startsWith('file://')) {
       console.warn('Invalid server URL or file:// protocol. Skipping fetch:', path);
