@@ -147,12 +147,8 @@ export function createVaultView(state, api, toast, openHistoryGroup) {
         const card = createBatchCard(entry);
         const matches = filter === 'all' || (entry.realm || 'day') === filter;
         if (!matches) { card.style.display = 'none'; }
-        else { card.style.opacity = '0'; card.style.transform = 'translateY(10px)'; }
         list.appendChild(card);
         console.log(`[Vault] Appended card for ${entry.request_id}`);
-        if (matches) {
-          requestAnimationFrame(() => { card.style.transition = 'all 0.6s ease'; card.style.opacity = '1'; card.style.transform = 'translateY(0)'; });
-        }
       }
 
       if (items.length > 0) state.set('vault.cursor', items[items.length - 1].image_id_seq);

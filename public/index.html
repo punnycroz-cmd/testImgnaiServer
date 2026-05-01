@@ -78,10 +78,10 @@
             --bg-pattern: radial-gradient(#d5c6b3 1.5px, transparent 0);
         }
         body {
-            background-color: #F6EFE5;
-            background-image: var(--bg-pattern);
-            background-size: 24px 24px;
-            color: #2D2823;
+            background-color: #08080a;
+            background-image: radial-gradient(rgba(207, 169, 114, 0.05) 1.5px, transparent 0);
+            background-size: 32px 32px;
+            color: #E8DCC8;
             overflow: hidden; /* Main app handles its own scrolling */
             -webkit-font-smoothing: antialiased;
         }
@@ -439,13 +439,13 @@
     <!-- RIGHT PANEL: CONTENT AREA (Vault, Discovery, Feed) -->
     <main class="flex-1 h-[50vh] md:h-screen flex flex-col relative z-20">
         <!-- Top Toolbar -->
-        <header class="p-6 md:p-10 flex justify-between items-start z-30 sticky top-0 bg-gradient-to-b from-parchment-200 via-parchment-200/80 to-transparent pointer-events-none">
+        <header class="p-6 md:p-10 flex justify-between items-start z-30 sticky top-0 bg-gradient-to-b from-obsidian-950 via-obsidian-950/80 to-transparent pointer-events-none">
             <div class="pointer-events-auto">
-                <h2 id="viewTitle" class="text-4xl md:text-5xl font-black text-cinematic text-parchment-900 tracking-tight leading-none drop-shadow-md">
+                <h2 id="viewTitle" class="text-4xl md:text-5xl font-black text-cinematic text-parchment-100 tracking-tight leading-none drop-shadow-2xl">
                     Your <span class="italic text-gold-500">Grimoire</span>
                 </h2>
-                <p id="viewSubtitle" class="text-parchment-900/60 font-bold uppercase tracking-[0.2em] text-[10px] mt-2 ml-1">Aether Studio Private Vault</p>
-                <div class="status-pill text-xs mt-2 text-parchment-800" id="backendStatus">Checking backend...</div>
+                <p id="viewSubtitle" class="text-parchment-100/40 font-bold uppercase tracking-[0.2em] text-[10px] mt-2 ml-1">Aether Studio Private Vault</p>
+                <div class="status-pill text-xs mt-2 text-parchment-100/60" id="backendStatus">Checking backend...</div>
             </div>
             
             <div class="pointer-events-auto flex items-center gap-4">
