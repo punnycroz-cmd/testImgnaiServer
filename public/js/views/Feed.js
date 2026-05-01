@@ -84,7 +84,7 @@ export function createFeedView(state, api, toast) {
     if (!btn) return null;
     const obs = new IntersectionObserver((entries) => {
       if (entries[0].isIntersecting && !state.get('feed.loading') && state.get('feed.hasMore')) loadPage();
-    }, { root: document.querySelector('main'), rootMargin: '300px', threshold: 0.1 });
+    }, { root: document.getElementById('mainScrollArea'), rootMargin: '300px', threshold: 0.1 });
     obs.observe(btn);
     return obs;
   }

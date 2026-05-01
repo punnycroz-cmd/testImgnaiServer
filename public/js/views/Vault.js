@@ -149,6 +149,7 @@ export function createVaultView(state, api, toast, openHistoryGroup) {
         if (!matches) { card.style.display = 'none'; }
         else { card.style.opacity = '0'; card.style.transform = 'translateY(10px)'; }
         list.appendChild(card);
+        console.log(`[Vault] Appended card for ${entry.request_id}`);
         if (matches) {
           requestAnimationFrame(() => { card.style.transition = 'all 0.6s ease'; card.style.opacity = '1'; card.style.transform = 'translateY(0)'; });
         }
@@ -171,7 +172,7 @@ export function createVaultView(state, api, toast, openHistoryGroup) {
 
   async function render(reset = false) {
     const list = dom.list();
-    if (!list || document.getElementById('view-history').classList.contains('hidden')) return;
+    if (!list) return;
     if (state.get('vault.loaded') && !reset && list.innerHTML !== '') return;
     state.set('vault.loaded', true);
     state.set('vault.cursor', null);
@@ -221,7 +222,7 @@ export function createVaultView(state, api, toast, openHistoryGroup) {
     if (!btn) return null;
     const obs = new IntersectionObserver((entries) => {
       if (entries[0].isIntersecting && !state.get('vault.loading') && state.get('vault.hasMore')) loadPage();
-    }, { root: document.querySelector('main'), rootMargin: '300px', threshold: 0.1 });
+    }, { root: document.getElementById('mainScrollArea'), rootMargin: '300px', threshold: 0.1 });
     obs.observe(btn);
     return obs;
   }

@@ -53,7 +53,7 @@ export function createDiscoveryView(state, api, toast, createBatchCard) {
       if (entries[0].isIntersecting && !state.get('discovery.loading') && state.get('discovery.hasMore')) {
         loadPage();
       }
-    }, { root: document.querySelector('main'), rootMargin: '300px', threshold: 0.1 });
+    }, { root: document.getElementById('mainScrollArea'), rootMargin: '300px', threshold: 0.1 });
     obs.observe(btn);
     return obs;
   }

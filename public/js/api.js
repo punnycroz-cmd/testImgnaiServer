@@ -52,26 +52,7 @@ export function createApiClient(state) {
         if (match) fetchOpts.headers['X-Include-Hidden'] = match[1];
       }
 
-      // ETag support
-      const etagCache = state.get('app.etagCache') || {};
-      const etag = etagCache[finalUrl];
-      if (etag) fetchOpts.headers['If-None-Match'] = etag;
-
       const resp = await fetch(finalUrl, fetchOpts);
-
-      // Save new ETag
-      const newEtag = resp.headers.get('ETag');
-      if (newEtag) {
-        etagCache[finalUrl] = newEtag;
-        state.set('app.etagCache', etagCache);
-      }
-
-      // 304 Not Modified
-      if (resp.status === 304) {
-        console.log(`[Cache] ${finalUrl} has not changed.`);
-        return null;
-      }
-
       const text = await resp.text();
       let data = null;
       try { data = text ? JSON.parse(text) : null; } catch { data = { raw: text }; }
