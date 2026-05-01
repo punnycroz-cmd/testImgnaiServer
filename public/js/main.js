@@ -39,6 +39,11 @@ function setView(v, pushState = true) {
   document.querySelectorAll('.view').forEach(el => { el.classList.remove('active'); });
   const viewEl = document.getElementById(`view-${v}`);
   if (viewEl) { void viewEl.offsetWidth; viewEl.classList.add('active'); }
+  
+  // Auto-minimize forge on mobile when switching views
+  const sidebar = document.getElementById('forgeSidebar');
+  if (window.innerWidth < 768 && sidebar) sidebar.classList.add('minimized');
+
   document.querySelectorAll('[data-view]').forEach(b => {
     const match = b.dataset.view === v;
     b.classList.toggle('active', match);
@@ -118,8 +123,14 @@ window.Studio = {
   state, api, toast, forge, vault, discovery, feed, lightbox, auth,
   setView, toggleConsole, openConfirm, closeConfirm, checkBackend,
   // Direct action proxies
-  runGeneration: () => forge.runGeneration(handleSuccess),
-  runMatrixCast: () => forge.runMatrixCast(),
+  runGeneration: () => {
+    if (window.innerWidth < 768) document.getElementById('forgeSidebar')?.classList.add('minimized');
+    forge.runGeneration(handleSuccess);
+  },
+  runMatrixCast: () => {
+    if (window.innerWidth < 768) document.getElementById('forgeSidebar')?.classList.add('minimized');
+    forge.runMatrixCast();
+  },
   rollOracle: forge.rollOracle,
   clearPrompt: forge.clearPrompt,
   pastePrompt: forge.pastePrompt,
@@ -235,6 +246,17 @@ try {
   // Mode toggles
   document.querySelectorAll('[data-mode]').forEach(btn =>
     btn.addEventListener('click', () => forge.applyMode(btn.dataset.mode)));
+
+  // Mobile Forge Toggle
+  const forgeSidebar = document.getElementById('forgeSidebar');
+  const forgeToggle = document.getElementById('mobileForgeToggle');
+  if (forgeSidebar && forgeToggle) {
+    forgeToggle.addEventListener('click', () => {
+      forgeSidebar.classList.toggle('minimized');
+    });
+    // Start minimized on very small screens
+    if (window.innerWidth < 768) forgeSidebar.classList.add('minimized');
+  }
 
   console.log('✨ Aether Studio initialized');
 } catch (e) {

@@ -208,6 +208,20 @@
         .view-section.active { display: block; animation: fadeUp 0.5s var(--tw-transition-timing-function-spring) forwards; }
         @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
+        /* Bubble Reveal (Lightbox) visibility */
+        #bubbleReveal.active { opacity: 1; z-index: 1000; }
+        #bubbleReveal.active > div { transform: scale(1); }
+        #bubbleReveal:not(.active) > div { transform: scale(0.95); }
+
+        /* Mobile Forge Transitions */
+        @media (max-width: 767px) {
+            #forgeSidebar.minimized { height: 64px; overflow: hidden; transform: translateY(0); }
+            #forgeSidebar.minimized #mobileForgeToggle { top: 10px; right: 20px; left: auto; transform: none; border-radius: 8px; border: 1px solid rgba(212,175,55,0.2); }
+            #forgeSidebar.minimized #mobileForgeToggle span { transform: rotate(180deg); }
+            #forgeSidebar.minimized #forgeControls, 
+            #forgeSidebar.minimized .ornate-divider { opacity: 0; pointer-events: none; }
+        }
+
         /* --- EFFECTS & ANIMATIONS --- */
         .animate-float { animation: float 8s ease-in-out infinite; }
         .animate-float-delayed { animation: float 9s ease-in-out infinite 2s; }
@@ -274,8 +288,13 @@
         <svg width="400" height="400" viewBox="0 0 200 200" fill="none"><path d="M45.7 75.8C35.2 65.3 45.1 42.1 63.4 42.1C68.6 42.1 72.8 44.5 76.5 47.9C83.2 27.8 103.5 15.6 122.9 15.6C145.4 15.6 161.4 34.6 161.4 57.1C161.4 58.2 161.3 59.3 161.2 60.4C172.9 64.2 181.4 75.3 181.4 88.6C181.4 103.8 168.9 116.1 153.6 116.1H40.7C19.7 116.1 2.7 99.1 2.7 78.1C2.7 61.4 14.3 47.3 30.2 43.6C34.2 53.6 39.5 64.6 45.7 75.8Z" fill="#E8DCC8" filter="blur(20px)"/></svg>
     </div>
 
-    <!-- LEFT PANEL: THE FORGE (Controls) -->
-    <aside class="panel-obsidian w-full md:w-[400px] lg:w-[440px] xl:w-[480px] h-[45vh] md:h-screen flex flex-col z-30 border-r border-gold-400/20 flex-shrink-0 relative">
+    <!-- LEFT PANEL: THE FORGE (Controls) — Now a Floating Console on Mobile -->
+    <aside id="forgeSidebar" class="panel-obsidian w-full md:w-[400px] lg:w-[440px] xl:w-[480px] fixed md:relative bottom-0 left-0 h-[85vh] md:h-screen flex flex-col z-[100] md:z-30 border-t md:border-t-0 md:border-r border-gold-400/20 flex-shrink-0 transition-all duration-500 ease-in-out group/forge shadow-[0_-20px_50px_rgba(0,0,0,0.8)] md:shadow-none">
+        <!-- Mobile Toggle Handle -->
+        <button id="mobileForgeToggle" class="md:hidden absolute -top-10 left-1/2 -translate-x-1/2 bg-gold-400/20 backdrop-blur-md border border-gold-400/30 px-6 py-1.5 rounded-t-xl text-gold-400/80 text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 hover:bg-gold-400/30 transition-all">
+            <span id="toggleIcon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m18 15-6-6-6 6"/></svg></span>
+            Console
+        </button>
         <!-- Ornate SVG Corners -->
         <svg class="absolute top-0 left-0 w-12 h-12 text-gold-400/50 pointer-events-none" viewBox="0 0 48 48" fill="none"><path d="M0 0H48V1H1V48H0V0Z" fill="currentColor"/><path d="M6 6H12V7H7V12H6V6Z" fill="currentColor"/></svg>
         <svg class="absolute top-0 right-0 w-12 h-12 text-gold-400/50 pointer-events-none transform rotate-90" viewBox="0 0 48 48" fill="none"><path d="M0 0H48V1H1V48H0V0Z" fill="currentColor"/><path d="M6 6H12V7H7V12H6V6Z" fill="currentColor"/></svg>
@@ -437,7 +456,7 @@
     </aside>
 
     <!-- RIGHT PANEL: CONTENT AREA (Vault, Discovery, Feed) -->
-    <main class="flex-1 h-[55vh] md:h-screen flex flex-col relative z-20">
+    <main class="flex-1 h-screen flex flex-col relative z-20">
         <!-- Top Toolbar -->
         <header class="p-4 md:p-10 flex justify-between items-start z-30 sticky top-0 bg-gradient-to-b from-obsidian-950 via-obsidian-950/80 to-transparent pointer-events-none">
             <div class="pointer-events-auto">
