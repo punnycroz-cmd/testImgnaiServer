@@ -286,7 +286,7 @@
         <svg class="absolute top-0 right-0 w-12 h-12 text-gold-400/50 pointer-events-none transform rotate-90" viewBox="0 0 48 48" fill="none"><path d="M0 0H48V1H1V48H0V0Z" fill="currentColor"/><path d="M6 6H12V7H7V12H6V6Z" fill="currentColor"/></svg>
 
         <!-- Brand Header -->
-        <div class="p-6 md:p-8 pb-4 flex items-center gap-4 relative z-10">
+        <div class="p-4 md:p-8 pb-4 flex items-center gap-4 relative z-10">
             <div class="w-10 h-10 md:w-12 md:h-12 border border-gold-400/80 bg-obsidian-950 flex items-center justify-center shadow-glow-gold transform rotate-45">
                 <div class="w-3 h-3 md:w-4 md:h-4 bg-gradient-to-br from-aether-light to-aether-dark rounded-sm transform -rotate-45 shadow-glow-aether"></div>
             </div>
@@ -297,7 +297,7 @@
         </div>
 
         <!-- Navigation Tabs -->
-        <div class="px-8 mb-4">
+        <div class="px-4 md:px-8 mb-4">
             <div class="glass-light p-1.5 rounded-xl flex items-center justify-between pointer-events-auto border border-white/40 overflow-hidden shadow-sm">
                 <!-- Data-view attributes bind to our Router.js -->
                 <button data-view="history" class="nav-pill active flex-1 text-center">Vault</button>
@@ -307,7 +307,7 @@
         </div>
 
         <!-- Forge Scrollable Controls -->
-        <div id="forgeControls" class="flex-1 overflow-y-auto px-8 space-y-7 pb-32 md:pb-8 relative z-10 custom-scrollbar">
+        <div id="forgeControls" class="flex-1 overflow-y-auto px-4 md:px-8 space-y-4 md:space-y-7 pb-32 md:pb-8 relative z-10 custom-scrollbar">
             <div class="ornate-divider"></div>
 
             <!-- Incantation (Prompt) -->
@@ -318,7 +318,7 @@
                         The Incantation
                     </label>
                 </div>
-                <textarea id="prompt" rows="4" placeholder="Describe the masterpiece you wish to manifest..." class="rpg-input w-full p-4 text-[15px] font-medium leading-relaxed resize-none"></textarea>
+                <textarea id="prompt" rows="3" placeholder="Describe the masterpiece you wish to manifest..." class="rpg-input w-full p-3 md:p-4 text-sm md:text-[15px] font-medium leading-relaxed resize-none"></textarea>
             </div>
 
             <!-- Wards (Negative Prompt) -->
@@ -327,7 +327,7 @@
                     <span class="w-1.5 h-1.5 bg-red-900/80 rounded-full border border-red-500/50"></span>
                     Wards (Exclusions)
                 </label>
-                <textarea id="negativePrompt" rows="2" placeholder="Elements to banish (e.g. low quality, bad anatomy)..." class="rpg-input w-full p-4 text-sm leading-relaxed resize-none opacity-80 focus:opacity-100"></textarea>
+                <textarea id="negativePrompt" rows="1" placeholder="Elements to banish (e.g. low quality, bad anatomy)..." class="rpg-input w-full p-3 md:p-4 text-sm leading-relaxed resize-none opacity-80 focus:opacity-100"></textarea>
             </div>
 
             <div class="ornate-divider"></div>
