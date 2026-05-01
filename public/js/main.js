@@ -64,7 +64,13 @@ function setView(v, pushState = true) {
   if (mainEl) mainEl.scrollTo({ top: 0, behavior: 'smooth' });
   state.set('app.activeView', v);
 
-  // Cleanup old observers
+  // Sync Mobile Nav
+  document.querySelectorAll('.mobile-nav-item').forEach(b => {
+    const match = b.dataset.view === v;
+    b.classList.toggle('active', match);
+  });
+
+  // Trigger view-specific reloads/observers
   if (vaultObs) { vaultObs.disconnect(); vaultObs = null; }
   if (discoveryObs) { discoveryObs.disconnect(); discoveryObs = null; }
   if (feedObs) { feedObs.disconnect(); feedObs = null; }
@@ -250,10 +256,17 @@ try {
   // Mobile Forge Toggle
   const forgeSidebar = document.getElementById('forgeSidebar');
   const forgeToggle = document.getElementById('mobileForgeToggle');
+  const backdrop = document.getElementById('consoleBackdrop');
+  
   if (forgeSidebar && forgeToggle) {
     forgeToggle.addEventListener('click', () => {
       forgeSidebar.classList.toggle('minimized');
     });
+    if (backdrop) {
+      backdrop.addEventListener('click', () => {
+        forgeSidebar.classList.add('minimized');
+      });
+    }
     // Start minimized on very small screens
     if (window.innerWidth < 768) forgeSidebar.classList.add('minimized');
   }
