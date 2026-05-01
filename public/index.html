@@ -204,8 +204,8 @@
             box-shadow: var(--tw-shadow-glow-gold);
         }
 
-        .view-section { display: none; opacity: 0; animation: fadeUp 0.5s var(--tw-transition-timing-function-spring) forwards; }
-        .view-section.active { display: block; }
+        .view-section { display: none; }
+        .view-section.active { display: block; animation: fadeUp 0.5s var(--tw-transition-timing-function-spring) forwards; }
         @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
         /* --- EFFECTS & ANIMATIONS --- */
@@ -464,6 +464,7 @@
             
             <!-- VIEW: VAULT -->
             <section id="view-history" class="view view-section active min-h-full pb-12">
+                <div id="debug-box" style="width:200px;height:200px;background:pink;z-index:9999;position:absolute;top:50px;left:50px;">DEBUG VISIBLE</div>
                 <!-- Masonry Grid -->
                 <div id="historyList" class="flex flex-wrap gap-6 w-full"></div>
                 <div id="loadMoreBtn" class="h-12 w-full flex items-center justify-center mt-8 opacity-0"></div>

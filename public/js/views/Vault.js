@@ -131,12 +131,16 @@ export function createVaultView(state, api, toast, openHistoryGroup) {
       
       const url = `/history?limit=20${cursor ? `&before=${cursor}` : ''}&uid=${uid}&include_hidden=${showHidden}&_t=${Date.now()}`;
       const res = await api.apiFetch(url);
+      const list = dom.list();
+      if (!cursor) {
+        list.innerHTML = '<div style="width:100%;height:100px;background:yellow;border:5px solid black;color:black;font-size:20px;z-index:9999;">JS DOM APPEND TEST</div>';
+        state.set('vault.items', []);
+      }
       if (!res) {
         state.set('vault.loading', false);
         return;
       }
       const items = res.items || [];
-      const list = dom.list();
       const pending = state.get('forge.pendingDeletions') || new Set();
       const filter = state.get('vault.realmFilter');
 
