@@ -131,19 +131,16 @@ export function createVaultView(state, api, toast, openHistoryGroup) {
       
       const url = `/history?limit=20${cursor ? `&before=${cursor}` : ''}&uid=${uid}&include_hidden=${showHidden}&_t=${Date.now()}`;
       const res = await api.apiFetch(url);
+      const items = res.items || [];
+      const pending = state.get('forge.pendingDeletions') || new Set();
+      const filter = state.get('vault.realmFilter');
       const list = dom.list();
+
       if (!cursor) {
         list.innerHTML = '';
         state.set('vault.items', []);
         pending.clear();
       }
-      if (!res) {
-        state.set('vault.loading', false);
-        return;
-      }
-      const items = res.items || [];
-      const pending = state.get('forge.pendingDeletions') || new Set();
-      const filter = state.get('vault.realmFilter');
 
       for (const entry of items) {
         if (pending.has(entry.request_id)) continue;
