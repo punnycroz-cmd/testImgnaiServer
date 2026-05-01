@@ -3,118 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Aether Studio — Forge</title>
-    
-    <!-- Google Fonts: Playfair for Cinematic RPG headings, Outfit for clean UI data -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,600&display=swap" rel="stylesheet">
-    
-    <!-- Tailwind CSS Engine -->
+    <title>Aether Studio | AI Manifestation Engine</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Outfit', 'sans-serif'],
-                        serif: ['Playfair Display', 'serif'],
-                    },
-                    colors: {
-                        parchment: {
-                            100: '#FDFBF7',
-                            200: '#F6EFE5',
-                            300: '#E8DCC8',
-                            800: '#4A4138',
-                            900: '#2D2823'
-                        },
-                        obsidian: {
-                            950: '#08080a',
-                            900: '#141414',
-                            800: '#1F1F1F',
-                            700: '#2C2C2C'
-                        },
-                        gold: {
-                            300: '#E6C180',
-                            400: '#CFA972',
-                            500: '#A6824C',
-                            600: '#806921'
-                        },
-                        aether: '#8B5CF6'
-                    },
-                    boxShadow: {
-                        'rpg-glass': '0 25px 50px -12px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(207, 169, 114, 0.25), inset 0 0 20px rgba(207, 169, 114, 0.05)',
-                        'glow-gold': '0 0 20px rgba(207, 169, 114, 0.4)',
-                        'glow-aether': '0 0 25px rgba(139, 92, 246, 0.5)',
-                        'light-panel': '0 10px 40px -10px rgba(45, 40, 35, 0.1), inset 0 0 0 1px rgba(255,255,255,0.6)'
-                    },
-                    transitionTimingFunction: {
-                        'spring': 'cubic-bezier(0.34, 1.56, 0.64, 1)',
-                    }
-                }
-            }
-        }
-    </script>
-
-    <!-- Google Sign-In -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <script>
-      const GOOGLE_CLIENT_ID = "206665134027-80oiqn378dq1jo49lgtmaueu0p30mf9a.apps.googleusercontent.com";
-      window.__SERVER_URL__ = "__STD_URL__";
-      window.__SERVER_URL_NSFW__ = "__NSFW_URL__";
-  
-      window.handleGoogleLogin = function(response) {
-        if (window.Studio && window.Studio.auth) {
-          window.Studio.auth.handleGoogleLogin(response);
-        } else {
-          setTimeout(() => window.handleGoogleLogin(response), 100);
-        }
-      };
-    </script>
-
-    <style type="text/tailwindcss">
-        /* --- CORE ENVIRONMENT --- */
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Outfit:wght@300;400;600;800&family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
         :root {
-            --bg-pattern: radial-gradient(#d5c6b3 1.5px, transparent 0);
+            --tw-transition-timing-function-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            --tw-shadow-glow-gold: 0 0 15px rgba(207, 169, 114, 0.3);
+            --tw-shadow-glow-aether: 0 0 20px rgba(114, 169, 207, 0.4);
+            --aether-light: #72A9CF;
+            --aether-dark: #3A6D8C;
+            --gold-400: #CFA972;
+            --gold-500: #B8860B;
+            --obsidian-950: #08080a;
         }
+
         body {
-            background-color: #08080a;
-            background-image: radial-gradient(rgba(207, 169, 114, 0.05) 1.5px, transparent 0);
-            background-size: 32px 32px;
-            color: #E8DCC8;
-            overflow: hidden; /* Main app handles its own scrolling */
-            -webkit-font-smoothing: antialiased;
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--obsidian-950);
+            color: #fdfbf7;
+            overflow: hidden;
+            -webkit-tap-highlight-color: transparent;
         }
 
-        /* Clean Scrollbar */
-        ::-webkit-scrollbar { width: 4px; height: 4px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(207, 169, 114, 0.3); border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(207, 169, 114, 0.6); }
-
-        /* Typography Utilities */
-        .text-cinematic { font-family: 'Playfair Display', serif; letter-spacing: -0.02em; }
+        .text-cinematic { font-family: 'Cinzel Decorative', cursive; }
+        .panel-obsidian { background: rgba(8, 8, 10, 0.7); backdrop-filter: blur(20px); }
         .text-gold-gradient {
-            background: linear-gradient(180deg, #FFF3D8 0%, #D4AF37 100%);
+            background: linear-gradient(135deg, #FDE08B 0%, #CFA972 50%, #A6824C 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
-        /* --- GLASSMORPHISM PANELS --- */
-        .panel-obsidian {
-            background: rgba(20, 20, 22, 0.90);
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
-            box-shadow: var(--tw-shadow-rpg-glass);
-        }
-
-        /* --- FORGE INPUTS (RPG Edged) --- */
+        /* RPG UI Styling */
         .rpg-input {
             background: rgba(0, 0, 0, 0.4);
-            border: 1px solid rgba(207, 169, 114, 0.15);
-            color: #FDFBF7;
-            /* Chamfered corners for inputs */
-            clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+            border: 1px solid rgba(207, 169, 114, 0.2);
+            color: #fdfbf7;
+            border-radius: 12px;
             transition: all 0.3s var(--tw-transition-timing-function-spring);
         }
         .rpg-input:focus {
@@ -158,45 +84,25 @@
         .btn-manifest::after {
             content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
             background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
-            transform: skewX(-20deg); transition: all 0.6s ease; z-index: 2;
+            transform: skewX(-25deg); transition: all 0.7s;
         }
-        .btn-manifest:hover { transform: translateY(-3px) scale(1.02); box-shadow: var(--tw-shadow-glow-gold); }
-        .btn-manifest:hover::after { left: 200%; }
-        .btn-manifest:active { transform: translateY(1px) scale(0.98); }
-        .btn-text { position: relative; z-index: 3; }
+        .btn-manifest:hover::after { left: 150%; }
+        .btn-manifest:active { transform: scale(0.98); filter: brightness(1.2); }
 
-        /* --- ART CARDS (Gallery) --- */
-        .art-frame {
-            position: relative; overflow: hidden;
-            transition: all 0.5s var(--tw-transition-timing-function-spring);
-            cursor: pointer; box-shadow: 0 10px 30px rgba(45,40,35,0.1);
-            background: #141414;
-            /* Angled card corners */
-            clip-path: polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px);
+        /* Rune Loader */
+        .loader-rune {
+            width: 24px; height: 24px; border: 3px solid rgba(0,0,0,0.1);
+            border-top: 3px solid #08080a; border-radius: 50%;
+            animation: spin 1s linear infinite; display: none;
         }
-        .art-frame-border {
-            position: absolute; inset: 0; pointer-events: none; z-index: 10;
-            border: 2px solid #CFA972; opacity: 0; transition: opacity 0.3s ease;
-            clip-path: polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px);
-        }
-        .art-frame:hover { transform: translateY(-8px) scale(1.02); box-shadow: 0 25px 50px rgba(45,40,35,0.2); z-index: 20; }
-        .art-frame:hover .art-frame-border { opacity: 1; }
-        .art-frame img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1); }
-        .art-frame:hover img { transform: scale(1.08); filter: brightness(1.1); }
-        
-        .art-overlay {
-            background: linear-gradient(to top, rgba(8,8,10,0.95) 0%, rgba(8,8,10,0.4) 50%, transparent 100%);
-            opacity: 0; transition: opacity 0.4s ease;
-        }
-        .art-frame:hover .art-overlay { opacity: 1; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* --- ROUTER VIEWS --- */
+        /* Navigation Pills */
         .nav-pill {
-            padding: 8px 24px; border-radius: 8px; font-size: 11px; font-weight: 800;
-            text-transform: uppercase; letter-spacing: 0.15em; transition: all 0.3s ease;
-            color: rgba(232, 220, 200, 0.6); cursor: pointer; position: relative;
+            padding: 8px 16px; border-radius: 8px; font-size: 11px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.1em; color: rgba(255,255,255,0.3);
+            transition: all 0.3s; position: relative;
         }
-        .nav-pill:hover { color: #E8DCC8; }
         .nav-pill.active { color: #CFA972; }
         .nav-pill.active::after {
             content: ''; position: absolute; bottom: -4px; left: 50%; transform: translateX(-50%);
@@ -229,13 +135,12 @@
             #forgeSidebar.minimized .BrandHeader { background: rgba(207, 169, 114, 0.1); border-bottom: 1px solid rgba(207,169,114,0.1); }
             
             /* Hidden ONLY when minimized */
-            /* Hidden ONLY when minimized */
             #forgeSidebar.minimized #forgeControls, 
             #forgeSidebar.minimized .ornate-divider,
             #forgeSidebar.minimized .BottomAction { 
                 opacity: 0; pointer-events: none; visibility: hidden;
             }
-            #forgeSidebar.minimized p.uppercase { display: none; } /* Hide subtitle when closed */
+            #forgeSidebar.minimized p.uppercase { display: none; }
 
             /* Backdrop Logic */
             #forgeSidebar:not(.minimized) ~ #consoleBackdrop { 
@@ -258,29 +163,14 @@
         .animate-float-delayed { animation: float 9s ease-in-out infinite 2s; }
         @keyframes float { 0% { transform: translateY(0px) rotate(0deg); } 50% { transform: translateY(-20px) rotate(3deg); } 100% { transform: translateY(0px) rotate(0deg); } }
 
-        .loader-rune {
-            width: 24px; height: 24px; display: none; position: relative; z-index: 3;
-        }
-        .loader-rune::before, .loader-rune::after {
-            content: ''; position: absolute; inset: 0; border-radius: 50%;
-            border: 2px solid transparent; border-top-color: #08080a;
-            animation: spin 1s linear infinite;
-        }
-        .loader-rune::after { border-top-color: transparent; border-bottom-color: rgba(8,8,10,0.5); animation-direction: reverse; animation-duration: 1.5s; }
-        .is-loading .loader-rune { display: block; }
-        .is-loading .btn-text { display: none; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-        /* Toasts */
-        .toast-enter { animation: toastIn 0.4s var(--tw-transition-timing-function-spring) forwards; }
-        .toast-exit { animation: toastOut 0.3s ease-in forwards; }
-        @keyframes toastIn { from { transform: translate(-50%, -20px) scale(0.9); opacity: 0; } to { transform: translate(-50%, 0) scale(1); opacity: 1; } }
-        @keyframes toastOut { from { transform: translate(-50%, 0) scale(1); opacity: 1; } to { transform: translate(-50%, -20px) scale(0.9); opacity: 0; } }
-
-        /* Custom Ornate Dividers */
-        .ornate-divider {
-            position: relative; height: 1px; width: 100%;
-            background: linear-gradient(90deg, transparent, rgba(207, 169, 114, 0.3), transparent);
+        .glass-light { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(10px); }
+        .shadow-rpg-panel { box-shadow: 0 20px 50px rgba(0,0,0,0.8), inset 0 0 0 1px rgba(255,255,255,0.05); }
+        .shadow-glow-gold { filter: drop-shadow(0 0 12px rgba(207, 169, 114, 0.4)); }
+        .shadow-glow-aether { filter: drop-shadow(0 0 15px rgba(114, 169, 207, 0.5)); }
+        
+        .ornate-divider::before {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(90deg, transparent, rgba(207, 169, 114, 0.4), transparent);
         }
         .ornate-divider::after {
             content: '♦'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
@@ -296,18 +186,32 @@
 </head>
 <body class="flex flex-col md:flex-row h-screen w-full relative">
 
-  <!-- AUTHENTICATION OVERLAY -->
+  <!-- 1. AUTHENTICATION OVERLAY -->
   <div id="auth-overlay" class="fixed inset-0 z-[1000] flex items-center justify-center bg-obsidian-950/90 backdrop-blur-md transition-opacity duration-700 hidden">
-    <!-- Login Card... -->
+    <div class="glass-light p-12 max-w-md w-full text-center space-y-8 rounded-2xl shadow-rpg-glass border border-gold-400/20 panel-obsidian relative overflow-hidden">
+      <div class="space-y-4">
+        <h1 class="text-4xl font-black text-cinematic text-gold-gradient tracking-tighter">AETHER STUDIO</h1>
+        <p class="text-parchment-200/60 text-sm font-medium">Please sign in to access your Grimoire.</p>
+      </div>
+      <div id="g_id_onload" data-client_id="206665134027-80oiqn378dq1jo49lgtmaueu0p30mf9a.apps.googleusercontent.com" data-callback="handleGoogleLogin" data-auto_prompt="false"></div>
+      <div class="g_id_signin flex justify-center" data-type="standard" data-size="large" data-theme="outline" data-text="sign_in_with" data-shape="pill" data-logo_alignment="left"></div>
+    </div>
   </div>
 
-  <!-- LEFT PANEL: THE FORGE (Controls) — Now a Floating Console on Mobile -->
-  <aside id="forgeSidebar" class="panel-obsidian w-full md:w-[400px] lg:w-[440px] xl:w-[480px] fixed md:relative bottom-0 left-0 h-[85vh] md:h-screen flex flex-col z-[100] md:z-30 border-t md:border-t-0 md:border-r border-gold-400/20 flex-shrink-0 transition-all duration-500 ease-in-out group/forge shadow-[0_-20px_50px_rgba(0,0,0,0.8)] md:shadow-none">
-        <!-- Ornate SVG Corners -->
+  <!-- 2. AMBIENT BACKGROUNDS -->
+  <canvas id="particlesCanvas" class="fixed inset-0 z-[-1] pointer-events-none opacity-60"></canvas>
+  <div class="fixed -top-20 -left-20 opacity-40 animate-float pointer-events-none z-[-2]">
+      <svg width="400" height="400" viewBox="0 0 200 200" fill="none"><path d="M45.7 75.8C35.2 65.3 45.1 42.1 63.4 42.1C68.6 42.1 72.8 44.5 76.5 47.9C83.2 27.8 103.5 15.6 122.9 15.6C145.4 15.6 161.4 34.6 161.4 57.1C161.4 58.2 161.3 59.3 161.2 60.4C172.9 64.2 181.4 75.3 181.4 88.6C181.4 103.8 168.9 116.1 153.6 116.1H40.7C19.7 116.1 2.7 99.1 2.7 78.1C2.7 61.4 14.3 47.3 30.2 43.6C34.2 53.6 39.5 64.6 45.7 75.8Z" fill="#E8DCC8" filter="blur(20px)"/></svg>
+  </div>
+  <div class="fixed top-1/3 -right-32 opacity-30 animate-float-delayed pointer-events-none z-[-2] scale-150">
+      <svg width="400" height="400" viewBox="0 0 200 200" fill="none"><path d="M45.7 75.8C35.2 65.3 45.1 42.1 63.4 42.1C68.6 42.1 72.8 44.5 76.5 47.9C83.2 27.8 103.5 15.6 122.9 15.6C145.4 15.6 161.4 34.6 161.4 57.1C161.4 58.2 161.3 59.3 161.2 60.4C172.9 64.2 181.4 75.3 181.4 88.6C181.4 103.8 168.9 116.1 153.6 116.1H40.7C19.7 116.1 2.7 99.1 2.7 78.1C2.7 61.4 14.3 47.3 30.2 43.6C34.2 53.6 39.5 64.6 45.7 75.8Z" fill="#E8DCC8" filter="blur(20px)"/></svg>
+  </div>
+
+  <!-- 3. THE FORGE (Aside) -->
+  <aside id="forgeSidebar" class="panel-obsidian w-full md:w-[400px] lg:w-[440px] xl:w-[480px] fixed md:relative bottom-0 left-0 h-[85vh] md:h-screen flex flex-col z-[100] md:z-30 border-t md:border-t-0 md:border-r border-gold-400/20 flex-shrink-0 transition-all duration-500 ease-in-out group/forge shadow-[0_-20px_50px_rgba(0,0,0,0.8)] md:shadow-none minimized">
         <svg class="absolute top-0 left-0 w-12 h-12 text-gold-400/50 pointer-events-none" viewBox="0 0 48 48" fill="none"><path d="M0 0H48V1H1V48H0V0Z" fill="currentColor"/><path d="M6 6H12V7H7V12H6V6Z" fill="currentColor"/></svg>
         <svg class="absolute top-0 right-0 w-12 h-12 text-gold-400/50 pointer-events-none transform rotate-90" viewBox="0 0 48 48" fill="none"><path d="M0 0H48V1H1V48H0V0Z" fill="currentColor"/><path d="M6 6H12V7H7V12H6V6Z" fill="currentColor"/></svg>
  
-        <!-- Brand Header (Acts as Mobile Handle) -->
         <div class="BrandHeader p-4 md:p-8 pb-4 flex items-center gap-4 relative z-10 transition-all duration-300">
             <div class="w-8 h-8 md:w-12 md:h-12 border border-gold-400/80 bg-obsidian-950 flex items-center justify-center shadow-glow-gold transform rotate-45 shrink-0">
                 <div class="w-2.5 h-2.5 md:w-4 md:h-4 bg-gradient-to-br from-aether-light to-aether-dark rounded-sm transform -rotate-45 shadow-glow-aether"></div>
@@ -315,133 +219,78 @@
             <div class="flex-1">
                 <div class="flex items-center justify-between">
                     <h1 class="text-xl md:text-3xl font-black text-cinematic text-gold-gradient leading-none">The Forge</h1>
-                    <!-- Mobile Toggle Icon -->
                     <svg class="md:hidden w-5 h-5 text-gold-400 transition-transform duration-500 group-[.minimized]/forge:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m6 9 6 6 6-6"/></svg>
                 </div>
                 <p class="text-[9px] md:text-[10px] uppercase tracking-[0.3em] text-white/40 font-semibold mt-1">Aether Studio v4</p>
             </div>
         </div>
 
-        <!-- Navigation Tabs (Hidden on mobile, use bottom nav instead) -->
         <div class="px-4 md:px-8 mb-4 hidden md:block">
             <div class="glass-light p-1.5 rounded-xl flex items-center justify-between pointer-events-auto border border-white/40 overflow-hidden shadow-sm">
-                <!-- Data-view attributes bind to our Router.js -->
                 <button data-view="history" class="nav-pill active flex-1 text-center">Vault</button>
                 <button data-view="discovery" class="nav-pill flex-1 text-center">Global</button>
                 <button data-view="feed" class="nav-pill flex-1 text-center">Feed</button>
             </div>
         </div>
 
-        <!-- Main Controls Area -->
         <div id="forgeControls" class="flex-1 overflow-y-auto px-8 space-y-7 pb-32 md:pb-8 relative z-10 custom-scrollbar">
-            <!-- The Incantation (Prompt Input) -->
             <div class="space-y-3">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                        <span class="w-1.5 h-1.5 rounded-full bg-aether-light shadow-glow-aether"></span>
-                        <label class="text-[10px] font-bold uppercase tracking-[0.2em] text-parchment-300">The Incantation</label>
-                    </div>
-                </div>
-                <div class="relative group">
-                    <textarea id="promptInput" 
-                        class="rpg-input w-full min-h-[120px] p-5 text-sm leading-relaxed"
-                        placeholder="Speak your vision into the void..."></textarea>
-                </div>
+                <label class="text-[10px] font-bold uppercase tracking-[0.2em] text-parchment-300 flex items-center gap-2">
+                    <span class="w-1.5 h-1.5 rounded-full bg-aether-light shadow-glow-aether"></span>
+                    The Incantation
+                </label>
+                <textarea id="promptInput" class="rpg-input w-full min-h-[120px] p-5 text-sm leading-relaxed" placeholder="Speak your vision into the void..."></textarea>
             </div>
-
-            <!-- Ornate Divider -->
             <div class="ornate-divider w-full h-px bg-gradient-to-r from-transparent via-gold-400/30 to-transparent relative my-8"></div>
-
-            <!-- Wards (Negative Prompt) -->
             <div class="space-y-3">
                 <label class="text-[10px] font-bold uppercase tracking-[0.2em] text-parchment-300 flex items-center gap-2">
                     <span class="w-1.5 h-1.5 rounded-full bg-red-500/60 shadow-[0_0_8px_rgba(239,68,68,0.4)]"></span>
-                    Wards (Exclusions)
+                    Wards
                 </label>
-                <textarea id="negativePromptInput" 
-                    class="rpg-input w-full min-h-[80px] p-4 text-[13px]"
-                    placeholder="Elements to banish (e.g. low quality, bad anatomy)..."></textarea>
+                <textarea id="negativePromptInput" class="rpg-input w-full min-h-[80px] p-4 text-[13px]" placeholder="Elements to banish..."></textarea>
             </div>
-
-            <div class="ornate-divider w-full h-px bg-gradient-to-r from-transparent via-gold-400/30 to-transparent relative my-8"></div>
-
             <div class="grid grid-cols-1 gap-8">
-                <!-- Dimensional Realm (Model Selection) -->
                 <div class="space-y-3">
-                    <label class="text-[10px] font-bold uppercase tracking-[0.2em] text-parchment-300">Dimensional Realm</label>
+                    <label class="text-[10px] font-bold uppercase tracking-[0.2em] text-parchment-300">Realm</label>
                     <div class="grid grid-cols-2 gap-2">
-                        <button data-mode="day" class="h-12 text-[10px] font-bold uppercase tracking-widest rounded-xl border border-gold-400/20 bg-black/40 transition-all hover:bg-gold-400/10 active">Day Realm</button>
-                        <button data-mode="star" class="h-12 text-[10px] font-bold uppercase tracking-widest rounded-xl border border-gold-400/20 bg-black/40 transition-all hover:bg-gold-400/10">Star Realm</button>
+                        <button data-mode="day" class="h-12 text-[10px] font-bold uppercase tracking-widest rounded-xl border border-gold-400/20 bg-black/40 hover:bg-gold-400/10 active">Day</button>
+                        <button data-mode="star" class="h-12 text-[10px] font-bold uppercase tracking-widest rounded-xl border border-gold-400/20 bg-black/40 hover:bg-gold-400/10">Star</button>
                     </div>
                 </div>
-
-                <!-- Casting Engine (Style/Sampler) -->
                 <div class="space-y-3">
-                    <label class="text-[10px] font-bold uppercase tracking-[0.2em] text-parchment-300">Casting Engine</label>
+                    <label class="text-[10px] font-bold uppercase tracking-[0.2em] text-parchment-300">Engine</label>
                     <div class="relative">
                         <select id="engine" class="rpg-input w-full h-12 px-4 appearance-none text-sm font-semibold cursor-pointer">
                             <option value="ani" selected>Ani</option>
                             <option value="cinematic">Cinematic</option>
-                            <option value="fantasy">Fantasy</option>
                         </select>
-                        <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gold-400">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
-                        </div>
+                        <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gold-400"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg></div>
                     </div>
                 </div>
-
-                <!-- Manifestation Stats -->
                 <div class="grid grid-cols-2 gap-4">
-                    <div class="space-y-3">
-                        <label class="text-[10px] font-bold uppercase tracking-[0.2em] text-parchment-300">Images</label>
-                        <div class="relative">
-                            <select id="batchSize" class="rpg-input w-full h-12 px-4 appearance-none text-sm font-semibold cursor-pointer">
-                                <option value="1">1 Manifestation</option>
-                                <option value="4" selected>4 Manifestations</option>
-                                <option value="8">8 Manifestations</option>
-                            </select>
-                            <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gold-400"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg></div>
-                        </div>
+                    <div class="space-y-3"><label class="text-[10px] font-bold uppercase tracking-[0.2em] text-parchment-300">Count</label>
+                        <select id="batchSize" class="rpg-input w-full h-12 px-4 appearance-none text-sm cursor-pointer"><option value="1">1</option><option value="4" selected>4</option></select>
                     </div>
-                    <div class="space-y-3">
-                        <label class="text-[10px] font-bold uppercase tracking-[0.2em] text-parchment-300">Quality</label>
-                        <div class="relative">
-                            <select id="quality" class="rpg-input w-full h-12 px-4 appearance-none text-sm font-semibold cursor-pointer">
-                                <option value="standard">Standard</option>
-                                <option value="hd" selected>High-Res</option>
-                            </select>
-                            <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gold-400"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg></div>
-                        </div>
+                    <div class="space-y-3"><label class="text-[10px] font-bold uppercase tracking-[0.2em] text-parchment-300">Quality</label>
+                        <select id="quality" class="rpg-input w-full h-12 px-4 appearance-none text-sm cursor-pointer"><option value="standard">Std</option><option value="hd" selected>HD</option></select>
                     </div>
                 </div>
             </div>
-            <!-- Matrix Gallery Container -->
-            <div id="matrixGallery" class="grid-cols-2 gap-4 mt-8 hidden"></div>
+            <div id="matrixGallery" class="grid grid-cols-2 gap-4 mt-8 hidden"></div>
         </div>
 
-        <!-- Bottom Action -->
         <div class="BottomAction p-6 md:p-8 bg-obsidian-950/90 backdrop-blur-xl border-t border-gold-400/20 absolute md:relative bottom-0 w-full z-30 shadow-[0_-10px_30px_rgba(0,0,0,0.5)] transition-opacity duration-300">
             <button id="generateBtn" data-action="runGeneration" class="btn-manifest w-full h-14 flex items-center justify-center gap-3">
-                <span id="btnText" class="btn-text flex items-center gap-2">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48 2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48 2.83-2.83"/></svg>
-                    Manifest Vision
-                </span>
+                <span id="btnText" class="flex items-center gap-2">Manifest Vision</span>
                 <div id="btnLoader" class="loader-rune"></div>
             </button>
-            <button id="matrixBtn" data-action="runMatrixCast" class="mt-4 w-full py-3 bg-black/40 hover:bg-gold-400/10 border border-gold-400/20 text-gold-400/70 hover:text-gold-400 text-[10px] font-bold uppercase tracking-[0.2em] transition-all rounded-xl flex items-center justify-center gap-2">
-                <span id="btnMatrixText">Matrix Cast (All Models)</span>
-                <div id="btnMatrixLoader" class="loader-rune !w-4 !h-4 hidden"></div>
-            </button>
-            <div id="matrixControls" class="hidden flex justify-between mt-3 px-2">
-                <span id="matrixStatusText" class="text-[10px] font-bold text-gold-400 uppercase tracking-widest animate-pulse">Initializing...</span>
-            </div>
+            <button id="matrixBtn" data-action="runMatrixCast" class="mt-4 w-full py-3 bg-black/40 border border-gold-400/20 text-gold-400/70 text-[10px] font-bold uppercase rounded-xl">Matrix Cast</button>
+            <div id="matrixControls" class="hidden flex justify-between mt-3"><span id="matrixStatusText" class="text-[10px] font-bold text-gold-400 animate-pulse">Initializing...</span></div>
         </div>
-    </aside>
+  </aside>
 
-
-
-  <!-- MOBILE BOTTOM NAV -->
-  <nav class="md:hidden fixed bottom-0 left-0 w-full h-16 bg-obsidian-950/95 backdrop-blur-xl border-t border-gold-400/20 z-[110] flex items-center justify-around px-4 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
+  <!-- 4. BOTTOM NAVIGATION (Mobile) -->
+  <nav class="md:hidden fixed bottom-0 left-0 w-full h-16 bg-obsidian-950/95 backdrop-blur-xl border-t border-gold-400/20 z-[110] flex items-center justify-around px-4">
     <button data-action="setView" data-view="history" class="mobile-nav-item active flex flex-col items-center gap-1 text-white/40">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
         <span class="text-[9px] font-bold uppercase tracking-widest">Vault</span>
@@ -455,295 +304,48 @@
         <span class="text-[9px] font-bold uppercase tracking-widest">Feed</span>
     </button>
   </nav>
-    <div class="glass-light p-12 max-w-md w-full text-center space-y-8 rounded-2xl shadow-rpg-glass border border-gold-400/20 panel-obsidian relative overflow-hidden">
-      <div class="space-y-4">
-        <h1 class="text-4xl font-black text-cinematic text-gold-gradient tracking-tighter">AETHER STUDIO</h1>
-        <p class="text-parchment-200/60 text-sm font-medium">Please sign in to access your Grimoire.</p>
-      </div>
-      <div id="g_id_onload" data-client_id="206665134027-80oiqn378dq1jo49lgtmaueu0p30mf9a.apps.googleusercontent.com" data-callback="handleGoogleLogin" data-auto_prompt="false"></div>
-      <div class="g_id_signin flex justify-center" data-type="standard" data-size="large" data-theme="outline" data-text="sign_in_with" data-shape="pill" data-logo_alignment="left"></div>
-    </div>
-  </div>
 
-    <!-- SERVICES: Aether Particles System -->
-    <canvas id="particlesCanvas" class="fixed inset-0 z-[-1] pointer-events-none opacity-60"></canvas>
-
-    <!-- Ambient Painted Background Elements (Ghibli vibe) -->
-    <div class="fixed -top-20 -left-20 opacity-40 animate-float pointer-events-none z-[-2]">
-        <svg width="400" height="400" viewBox="0 0 200 200" fill="none"><path d="M45.7 75.8C35.2 65.3 45.1 42.1 63.4 42.1C68.6 42.1 72.8 44.5 76.5 47.9C83.2 27.8 103.5 15.6 122.9 15.6C145.4 15.6 161.4 34.6 161.4 57.1C161.4 58.2 161.3 59.3 161.2 60.4C172.9 64.2 181.4 75.3 181.4 88.6C181.4 103.8 168.9 116.1 153.6 116.1H40.7C19.7 116.1 2.7 99.1 2.7 78.1C2.7 61.4 14.3 47.3 30.2 43.6C34.2 53.6 39.5 64.6 45.7 75.8Z" fill="#E8DCC8" filter="blur(20px)"/></svg>
-    </div>
-    <div class="fixed top-1/3 -right-32 opacity-30 animate-float-delayed pointer-events-none z-[-2] scale-150">
-        <svg width="400" height="400" viewBox="0 0 200 200" fill="none"><path d="M45.7 75.8C35.2 65.3 45.1 42.1 63.4 42.1C68.6 42.1 72.8 44.5 76.5 47.9C83.2 27.8 103.5 15.6 122.9 15.6C145.4 15.6 161.4 34.6 161.4 57.1C161.4 58.2 161.3 59.3 161.2 60.4C172.9 64.2 181.4 75.3 181.4 88.6C181.4 103.8 168.9 116.1 153.6 116.1H40.7C19.7 116.1 2.7 99.1 2.7 78.1C2.7 61.4 14.3 47.3 30.2 43.6C34.2 53.6 39.5 64.6 45.7 75.8Z" fill="#E8DCC8" filter="blur(20px)"/></svg>
-    </div>
-
-    <!-- LEFT PANEL: THE FORGE (Controls) — Now a Floating Console on Mobile -->
-    <aside id="forgeSidebar" class="panel-obsidian w-full md:w-[400px] lg:w-[440px] xl:w-[480px] fixed md:relative bottom-0 left-0 h-[85vh] md:h-screen flex flex-col z-[100] md:z-30 border-t md:border-t-0 md:border-r border-gold-400/20 flex-shrink-0 transition-all duration-500 ease-in-out group/forge shadow-[0_-20px_50px_rgba(0,0,0,0.8)] md:shadow-none">
-        <!-- Ornate SVG Corners -->
-        <svg class="absolute top-0 left-0 w-12 h-12 text-gold-400/50 pointer-events-none" viewBox="0 0 48 48" fill="none"><path d="M0 0H48V1H1V48H0V0Z" fill="currentColor"/><path d="M6 6H12V7H7V12H6V6Z" fill="currentColor"/></svg>
-        <svg class="absolute top-0 right-0 w-12 h-12 text-gold-400/50 pointer-events-none transform rotate-90" viewBox="0 0 48 48" fill="none"><path d="M0 0H48V1H1V48H0V0Z" fill="currentColor"/><path d="M6 6H12V7H7V12H6V6Z" fill="currentColor"/></svg>
- 
-        <!-- Brand Header (Acts as Mobile Handle) -->
-        <div class="BrandHeader p-4 md:p-8 pb-4 flex items-center gap-4 relative z-10 transition-all duration-300">
-            <div class="w-8 h-8 md:w-12 md:h-12 border border-gold-400/80 bg-obsidian-950 flex items-center justify-center shadow-glow-gold transform rotate-45 shrink-0">
-                <div class="w-2.5 h-2.5 md:w-4 md:h-4 bg-gradient-to-br from-aether-light to-aether-dark rounded-sm transform -rotate-45 shadow-glow-aether"></div>
-            </div>
-            <div class="flex-1">
-                <div class="flex items-center justify-between">
-                    <h1 class="text-xl md:text-3xl font-black text-cinematic text-gold-gradient leading-none">The Forge</h1>
-                    <!-- Mobile Toggle Icon -->
-                    <svg class="md:hidden w-5 h-5 text-gold-400 transition-transform duration-500 group-[.minimized]/forge:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m6 9 6 6 6-6"/></svg>
-                </div>
-                <p class="text-[9px] md:text-[10px] uppercase tracking-[0.3em] text-white/40 font-semibold mt-1">Aether Studio v4</p>
-            </div>
-        </div>
-
-        <!-- Navigation Tabs (Hidden on mobile, use bottom nav instead) -->
-        <div class="px-4 md:px-8 mb-4 hidden md:block">
-            <div class="glass-light p-1.5 rounded-xl flex items-center justify-between pointer-events-auto border border-white/40 overflow-hidden shadow-sm">
-                <!-- Data-view attributes bind to our Router.js -->
-                <button data-view="history" class="nav-pill active flex-1 text-center">Vault</button>
-                <button data-view="discovery" class="nav-pill flex-1 text-center">Discovery</button>
-                <button data-view="feed" class="nav-pill flex-1 text-center">Feed</button>
-            </div>
-        </div>
-
-        <!-- Forge Scrollable Controls -->
-        <div id="forgeControls" class="flex-1 overflow-y-auto px-8 space-y-7 pb-32 md:pb-8 relative z-10 custom-scrollbar">
-            <div class="ornate-divider"></div>
-
-            <!-- Incantation (Prompt) -->
-            <div class="space-y-3">
-                <div class="flex justify-between items-end">
-                    <label class="text-[11px] font-bold uppercase text-gold-400/90 tracking-[0.2em] flex items-center gap-2">
-                        <span class="w-1.5 h-1.5 bg-aether rounded-full shadow-glow-aether animate-pulse"></span>
-                        The Incantation
-                    </label>
-                </div>
-                <textarea id="prompt" rows="4" placeholder="Describe the masterpiece you wish to manifest..." class="rpg-input w-full p-4 text-[15px] font-medium leading-relaxed resize-none"></textarea>
-            </div>
-
-            <!-- Wards (Negative Prompt) -->
-            <div class="space-y-3">
-                <label class="text-[10px] font-bold uppercase text-gold-400/50 tracking-[0.2em] flex items-center gap-2">
-                    <span class="w-1.5 h-1.5 bg-red-900/80 rounded-full border border-red-500/50"></span>
-                    Wards (Exclusions)
-                </label>
-                <textarea id="negativePrompt" rows="2" placeholder="Elements to banish (e.g. low quality, bad anatomy)..." class="rpg-input w-full p-4 text-sm leading-relaxed resize-none opacity-80 focus:opacity-100"></textarea>
-            </div>
-
-            <div class="ornate-divider"></div>
-
-            <!-- Dimensional Realm -->
-            <div class="space-y-3">
-                <label class="text-[10px] font-bold uppercase text-gold-400/80 tracking-[0.2em]">Dimensional Realm</label>
-                <div class="flex p-1 bg-black/40 border border-gold-400/20 rounded-xl">
-                    <button data-action="switchMode" data-mode="standard" class="flex-1 py-3 text-[10px] font-bold uppercase tracking-[0.2em] rounded-lg transition-all text-gold-400/50 hover:text-gold-400">Day Realm</button>
-                    <button data-action="switchMode" data-mode="nsfw" class="flex-1 py-3 text-[10px] font-bold uppercase tracking-[0.2em] rounded-lg transition-all text-gold-400/50 hover:text-gold-400">Star Realm</button>
-                </div>
-            </div>
-
-            <!-- Casting Engine -->
-            <div class="space-y-3">
-                <label class="text-[10px] font-bold uppercase text-gold-400/80 tracking-[0.2em]">Casting Engine</label>
-                <div class="relative">
-                    <select id="model" class="rpg-input w-full h-12 px-4 appearance-none text-sm font-semibold cursor-pointer">
-                        <option value="Aether Synthesis v4.2">Aether Synthesis v4.2</option>
-                        <option value="Ghibli Cinematic v2">Ghibli Cinematic v2</option>
-                        <option value="Epic Concept Art">Epic Concept Art</option>
-                        <option value="Retro Pixel Forge">Retro Pixel Forge</option>
-                    </select>
-                    <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gold-400">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Advanced Controls for our FE -->
-            <div class="grid grid-cols-2 gap-4">
-                <div class="space-y-3">
-                    <label class="text-[10px] font-bold uppercase text-gold-400/80 tracking-[0.2em]">Images</label>
-                    <div class="relative">
-                        <select id="count" class="rpg-input w-full h-12 px-4 appearance-none text-sm font-semibold cursor-pointer">
-                            <option value="1">1 Manifestation</option>
-                            <option value="2">2 Manifestations</option>
-                            <option value="4" selected>4 Manifestations</option>
-                        </select>
-                        <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gold-400"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg></div>
-                    </div>
-                </div>
-                <div class="space-y-3">
-                    <label class="text-[10px] font-bold uppercase text-gold-400/80 tracking-[0.2em]">Quality</label>
-                    <div class="relative">
-                        <select id="quality" class="rpg-input w-full h-12 px-4 appearance-none text-sm font-semibold cursor-pointer">
-                            <option value="standard">Standard</option>
-                            <option value="hd" selected>High-Res</option>
-                        </select>
-                        <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gold-400"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Aspect Ratio -->
-            <div class="space-y-3">
-                <label class="text-[10px] font-bold uppercase text-gold-400/80 tracking-[0.2em]">Canvas Dimensions</label>
-                <div class="grid grid-cols-5 gap-1">
-                    <div class="aspect-radio">
-                        <input type="radio" name="aspectRatio" id="ar-1-1" value="1:1" data-dim="1024x1024" checked>
-                        <label for="ar-1-1"><div class="w-3.5 h-3.5 border-2 border-current rounded-sm"></div>1:1</label>
-                    </div>
-                    <div class="aspect-radio">
-                        <input type="radio" name="aspectRatio" id="ar-4-3" value="4:3" data-dim="1024x768">
-                        <label for="ar-4-3"><div class="w-4 h-3 border-2 border-current rounded-sm"></div>4:3</label>
-                    </div>
-                    <div class="aspect-radio">
-                        <input type="radio" name="aspectRatio" id="ar-16-9" value="16:9" data-dim="1920x1080">
-                        <label for="ar-16-9"><div class="w-5 h-3 border-2 border-current rounded-sm"></div>16:9</label>
-                    </div>
-                    <div class="aspect-radio">
-                        <input type="radio" name="aspectRatio" id="ar-9-16" value="9:16" data-dim="1080x1920">
-                        <label for="ar-9-16"><div class="w-3 h-5 border-2 border-current rounded-sm"></div>9:16</label>
-                    </div>
-                    <div class="aspect-radio">
-                        <input type="radio" name="aspectRatio" id="ar-21-9" value="21:9" data-dim="2560x1080">
-                        <label for="ar-21-9"><div class="w-6 h-2.5 border-2 border-current rounded-sm"></div>21:9</label>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Seed (Optional) -->
-            <div class="space-y-3">
-                <label class="text-[10px] font-bold uppercase text-gold-400/50 tracking-[0.2em] flex items-center gap-2">
-                    Magic Seed (Optional)
-                </label>
-                <input id="seed" type="number" placeholder="Leave empty for random..." class="rpg-input w-full p-3 text-sm" />
-            </div>
-
-            <!-- Local Gallery (for current forge generation) -->
-            <div id="gallery" class="grid grid-cols-2 gap-4 mt-8"></div>
-            <div id="matrixGallery" class="grid-cols-2 gap-4 mt-8 hidden"></div>
-        </div>
-
-        <!-- Bottom Action -->
-        <div class="BottomAction p-6 md:p-8 bg-obsidian-950/90 backdrop-blur-xl border-t border-gold-400/20 absolute md:relative bottom-0 w-full z-30 shadow-[0_-10px_30px_rgba(0,0,0,0.5)] transition-opacity duration-300">
-            <button id="generateBtn" data-action="runGeneration" class="btn-manifest w-full h-14 flex items-center justify-center gap-3">
-                <span id="btnText" class="btn-text flex items-center gap-2">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48 2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48 2.83-2.83"/></svg>
-                    Manifest Vision
-                </span>
-                <div id="btnLoader" class="loader-rune"></div>
-            </button>
-            <button id="matrixBtn" data-action="runMatrixCast" class="mt-4 w-full py-3 bg-black/40 hover:bg-gold-400/10 border border-gold-400/20 text-gold-400/70 hover:text-gold-400 text-[10px] font-bold uppercase tracking-[0.2em] transition-all rounded-xl flex items-center justify-center gap-2">
-                <span id="btnMatrixText">Matrix Cast (All Models)</span>
-                <div id="btnMatrixLoader" class="loader-rune !w-4 !h-4 hidden"></div>
-            </button>
-            <div id="matrixControls" class="hidden flex justify-between mt-3 px-2">
-                <span id="matrixStatusText" class="text-[10px] font-bold text-gold-400 uppercase tracking-widest animate-pulse">Initializing...</span>
-            </div>
-        </div>
-    </aside>
-
-    <!-- RIGHT PANEL: CONTENT AREA (Vault, Discovery, Feed) -->
-    <main class="flex-1 h-screen flex flex-col relative z-20">
-        <!-- Top Toolbar -->
+  <!-- 5. MAIN CONTENT AREA -->
+  <main class="flex-1 h-screen flex flex-col relative z-20">
         <header class="p-4 md:p-10 flex justify-between items-start z-30 sticky top-0 bg-gradient-to-b from-obsidian-950 via-obsidian-950/80 to-transparent pointer-events-none">
             <div class="pointer-events-auto">
-                <h2 id="viewTitle" class="text-3xl md:text-5xl font-black text-cinematic text-parchment-100 tracking-tight leading-none drop-shadow-2xl">
-                    Your <span class="italic text-gold-500">Grimoire</span>
-                </h2>
+                <h2 id="viewTitle" class="text-3xl md:text-5xl font-black text-cinematic text-parchment-100 tracking-tight leading-none drop-shadow-2xl">Your <span class="italic text-gold-500">Grimoire</span></h2>
                 <p id="viewSubtitle" class="text-parchment-100/40 font-bold uppercase tracking-[0.2em] text-[9px] md:text-[10px] mt-2 ml-1">Aether Studio Private Vault</p>
                 <div class="status-pill text-[10px] mt-2 text-parchment-100/60" id="backendStatus">Checking backend...</div>
             </div>
-            
             <div class="pointer-events-auto flex items-center gap-4">
-                <!-- User Profile (Managed by main.js) -->
                 <div id="user-profile" class="hidden flex items-center gap-3">
-                    <button data-action="logout" class="text-[10px] uppercase font-bold tracking-wider hover:text-red-600 transition-colors">Logout</button>
-                    <div class="h-12 w-12 rounded-xl border-2 border-gold-400 overflow-hidden cursor-pointer shadow-glow-gold bg-parchment-300 transform transition-transform hover:-translate-y-1">
-                        <img id="user-avatar" src="https://api.dicebear.com/7.x/avataaars/svg?seed=AetherMage&backgroundColor=E8DCC8" alt="Profile" class="w-full h-full object-cover">
-                    </div>
+                    <button data-action="logout" class="text-[10px] uppercase font-bold tracking-wider hover:text-red-600">Logout</button>
+                    <div class="h-12 w-12 rounded-xl border-2 border-gold-400 overflow-hidden cursor-pointer shadow-glow-gold"><img id="user-avatar" src="" alt="Profile" class="w-full h-full object-cover"></div>
                 </div>
             </div>
         </header>
 
-        <!-- View Containers -->
         <div class="flex-1 overflow-y-auto px-6 md:px-10 pb-24 pt-4 custom-scrollbar" id="mainScrollArea">
-            
-            <!-- VIEW: VAULT -->
-            <section id="view-history" class="view view-section active min-h-full pb-12">
-                <!-- Masonry Grid -->
-                <div id="historyList" class="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5 gap-4 md:gap-6 space-y-4 md:space-y-6 w-full"></div>
-                <div id="loadMoreBtn" class="h-12 w-full flex items-center justify-center mt-8 opacity-0"></div>
-            </section>
-
-            <!-- VIEW: DISCOVERY -->
-            <section id="view-discovery" class="view view-section min-h-full pb-12">
-                <div id="discoveryList" class="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5 gap-4 md:gap-6 space-y-4 md:space-y-6 w-full"></div>
-                <div id="loadMoreDiscoveryBtn" class="h-12 w-full flex items-center justify-center mt-8 opacity-0"></div>
-            </section>
-
-            <!-- VIEW: FEED -->
-            <section id="view-feed" class="view view-section flex flex-col items-center min-h-full pb-12 w-full">
-                <div class="w-full max-w-2xl bg-black/40 border border-gold-400/20 p-4 md:p-6 rounded-2xl mb-8 mx-auto">
-                    <textarea id="feed-post-content" placeholder="Share your magical discoveries..." class="rpg-input w-full h-24 p-4 text-sm mb-4 resize-none"></textarea>
-                    <div class="flex justify-end">
-                        <button data-action="createPost" class="px-6 py-2 bg-gold-400 text-black font-bold uppercase text-[10px] tracking-widest rounded-lg hover:shadow-glow-gold transition-all">Broadcast</button>
-                    </div>
-                </div>
-                <div class="w-full max-w-2xl flex flex-col gap-8 pb-12" id="feedList"></div>
-                <div id="loadMoreFeedBtn" class="h-12 w-full flex items-center justify-center mt-4 opacity-0"></div>
-            </section>
-
+            <section id="view-history" class="view view-section active min-h-full pb-12"><div id="historyList" class="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5 gap-4 md:gap-6 space-y-4 md:space-y-6 w-full"></div></section>
+            <section id="view-discovery" class="view view-section min-h-full pb-12"><div id="discoveryList" class="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5 gap-4 md:gap-6 space-y-4 md:space-y-6 w-full"></div></section>
+            <section id="view-feed" class="view view-section min-h-full pb-12"><div id="feedList" class="max-w-2xl mx-auto space-y-8"></div></section>
         </div>
-    </main>
+  </main>
 
-    <!-- COMPONENTS: LIGHTBOX MODAL -->
-    <div id="bubbleReveal" class="fixed inset-0 z-[100] bg-obsidian-950/80 backdrop-blur-2xl hidden opacity-0 transition-opacity duration-400 flex items-center justify-center p-4 md:p-8" data-action="closeLightbox">
-        <button data-action="closeLightbox" class="absolute top-6 right-6 text-white/50 hover:text-gold-400 bg-white/5 w-12 h-12 rounded-full flex items-center justify-center transition-all z-[150] border border-white/10 hover:border-gold-400/50 hover:scale-110">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
-        
-        <div class="flex flex-col md:flex-row w-full max-w-[1400px] h-full max-h-[90vh] panel-obsidian rounded-2xl overflow-hidden shadow-rpg-panel transform transition-transform duration-500 scale-100" data-stop-propagation="true">
-            <!-- Image Area -->
-            <div class="flex-1 bg-black/80 relative flex items-center justify-center p-6 min-h-[40vh] border-r border-gold-400/10 image-viewer-container" style="background-image: radial-gradient(rgba(212, 175, 55, 0.05) 1px, transparent 0); background-size: 30px 30px;">
-                <img id="bubbleRevealImg" src="" alt="Enlarged Vision" class="max-w-full max-h-full object-contain shadow-2xl rounded" style="box-shadow: 0 0 50px rgba(0,0,0,0.8), 0 0 0 1px rgba(212,175,55,0.2);">
-            </div>
-            <!-- Details Area -->
-            <div class="w-full md:w-[420px] p-8 lg:p-10 flex flex-col gap-8 overflow-y-auto custom-scrollbar glass-reveal-panel">
-                <div class="border-b border-gold-400/10 pb-6">
-                    <h4 class="text-[10px] font-bold uppercase text-gold-400 tracking-[0.3em] mb-3 flex items-center gap-2">
-                        <span class="w-1.5 h-1.5 bg-aether rounded-full shadow-glow-aether"></span> The Incantation
-                    </h4>
-                    <p id="lightboxPrompt" class="text-base text-white/90 leading-relaxed font-serif italic tracking-wide"></p>
-                </div>
-                <div class="border-b border-gold-400/10 pb-6">
-                    <h4 class="text-[10px] font-bold uppercase text-red-500/80 tracking-[0.3em] mb-3 flex items-center gap-2">
-                        <span class="w-1.5 h-1.5 bg-red-500 rounded-full"></span> The Wards
-                    </h4>
-                    <p id="lightboxNegative" class="text-xs text-white/40 leading-relaxed"></p>
-                </div>
-                <div class="mt-auto">
-                    <div class="space-y-5 text-xs text-white/50 font-semibold tracking-wider bg-black/40 p-6 rounded-xl border border-white/5">
-                        <div class="flex justify-between items-center">
-                            <span>Dimensions</span> <span class="text-white" id="lightboxDims">1024 x 1024</span>
-                        </div>
-                    </div>
-                </div>
-                <!-- Thumbs Section (for batch viewing) -->
-                <div id="thumbsSection" class="hidden flex-col gap-3 mt-4">
-                    <div class="flex items-center justify-between mb-1">
-                        <span class="opacity-60 uppercase font-black text-[9px] tracking-[0.2em] text-gold-400">The Batch</span>
-                    </div>
-                    <div id="bubbleRevealThumbs" class="grid grid-cols-4 gap-2"></div>
-                </div>
-            </div>
-        </div>
-    </div>
+  <!-- 6. COMPONENTS -->
+  <div id="bubbleReveal" class="fixed inset-0 z-[100] bg-obsidian-950/80 backdrop-blur-2xl hidden opacity-0 transition-opacity duration-400 flex items-center justify-center p-4 md:p-8" data-action="closeLightbox">
+      <button data-action="closeLightbox" class="absolute top-6 right-6 text-white/50 hover:text-gold-400 bg-white/5 w-12 h-12 rounded-full flex items-center justify-center border border-white/10 z-[150]"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      <div class="flex flex-col md:flex-row w-full max-w-[1400px] h-full max-h-[90vh] panel-obsidian rounded-2xl overflow-hidden shadow-rpg-panel transform transition-transform duration-500 scale-100" data-stop-propagation="true">
+          <div class="flex-1 bg-black/40 flex items-center justify-center p-4 md:p-12 relative overflow-hidden">
+              <img id="revealImage" src="" class="max-w-full max-h-full object-contain rounded shadow-2xl relative z-10 transition-opacity duration-500 opacity-0" alt="Manifestation">
+          </div>
+          <div class="w-full md:w-[420px] p-8 lg:p-10 flex flex-col gap-8 overflow-y-auto custom-scrollbar glass-reveal-panel">
+              <div class="space-y-2"><label class="text-[10px] font-black uppercase tracking-[0.3em] text-gold-400/60">Incantation</label><p id="revealPrompt" class="text-parchment-100 text-lg leading-relaxed font-medium italic"></p></div>
+              <div class="BottomAction-Reveal mt-auto flex flex-col gap-3"><button data-action="cloneActiveManifestation" class="btn-manifest w-full h-14 flex items-center justify-center gap-3">Clone Vision</button></div>
+          </div>
+      </div>
+  </div>
 
-    <!-- MAIN APP SCRIPT INJECTION -->
-    <script type="module" src="/js/main.js"></script>
+  <div id="consoleBackdrop" class="fixed inset-0 bg-black/40 z-[90] opacity-0 pointer-events-none transition-all duration-500"></div>
 
-    <!-- Particles Script -->
-    <script>
+  <script type="module" src="js/main.js"></script>
+  <script>
         const canvas = document.getElementById('particlesCanvas');
         const ctx = canvas.getContext('2d');
         let particles = [];
@@ -757,26 +359,12 @@
                 this.color = Math.random() > 0.5 ? 'rgba(212, 175, 55, ' : 'rgba(255, 255, 255, ';
                 this.opacity = Math.random() * 0.6 + 0.2;
             }
-            update() {
-                this.x += this.speedX; this.y += this.speedY;
-                if (this.y < 0) this.y = canvas.height;
-                if (this.x < 0) this.x = canvas.width; if (this.x > canvas.width) this.x = 0;
-            }
-            draw() {
-                ctx.fillStyle = this.color + this.opacity + ')';
-                ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill();
-                ctx.shadowBlur = 10; ctx.shadowColor = this.color + '0.8)';
-            }
+            update() { this.x += this.speedX; this.y += this.speedY; if (this.y < 0) this.y = canvas.height; }
+            draw() { ctx.fillStyle = this.color + this.opacity + ')'; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill(); }
         }
         for (let i = 0; i < 50; i++) particles.push(new Particle());
-        function animate() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            particles.forEach(p => { p.update(); p.draw(); });
-            requestAnimationFrame(animate);
-        }
+        function animate() { ctx.clearRect(0, 0, canvas.width, canvas.height); particles.forEach(p => { p.update(); p.draw(); }); requestAnimationFrame(animate); }
         animate();
-    </script>
-    <!-- CONSOLE BACKDROP (Subsequent sibling for CSS logic) -->
-    <div id="consoleBackdrop" class="fixed inset-0 bg-black/40 z-[90] opacity-0 pointer-events-none transition-all duration-500"></div>
+  </script>
 </body>
 </html>
