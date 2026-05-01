@@ -4,12 +4,12 @@
    ============================================ */
 
 const ROUTE_MAP = {
-  'forge': 'generate',
+  'forge': 'history',
   'vault': 'history',
   'tasks': 'tasks',
   'discovery': 'discovery',
   'feed': 'feed',
-  'generate': 'generate',
+  'generate': 'history',
   'history': 'history',
 };
 
@@ -27,7 +27,7 @@ export function createRouter(state, setViewCallback, openByIdCallback) {
     const segments = path.split('/');
     const baseView = segments[0];
 
-    const view = ROUTE_MAP[baseView] || 'generate';
+    const view = ROUTE_MAP[baseView] || 'history';
     setViewCallback(view, false);
 
     // Deep linking: /view/{id}

@@ -223,7 +223,7 @@ try {
 
   forge.applyMode(state.get('app.mode') || 'standard');
   router.handleRouting();
-  auth.checkAuth().then(loggedIn => { if (loggedIn) vault.reload(); });
+  auth.checkAuth().then(() => vault.reload()).catch(() => vault.reload());
   checkBackend();
   setInterval(checkBackend, 30000);
   initAetherCanvas(state);

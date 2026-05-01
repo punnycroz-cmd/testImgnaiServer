@@ -156,7 +156,7 @@ export function createAppState() {
       serverUrl: window.location.origin,
       isGenerating: false,
       isTabVisible: true,
-      activeView: 'generate',
+      activeView: 'history',
       currentPoll: null,
       etagCache: {},
     },
