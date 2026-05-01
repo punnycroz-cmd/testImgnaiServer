@@ -36,9 +36,9 @@ let vaultObs = null, discoveryObs = null, feedObs = null;
 // ── View Switching ─────────────────────────────
 function setView(v, pushState = true) {
   if (pushState) router.navigateTo(v);
-  document.querySelectorAll('.view').forEach(el => { el.classList.remove('active'); el.classList.add('hidden'); });
+  document.querySelectorAll('.view').forEach(el => { el.classList.remove('active'); });
   const viewEl = document.getElementById(`view-${v}`);
-  if (viewEl) { viewEl.classList.remove('hidden'); void viewEl.offsetWidth; viewEl.classList.add('active'); }
+  if (viewEl) { void viewEl.offsetWidth; viewEl.classList.add('active'); }
   document.querySelectorAll('[data-view]').forEach(b => {
     const match = b.dataset.view === v;
     b.classList.toggle('active', match);
@@ -219,8 +219,7 @@ document.addEventListener('visibilitychange', () => {
 
 // ── Initialization ─────────────────────────────
 try {
-  // Expose for index.html callbacks
-  window.Studio = { auth, vault };
+  // window.Studio already exposed above with full context
 
   forge.applyMode(state.get('app.mode') || 'standard');
   router.handleRouting();
