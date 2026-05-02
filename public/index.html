@@ -3,99 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Aether Studio | AI Manifestation Engine</title>
+    <title>Aether Studio | AI Manifestation</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Outfit:wght@300;400;600;800&family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=Outfit:wght@300;400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/variables.css">
+    <link rel="stylesheet" href="/css/base.css">
+    <link rel="stylesheet" href="/css/animations.css">
+    <link rel="stylesheet" href="/css/components/button.css">
+    <link rel="stylesheet" href="/css/components/card.css">
+    <link rel="stylesheet" href="/css/components/glass-panel.css">
+    <link rel="stylesheet" href="/css/components/nav.css">
+    <link rel="stylesheet" href="/css/components/lightbox.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        obsidian: {
+                            950: '#08080a',
+                            900: '#0f0f12',
+                            800: '#1a1a1e'
+                        },
+                        gold: {
+                            400: '#CFA972',
+                            500: '#B8945F',
+                            600: '#9A7B4F'
+                        },
+                        aether: {
+                            light: '#E8DCC8',
+                            dark: '#CFA972'
+                        },
+                        parchment: {
+                            100: '#F5F2ED',
+                            300: '#E8DCC8'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        cinematic: ['Outfit', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+
     <style>
-        :root {
-            --tw-transition-timing-function-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            --tw-shadow-glow-gold: 0 0 15px rgba(207, 169, 114, 0.3);
-            --tw-shadow-glow-aether: 0 0 20px rgba(114, 169, 207, 0.4);
-            --aether-light: #72A9CF;
-            --aether-dark: #3A6D8C;
-            --gold-400: #CFA972;
-            --gold-500: #B8860B;
-            --obsidian-950: #08080a;
+        /* Grimoire Styles */
+        body { background-color: #08080a; color: #F5F2ED; overflow: hidden; }
+        .panel-obsidian { background: rgba(15, 15, 18, 0.95); backdrop-filter: blur(20px); border: 1px solid rgba(207, 169, 114, 0.1); }
+        .text-gold-gradient { background: linear-gradient(135deg, #E8DCC8 0%, #CFA972 50%, #B8945F 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(207, 169, 114, 0.2); border-radius: 2px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(207, 169, 114, 0.4); }
+
+        .ornate-divider {
+            height: 1px; width: 100%; background: linear-gradient(90deg, transparent 0%, rgba(207,169,114,0.3) 50%, transparent 100%);
+            position: relative; margin: 20px 0;
+        }
+        .ornate-divider::after {
+            content: '⬥'; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+            color: rgba(207, 169, 114, 0.5); font-size: 10px; background: #08080a; padding: 0 10px;
         }
 
-        body {
-            font-family: 'Outfit', sans-serif;
-            background-color: var(--obsidian-950);
-            color: #fdfbf7;
-            overflow: hidden;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        .text-cinematic { font-family: 'Cinzel Decorative', cursive; }
-        .panel-obsidian { background: rgba(8, 8, 10, 0.7); backdrop-filter: blur(20px); }
-        .text-gold-gradient {
-            background: linear-gradient(135deg, #FDE08B 0%, #CFA972 50%, #A6824C 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        /* RPG UI Styling */
         .rpg-input {
-            background: rgba(0, 0, 0, 0.4);
-            border: 1px solid rgba(207, 169, 114, 0.2);
-            color: #fdfbf7;
-            border-radius: 12px;
-            transition: all 0.3s var(--tw-transition-timing-function-spring);
+            background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(207, 169, 114, 0.15);
+            color: #E8DCC8; border-radius: 12px; transition: all 0.3s;
         }
-        .rpg-input:focus {
-            outline: none; 
-            border: none;
-            background: rgba(207, 169, 114, 0.05);
-            box-shadow: inset 0 0 0 1px #CFA972, inset 0 0 15px rgba(207, 169, 114, 0.1);
-        }
-        .rpg-input::placeholder { color: rgba(253, 251, 247, 0.3); font-weight: 300; }
+        .rpg-input:focus { outline: none; border-color: rgba(207, 169, 114, 0.5); box-shadow: 0 0 15px rgba(207, 169, 114, 0.1); background: rgba(0, 0, 0, 0.6); }
 
-        /* Custom Aspect Radio Buttons */
-        .aspect-radio input[type="radio"] { display: none; }
-        .aspect-radio label {
-            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
-            background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.05);
-            color: rgba(255,255,255,0.4); cursor: pointer;
-            transition: all 0.3s var(--tw-transition-timing-function-spring);
-            height: 48px; font-size: 10px; font-weight: 700; letter-spacing: 0.05em;
-            clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
-        }
-        .aspect-radio label:hover { background: rgba(255, 255, 255, 0.05); }
-        .aspect-radio input[type="radio"]:checked + label {
-            background: rgba(207, 169, 114, 0.15); border-color: #CFA972; color: #CFA972;
-            box-shadow: inset 0 0 10px rgba(207, 169, 114, 0.1);
-        }
-
-        /* Manifest Magic Button */
         .btn-manifest {
-            position: relative; overflow: hidden;
-            background: linear-gradient(135deg, #FDE08B 0%, #CFA972 50%, #A6824C 100%);
-            color: #08080a; font-weight: 800; text-transform: uppercase; letter-spacing: 0.15em;
-            clip-path: polygon(14px 0, 100% 0, calc(100% - 14px) 100%, 0 100%);
-            transition: all 0.4s var(--tw-transition-timing-function-spring);
+            background: linear-gradient(135deg, #CFA972 0%, #B8945F 100%);
+            color: #08080a; font-weight: 900; text-transform: uppercase; letter-spacing: 0.2em;
+            border-radius: 14px; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 4px 20px rgba(184, 148, 95, 0.3);
         }
-        .btn-manifest::before {
-            content: ''; position: absolute; inset: 1px;
-            background: linear-gradient(135deg, transparent, rgba(255,255,255,0.4), transparent);
-            clip-path: polygon(13px 0, 100% 0, calc(100% - 13px) 100%, 0 100%);
-            z-index: 1; pointer-events: none;
-        }
-        .btn-manifest::after {
-            content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
-            transform: skewX(-25deg); transition: all 0.7s;
-        }
-        .btn-manifest:hover::after { left: 150%; }
-        .btn-manifest:active { transform: scale(0.98); filter: brightness(1.2); }
-
-        /* Rune Loader */
-        .loader-rune {
-            width: 24px; height: 24px; border: 3px solid rgba(0,0,0,0.1);
-            border-top: 3px solid #08080a; border-radius: 50%;
-            animation: spin 1s linear infinite; display: none;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .btn-manifest:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 8px 30px rgba(184, 148, 95, 0.5); }
+        .btn-manifest:active { transform: translateY(0); }
 
         /* Navigation Pills */
         .nav-pill {
@@ -142,17 +128,14 @@
             }
             #forgeSidebar.minimized p.uppercase { display: none; } /* Hide subtitle when closed */
 
-            /* Backdrop Logic */
-            #forgeSidebar:not(.minimized) ~ #consoleBackdrop { 
-                opacity: 1; pointer-events: auto; backdrop-filter: blur(12px);
-            }
-
             /* Visible when expanded */
             #forgeSidebar:not(.minimized) #forgeControls,
             #forgeSidebar:not(.minimized) .BrandHeader,
             #forgeSidebar:not(.minimized) .BottomAction {
                 opacity: 1; visibility: visible; pointer-events: auto;
             }
+            
+            #forgeSidebar:not(.minimized) + #consoleBackdrop { opacity: 1; pointer-events: auto; }
             
             .mobile-nav-item.active { color: #CFA972; }
             .mobile-nav-item.active svg { filter: drop-shadow(0 0 8px rgba(207,169,114,0.5)); }
@@ -163,54 +146,64 @@
         .animate-float-delayed { animation: float 9s ease-in-out infinite 2s; }
         @keyframes float { 0% { transform: translateY(0px) rotate(0deg); } 50% { transform: translateY(-20px) rotate(3deg); } 100% { transform: translateY(0px) rotate(0deg); } }
 
-        .glass-light { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(10px); }
-        .shadow-rpg-panel { box-shadow: 0 20px 50px rgba(0,0,0,0.8), inset 0 0 0 1px rgba(255,255,255,0.05); }
-        .shadow-glow-gold { filter: drop-shadow(0 0 12px rgba(207, 169, 114, 0.4)); }
-        .shadow-glow-aether { filter: drop-shadow(0 0 15px rgba(114, 169, 207, 0.5)); }
-        
-        .ornate-divider::before {
-            content: ''; position: absolute; inset: 0;
-            background: linear-gradient(90deg, transparent, rgba(207, 169, 114, 0.4), transparent);
+        .loader-rune {
+            width: 24px; height: 24px; display: none; position: relative; z-index: 3;
         }
-        .ornate-divider::after {
-            content: '♦'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            color: #CFA972; font-size: 10px; text-shadow: var(--tw-shadow-glow-gold);
+        .loader-rune::before, .loader-rune::after {
+            content: ''; position: absolute; inset: 0; border: 2.5px solid transparent; border-radius: 50%;
         }
+        .loader-rune::before { border-top-color: #08080a; animation: spin 0.8s linear infinite; }
+        .loader-rune::after { border-bottom-color: rgba(0,0,0,0.2); animation: spin 1.2s linear reverse infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-        button[data-mode].active {
-            background: rgba(207, 169, 114, 0.15);
-            color: #CFA972;
-            box-shadow: inset 0 0 10px rgba(207, 169, 114, 0.1);
+        .btn-manifest.is-loading .btn-text { display: none; }
+        .btn-manifest.is-loading .loader-rune { display: block; }
+
+        /* Aspect Radio Logic */
+        .aspect-radio input[type="radio"] { display: none; }
+        .aspect-radio label {
+            display: flex; flex-direction: column; items: center; gap: 8px; padding: 12px 4px;
+            background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(207, 169, 114, 0.1);
+            border-radius: 12px; color: rgba(207, 169, 114, 0.4); font-size: 9px; font-weight: 900;
+            text-transform: uppercase; letter-spacing: 0.1em; transition: all 0.3s; cursor: pointer;
+        }
+        .aspect-radio label:hover { background: rgba(255, 255, 255, 0.05); }
+        .aspect-radio input[type="radio"]:checked + label {
+            background: rgba(207, 169, 114, 0.1); border-color: rgba(207, 169, 114, 0.6);
+            color: #CFA972; box-shadow: 0 0 15px rgba(207, 169, 114, 0.1);
         }
     </style>
 </head>
-<body class="flex flex-col md:flex-row h-screen w-full relative">
-
-  <!-- 1. AUTHENTICATION OVERLAY -->
-  <div id="auth-overlay" class="fixed inset-0 z-[1000] flex items-center justify-center bg-obsidian-950/90 backdrop-blur-md transition-opacity duration-700 hidden">
-    <div class="glass-light p-12 max-w-md w-full text-center space-y-8 rounded-2xl shadow-rpg-glass border border-gold-400/20 panel-obsidian relative overflow-hidden">
-      <div class="space-y-4">
-        <h1 class="text-4xl font-black text-cinematic text-gold-gradient tracking-tighter">AETHER STUDIO</h1>
-        <p class="text-parchment-200/60 text-sm font-medium">Please sign in to access your Grimoire.</p>
-      </div>
-      <div id="g_id_onload" data-client_id="206665134027-80oiqn378dq1jo49lgtmaueu0p30mf9a.apps.googleusercontent.com" data-callback="handleGoogleLogin" data-auto_prompt="false"></div>
-      <div class="g_id_signin flex justify-center" data-type="standard" data-size="large" data-theme="outline" data-text="sign_in_with" data-shape="pill" data-logo_alignment="left"></div>
+<body class="flex flex-col md:flex-row h-screen overflow-hidden">
+    
+    <!-- 1. AMBIENT BACKGROUND -->
+    <div class="fixed inset-0 z-0 bg-obsidian-950">
+        <canvas id="particlesCanvas" class="opacity-40"></canvas>
+        <div class="absolute inset-0 bg-gradient-to-tr from-obsidian-950 via-transparent to-gold-400/5"></div>
+        <div class="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] bg-gold-400/5 blur-[120px] rounded-full animate-pulse"></div>
     </div>
-  </div>
 
-  <!-- 2. AMBIENT BACKGROUNDS -->
-  <canvas id="particlesCanvas" class="fixed inset-0 z-[-1] pointer-events-none opacity-60"></canvas>
-  <div class="fixed -top-20 -left-20 opacity-40 animate-float pointer-events-none z-[-2]">
-      <svg width="400" height="400" viewBox="0 0 200 200" fill="none"><path d="M45.7 75.8C35.2 65.3 45.1 42.1 63.4 42.1C68.6 42.1 72.8 44.5 76.5 47.9C83.2 27.8 103.5 15.6 122.9 15.6C145.4 15.6 161.4 34.6 161.4 57.1C161.4 58.2 161.3 59.3 161.2 60.4C172.9 64.2 181.4 75.3 181.4 88.6C181.4 103.8 168.9 116.1 153.6 116.1H40.7C19.7 116.1 2.7 99.1 2.7 78.1C2.7 61.4 14.3 47.3 30.2 43.6C34.2 53.6 39.5 64.6 45.7 75.8Z" fill="#E8DCC8" filter="blur(20px)"/></svg>
-  </div>
-  <div class="fixed top-1/3 -right-32 opacity-30 animate-float-delayed pointer-events-none z-[-2] scale-150">
-      <svg width="400" height="400" viewBox="0 0 200 200" fill="none"><path d="M45.7 75.8C35.2 65.3 45.1 42.1 63.4 42.1C68.6 42.1 72.8 44.5 76.5 47.9C83.2 27.8 103.5 15.6 122.9 15.6C145.4 15.6 161.4 34.6 161.4 57.1C161.4 58.2 161.3 59.3 161.2 60.4C172.9 64.2 181.4 75.3 181.4 88.6C181.4 103.8 168.9 116.1 153.6 116.1H40.7C19.7 116.1 2.7 99.1 2.7 78.1C2.7 61.4 14.3 47.3 30.2 43.6C34.2 53.6 39.5 64.6 45.7 75.8Z" fill="#E8DCC8" filter="blur(20px)"/></svg>
-  </div>  <!-- 3. THE FORGE (Aside) -->
+    <!-- 2. LOGIN / AUTH OVERLAY -->
+    <div id="auth-overlay" class="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-obsidian-950/95 backdrop-blur-2xl transition-all duration-700">
+        <div class="w-full max-w-md panel-obsidian p-10 rounded-[2rem] text-center shadow-rpg-panel relative overflow-hidden group">
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-gold-400 to-transparent"></div>
+            <div class="w-20 h-20 border-2 border-gold-400 bg-obsidian-950 flex items-center justify-center transform rotate-45 mx-auto mb-10 shadow-glow-gold transition-transform group-hover:rotate-[135deg] duration-700">
+                <div class="w-8 h-8 bg-gradient-to-br from-gold-400 to-gold-600 rounded-sm transform -rotate-45"></div>
+            </div>
+            <h2 class="text-4xl font-black text-cinematic text-gold-gradient mb-4">Aether Studio</h2>
+            <p class="text-white/40 text-xs uppercase tracking-[0.4em] font-bold mb-10">Divine Manifestation Engine</p>
+            
+            <button id="google-login-btn" class="w-full h-14 bg-white text-black font-black uppercase text-xs tracking-widest rounded-xl flex items-center justify-center gap-4 hover:bg-gold-400 transition-all active:scale-95 shadow-xl">
+                <svg width="18" height="18" viewBox="0 0 24 24"><path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+                Summon with Google
+            </button>
+            <p id="auth-status" class="mt-6 text-[10px] text-white/20 font-bold uppercase tracking-widest"></p>
+        </div>
+    </div>
+
+    <!-- 3. THE FORGE (Aside) -->
     <aside id="forgeSidebar" class="panel-obsidian w-full md:w-[400px] lg:w-[440px] xl:w-[480px] fixed md:relative bottom-0 left-0 h-[85vh] md:h-screen flex flex-col z-[100] md:z-30 border-t md:border-t-0 md:border-r border-gold-400/20 flex-shrink-0 transition-all duration-500 ease-in-out group/forge shadow-[0_-20px_50px_rgba(0,0,0,0.8)] md:shadow-none">
-        <!-- Ornate SVG Corners -->
-        <svg class="absolute top-0 left-0 w-12 h-12 text-gold-400/50 pointer-events-none" viewBox="0 0 48 48" fill="none"><path d="M0 0H48V1H1V48H0V0Z" fill="currentColor"></path><path d="M6 6H12V7H7V12H6V6Z" fill="currentColor"></path></svg>
-        <svg class="absolute top-0 right-0 w-12 h-12 text-gold-400/50 pointer-events-none transform rotate-90" viewBox="0 0 48 48" fill="none"><path d="M0 0H48V1H1V48H0V0Z" fill="currentColor"></path><path d="M6 6H12V7H7V12H6V6Z" fill="currentColor"></path></svg>
- 
+        
         <!-- Brand Header (Acts as Mobile Handle) -->
         <div class="BrandHeader p-4 md:p-8 pb-4 flex items-center gap-4 relative z-10 transition-all duration-300">
             <div class="w-8 h-8 md:w-12 md:h-12 border border-gold-400/80 bg-obsidian-950 flex items-center justify-center shadow-glow-gold transform rotate-45 shrink-0">
@@ -220,19 +213,19 @@
                 <div class="flex items-center justify-between">
                     <h1 class="text-xl md:text-3xl font-black text-cinematic text-gold-gradient leading-none">The Forge</h1>
                     <!-- Mobile Toggle Icon -->
-                    <svg class="md:hidden w-5 h-5 text-gold-400 transition-transform duration-500 group-[.minimized]/forge:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m6 9 6 6 6-6"></path></svg>
+                    <svg class="md:hidden w-5 h-5 text-gold-400 transition-transform duration-500 group-[.minimized]/forge:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m6 9 6 6 6-6"/></svg>
                 </div>
                 <p class="text-[9px] md:text-[10px] uppercase tracking-[0.3em] text-white/40 font-semibold mt-1">Aether Studio v4</p>
             </div>
         </div>
 
-        <!-- Navigation Tabs (Hidden on mobile, use bottom nav instead) -->
+        <!-- Navigation Tabs (Hidden on mobile) -->
         <div class="px-4 md:px-8 mb-4 hidden md:block">
             <div class="glass-light p-1.5 rounded-xl flex items-center justify-between pointer-events-auto border border-white/40 overflow-hidden shadow-sm">
                 <!-- Data-view attributes bind to our Router.js -->
-                <button data-view="history" class="nav-pill active flex-1 text-center opacity-100">Vault</button>
-                <button data-view="discovery" class="nav-pill flex-1 text-center opacity-60">Discovery</button>
-                <button data-view="feed" class="nav-pill flex-1 text-center opacity-60">Feed</button>
+                <button data-view="history" class="nav-pill active flex-1 text-center">Vault</button>
+                <button data-view="discovery" class="nav-pill flex-1 text-center">Discovery</button>
+                <button data-view="feed" class="nav-pill flex-1 text-center">Feed</button>
             </div>
         </div>
 
@@ -275,9 +268,14 @@
             <div class="space-y-3">
                 <label class="text-[10px] font-bold uppercase text-gold-400/80 tracking-[0.2em]">Casting Engine</label>
                 <div class="relative">
-                    <select id="model" class="rpg-input w-full h-12 px-4 appearance-none text-sm font-semibold cursor-pointer"><option value="Ani">Ani</option><option value="Aura">Aura</option><option value="Evo">Evo</option><option value="Flux1 D">Flux1 D</option><option value="Fur">Fur</option><option value="FurXL Classic">FurXL Classic</option><option value="Gen">Gen</option><option value="Glitch">Glitch</option><option value="Gothic">Gothic</option><option value="Hyper CGI">Hyper CGI</option><option value="HyperX">HyperX</option><option value="Muse">Muse</option><option value="Nai">Nai</option><option value="Neo">Neo</option><option value="Noob">Noob</option><option value="Pixel">Pixel</option><option value="Pony">Pony</option><option value="Rend">Rend</option><option value="Retro">Retro</option><option value="Supra">Supra</option><option value="Synth">Synth</option><option value="Toon">Toon</option><option value="Volt">Volt</option><option value="Wassie">Wassie</option></select>
+                    <select id="model" class="rpg-input w-full h-12 px-4 appearance-none text-sm font-semibold cursor-pointer">
+                        <option value="Aether Synthesis v4.2">Aether Synthesis v4.2</option>
+                        <option value="Ghibli Cinematic v2">Ghibli Cinematic v2</option>
+                        <option value="Epic Concept Art">Epic Concept Art</option>
+                        <option value="Retro Pixel Forge">Retro Pixel Forge</option>
+                    </select>
                     <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gold-400">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"></path></svg>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
                     </div>
                 </div>
             </div>
@@ -290,16 +288,19 @@
                         <select id="count" class="rpg-input w-full h-12 px-4 appearance-none text-sm font-semibold cursor-pointer">
                             <option value="1">1 Manifestation</option>
                             <option value="2">2 Manifestations</option>
-                            <option value="4" selected="">4 Manifestations</option>
+                            <option value="4" selected>4 Manifestations</option>
                         </select>
-                        <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gold-400"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"></path></svg></div>
+                        <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gold-400"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg></div>
                     </div>
                 </div>
                 <div class="space-y-3">
                     <label class="text-[10px] font-bold uppercase text-gold-400/80 tracking-[0.2em]">Quality</label>
                     <div class="relative">
-                        <select id="quality" class="rpg-input w-full h-12 px-4 appearance-none text-sm font-semibold cursor-pointer"><option value="Fast">Fast</option><option value="High Quality">High Quality</option></select>
-                        <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gold-400"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"></path></svg></div>
+                        <select id="quality" class="rpg-input w-full h-12 px-4 appearance-none text-sm font-semibold cursor-pointer">
+                            <option value="standard">Standard</option>
+                            <option value="hd" selected>High-Res</option>
+                        </select>
+                        <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gold-400"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg></div>
                     </div>
                 </div>
             </div>
@@ -309,7 +310,7 @@
                 <label class="text-[10px] font-bold uppercase text-gold-400/80 tracking-[0.2em]">Canvas Dimensions</label>
                 <div class="grid grid-cols-5 gap-1">
                     <div class="aspect-radio">
-                        <input type="radio" name="aspectRatio" id="ar-1-1" value="1:1" data-dim="1024x1024" checked="">
+                        <input type="radio" name="aspectRatio" id="ar-1-1" value="1:1" data-dim="1024x1024" checked>
                         <label for="ar-1-1"><div class="w-3.5 h-3.5 border-2 border-current rounded-sm"></div>1:1</label>
                     </div>
                     <div class="aspect-radio">
@@ -336,7 +337,7 @@
                 <label class="text-[10px] font-bold uppercase text-gold-400/50 tracking-[0.2em] flex items-center gap-2">
                     Magic Seed (Optional)
                 </label>
-                <input id="seed" type="number" placeholder="Leave empty for random..." class="rpg-input w-full p-3 text-sm">
+                <input id="seed" type="number" placeholder="Leave empty for random..." class="rpg-input w-full p-3 text-sm" />
             </div>
 
             <!-- Local Gallery (for current forge generation) -->
@@ -348,7 +349,7 @@
         <div class="BottomAction p-6 md:p-8 bg-obsidian-950/90 backdrop-blur-xl border-t border-gold-400/20 absolute md:relative bottom-0 w-full z-30 shadow-[0_-10px_30px_rgba(0,0,0,0.5)] transition-opacity duration-300">
             <button id="generateBtn" data-action="runGeneration" class="btn-manifest w-full h-14 flex items-center justify-center gap-3">
                 <span id="btnText" class="btn-text flex items-center gap-2">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48 2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48 2.83-2.83"></path></svg>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48 2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48 2.83-2.83"/></svg>
                     Manifest Vision
                 </span>
                 <div id="btnLoader" class="loader-rune"></div>
@@ -363,103 +364,110 @@
         </div>
     </aside>
 
-    <style>
-        /* Aspect Ratio Grid Styles */
-        .aspect-radio {
-            position: relative;
-            flex: 1;
-        }
-        .aspect-radio input {
-            position: absolute;
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-        .aspect-radio label {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            padding: 10px 4px;
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(207, 169, 114, 0.1);
-            border-radius: 12px;
-            color: rgba(207, 169, 114, 0.4);
-            font-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer;
-        }
-        .aspect-radio input:checked + label {
-            background: rgba(207, 169, 114, 0.1);
-            border-color: rgba(207, 169, 114, 0.6);
-            color: #CFA972;
-            box-shadow: 0 0 15px rgba(207, 169, 114, 0.1);
-        }
-        .aspect-radio label div {
-            transition: all 0.3s ease;
-        }
-        .aspect-radio input:checked + label div {
-            border-color: #CFA972;
-            filter: drop-shadow(0 0 4px rgba(207,169,114,0.5));
-        }
-    </style>
+    <!-- CONSOLE BACKDROP (For Mobile focus) -->
+    <div id="consoleBackdrop" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[90] opacity-0 pointer-events-none transition-opacity duration-500"></div>
 
-  <!-- 4. BOTTOM NAVIGATION (Mobile) -->
-  <nav class="md:hidden fixed bottom-0 left-0 w-full h-16 bg-obsidian-950/95 backdrop-blur-xl border-t border-gold-400/20 z-[110] flex items-center justify-around px-4">
-    <button data-action="setView" data-view="history" class="mobile-nav-item active flex flex-col items-center gap-1 text-white/40">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-        <span class="text-[9px] font-bold uppercase tracking-widest">Vault</span>
-    </button>
-    <button data-action="setView" data-view="discovery" class="mobile-nav-item flex flex-col items-center gap-1 text-white/40">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-        <span class="text-[9px] font-bold uppercase tracking-widest">Global</span>
-    </button>
-    <button data-action="setView" data-view="feed" class="mobile-nav-item flex flex-col items-center gap-1 text-white/40">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        <span class="text-[9px] font-bold uppercase tracking-widest">Feed</span>
-    </button>
-  </nav>
+    <!-- 4. BOTTOM NAVIGATION (Mobile) -->
+    <nav class="md:hidden fixed bottom-0 left-0 w-full h-16 bg-obsidian-950/95 backdrop-blur-xl border-t border-gold-400/20 z-[110] flex items-center justify-around px-4">
+        <button data-action="setView" data-view="history" class="mobile-nav-item active flex flex-col items-center gap-1 text-white/40">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            <span class="text-[9px] font-bold uppercase tracking-widest">Vault</span>
+        </button>
+        <button data-action="setView" data-view="discovery" class="mobile-nav-item flex flex-col items-center gap-1 text-white/40">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            <span class="text-[9px] font-bold uppercase tracking-widest">Global</span>
+        </button>
+        <button data-action="setView" data-view="feed" class="mobile-nav-item flex flex-col items-center gap-1 text-white/40">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <span class="text-[9px] font-bold uppercase tracking-widest">Feed</span>
+        </button>
+    </nav>
 
-  <!-- 5. MAIN CONTENT AREA -->
-  <main class="flex-1 h-screen flex flex-col relative z-20">
+    <!-- 5. MAIN CONTENT AREA -->
+    <main class="flex-1 h-screen flex flex-col relative z-20">
+        <!-- Top Toolbar -->
         <header class="p-4 md:p-10 flex justify-between items-start z-30 sticky top-0 bg-gradient-to-b from-obsidian-950 via-obsidian-950/80 to-transparent pointer-events-none">
             <div class="pointer-events-auto">
-                <h2 id="viewTitle" class="text-3xl md:text-5xl font-black text-cinematic text-parchment-100 tracking-tight leading-none drop-shadow-2xl">Your <span class="italic text-gold-500">Grimoire</span></h2>
+                <h2 id="viewTitle" class="text-3xl md:text-5xl font-black text-cinematic text-parchment-100 tracking-tight leading-none drop-shadow-2xl">
+                    Your <span class="italic text-gold-500">Grimoire</span>
+                </h2>
                 <p id="viewSubtitle" class="text-parchment-100/40 font-bold uppercase tracking-[0.2em] text-[9px] md:text-[10px] mt-2 ml-1">Aether Studio Private Vault</p>
                 <div class="status-pill text-[10px] mt-2 text-parchment-100/60" id="backendStatus">Checking backend...</div>
             </div>
+            
             <div class="pointer-events-auto flex items-center gap-4">
+                <button id="show-hidden-btn" class="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-white/10 transition-all">Show Hidden</button>
                 <div id="user-profile" class="hidden flex items-center gap-3">
-                    <button data-action="logout" class="text-[10px] uppercase font-bold tracking-wider hover:text-red-600">Logout</button>
-                    <div class="h-12 w-12 rounded-xl border-2 border-gold-400 overflow-hidden cursor-pointer shadow-glow-gold"><img id="user-avatar" src="" alt="Profile" class="w-full h-full object-cover"></div>
+                    <button data-action="logout" class="text-[10px] uppercase font-bold tracking-wider hover:text-red-600 transition-colors">Logout</button>
+                    <div class="h-12 w-12 rounded-xl border-2 border-gold-400 overflow-hidden cursor-pointer shadow-glow-gold bg-parchment-300 transform transition-transform hover:-translate-y-1">
+                        <img id="user-avatar" src="https://api.dicebear.com/7.x/avataaars/svg?seed=AetherMage&backgroundColor=E8DCC8" alt="Profile" class="w-full h-full object-cover">
+                    </div>
                 </div>
             </div>
         </header>
 
+        <!-- View Containers -->
         <div class="flex-1 overflow-y-auto px-6 md:px-10 pb-24 pt-4 custom-scrollbar" id="mainScrollArea">
-            <section id="view-history" class="view view-section active min-h-full pb-12"><div id="historyList" class="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5 gap-4 md:gap-6 space-y-4 md:space-y-6 w-full"></div></section>
-            <section id="view-discovery" class="view view-section min-h-full pb-12"><div id="discoveryList" class="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5 gap-4 md:gap-6 space-y-4 md:space-y-6 w-full"></div></section>
-            <section id="view-feed" class="view view-section min-h-full pb-12"><div id="feedList" class="max-w-2xl mx-auto space-y-8"></div></section>
+            
+            <!-- VIEW: VAULT -->
+            <section id="view-history" class="view view-section active min-h-full pb-12">
+                <div id="historyList" class="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5 gap-4 md:gap-6 space-y-4 md:space-y-6 w-full"></div>
+                <div id="loadMoreBtn" class="h-12 w-full flex items-center justify-center mt-8 opacity-0"></div>
+            </section>
+
+            <!-- VIEW: DISCOVERY -->
+            <section id="view-discovery" class="view view-section min-h-full pb-12">
+                <div id="discoveryList" class="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5 gap-4 md:gap-6 space-y-4 md:space-y-6 w-full"></div>
+                <div id="loadMoreDiscoveryBtn" class="h-12 w-full flex items-center justify-center mt-8 opacity-0"></div>
+            </section>
+
+            <!-- VIEW: FEED -->
+            <section id="view-feed" class="view view-section flex flex-col items-center min-h-full pb-12 w-full">
+                <div class="w-full max-w-2xl bg-black/40 border border-gold-400/20 p-4 md:p-6 rounded-2xl mb-8 mx-auto">
+                    <textarea id="feed-post-content" placeholder="Share your magical discoveries..." class="rpg-input w-full h-24 p-4 text-sm mb-4 resize-none"></textarea>
+                    <div class="flex justify-end">
+                        <button data-action="createPost" class="px-6 py-2 bg-gold-400 text-black font-bold uppercase text-[10px] tracking-widest rounded-lg hover:shadow-glow-gold transition-all">Broadcast</button>
+                    </div>
+                </div>
+                <div id="feedList" class="w-full max-w-2xl flex flex-col gap-8 pb-12"></div>
+                <div id="loadMoreFeedBtn" class="h-12 w-full flex items-center justify-center mt-4 opacity-0"></div>
+            </section>
         </div>
-  </main>
+    </main>
 
-  <!-- 6. COMPONENTS -->
-  <div id="bubbleReveal" class="fixed inset-0 z-[100] bg-obsidian-950/80 backdrop-blur-2xl hidden opacity-0 transition-opacity duration-400 flex items-center justify-center p-4 md:p-8" data-action="closeLightbox">
-      <button data-action="closeLightbox" class="absolute top-6 right-6 text-white/50 hover:text-gold-400 bg-white/5 w-12 h-12 rounded-full flex items-center justify-center border border-white/10 z-[150]"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-      <div class="flex flex-col md:flex-row w-full max-w-[1400px] h-full max-h-[90vh] panel-obsidian rounded-2xl overflow-hidden shadow-rpg-panel transform transition-transform duration-500 scale-100" data-stop-propagation="true">
-          <div class="flex-1 bg-black/40 flex items-center justify-center p-4 md:p-12 relative overflow-hidden">
-              <img id="revealImage" src="" class="max-w-full max-h-full object-contain rounded shadow-2xl relative z-10 transition-opacity duration-500 opacity-0" alt="Manifestation">
-          </div>
-          <div class="w-full md:w-[420px] p-8 lg:p-10 flex flex-col gap-8 overflow-y-auto custom-scrollbar glass-reveal-panel">
-              <div class="space-y-2"><label class="text-[10px] font-black uppercase tracking-[0.3em] text-gold-400/60">Incantation</label><p id="revealPrompt" class="text-parchment-100 text-lg leading-relaxed font-medium italic"></p></div>
-              <div class="BottomAction-Reveal mt-auto flex flex-col gap-3"><button data-action="cloneActiveManifestation" class="btn-manifest w-full h-14 flex items-center justify-center gap-3">Clone Vision</button></div>
-          </div>
-      </div>
-  </div>
+    <!-- LIGHTBOX MODAL -->
+    <div id="bubbleReveal" class="fixed inset-0 z-[100] bg-obsidian-950/90 backdrop-blur-xl hidden opacity-0 transition-opacity duration-400 flex items-center justify-center p-4 md:p-8" data-action="closeLightbox">
+        <button data-action="closeLightbox" class="absolute top-6 right-6 text-white/50 hover:text-gold-400 bg-white/5 w-12 h-12 rounded-full flex items-center justify-center transition-all z-[150] border border-white/10 hover:border-gold-400/50 hover:scale-110">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+        <div class="flex flex-col md:flex-row w-full max-w-[1400px] h-full max-h-[90vh] panel-obsidian rounded-2xl overflow-hidden shadow-rpg-panel transform transition-transform duration-500 scale-100" data-stop-propagation="true">
+            <div class="flex-1 bg-black/80 relative flex items-center justify-center p-6 min-h-[40vh] border-r border-gold-400/10">
+                <img id="bubbleRevealImg" src="" alt="Enlarged Vision" class="max-w-full max-h-full object-contain shadow-2xl rounded">
+            </div>
+            <div class="w-full md:w-[420px] p-8 lg:p-10 flex flex-col gap-8 overflow-y-auto custom-scrollbar">
+                <div class="border-b border-gold-400/10 pb-6">
+                    <h4 class="text-[10px] font-bold uppercase text-gold-400 tracking-[0.3em] mb-3 flex items-center gap-2">The Incantation</h4>
+                    <p id="lightboxPrompt" class="text-base text-white/90 leading-relaxed font-serif italic tracking-wide"></p>
+                </div>
+                <div class="border-b border-gold-400/10 pb-6">
+                    <h4 class="text-[10px] font-bold uppercase text-red-500/80 tracking-[0.3em] mb-3">The Wards</h4>
+                    <p id="lightboxNegative" class="text-xs text-white/40 leading-relaxed"></p>
+                </div>
+                <div id="thumbsSection" class="hidden flex flex-col gap-3">
+                    <h4 class="text-[10px] font-black text-gold-400 uppercase tracking-widest">The Batch</h4>
+                    <div id="bubbleRevealThumbs" class="grid grid-cols-4 gap-2"></div>
+                </div>
+                <div class="mt-auto space-y-4 pt-6 border-t border-gold-400/10">
+                    <button data-action="hideCurrentItem" class="w-full py-3 border border-white/10 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-white/5 transition-all text-white/60">Hide Manifestation</button>
+                    <button data-action="banishCurrentItem" class="w-full py-3 border border-red-500/20 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-red-500/10 transition-all text-red-500/60">Banish Spirit</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-  <div id="consoleBackdrop" class="fixed inset-0 bg-black/40 z-[90] opacity-0 pointer-events-none transition-all duration-500"></div>
+    <script type="module" src="/js/main.js"></script>
 
-  <script type="module" src="js/main.js"></script>
-  <script>
+    <script>
         const canvas = document.getElementById('particlesCanvas');
         const ctx = canvas.getContext('2d');
         let particles = [];
@@ -473,12 +481,19 @@
                 this.color = Math.random() > 0.5 ? 'rgba(212, 175, 55, ' : 'rgba(255, 255, 255, ';
                 this.opacity = Math.random() * 0.6 + 0.2;
             }
-            update() { this.x += this.speedX; this.y += this.speedY; if (this.y < 0) this.y = canvas.height; }
-            draw() { ctx.fillStyle = this.color + this.opacity + ')'; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill(); }
+            update() {
+                this.x += this.speedX; this.y += this.speedY;
+                if (this.y < 0) this.y = canvas.height;
+                if (this.x < 0) this.x = canvas.width; if (this.x > canvas.width) this.x = 0;
+            }
+            draw() {
+                ctx.fillStyle = this.color + this.opacity + ')';
+                ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill();
+            }
         }
         for (let i = 0; i < 50; i++) particles.push(new Particle());
         function animate() { ctx.clearRect(0, 0, canvas.width, canvas.height); particles.forEach(p => { p.update(); p.draw(); }); requestAnimationFrame(animate); }
         animate();
-  </script>
+    </script>
 </body>
 </html>

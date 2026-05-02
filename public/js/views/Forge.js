@@ -53,25 +53,17 @@ export function createForgeView(state, api, toast) {
     state.set('app.mode', mode);
     document.body.dataset.mode = mode;
     state.set('app.serverUrl', resolveServerUrl(mode));
-    const m = dom.model(), q = dom.quality();
+    const m = dom.model(), q = dom.quality(), a = dom.aspect();
     const prevModel = m?.value || localStorage.getItem('a_model') || '';
     const models = mode === 'nsfw' ? STAR_MODELS : DAY_MODELS;
-    
     if (m) m.innerHTML = models.map(n => `<option value="${n}">${n}</option>`).join('');
     if (q) q.innerHTML = QUALITY_CHOICES.map(v => `<option value="${v}">${v}</option>`).join('');
-    
-    // Reset or preserve model selection
+    if (a) a.innerHTML = ASPECT_CHOICES.map(v => `<option value="${v}">${v}</option>`).join('');
     if (m) m.value = models.includes(prevModel) ? prevModel : models[0];
-    
-    // Sync UI active states for mode buttons
-    document.querySelectorAll('[data-action="switchMode"]').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.mode === (mode === 'nsfw' ? 'nsfw' : 'standard'));
-    });
-
+    document.querySelectorAll('[data-mode]').forEach(btn => btn.classList.toggle('active', btn.dataset.mode === mode));
     localStorage.setItem('a_mode', mode);
     if (m) localStorage.setItem('a_model', m.value);
-    
-    const accent = mode === 'nsfw' ? '#8b5cf6' : '#CFA972';
+    const accent = mode === 'nsfw' ? '#8b5cf6' : '#10b981';
     document.documentElement.style.setProperty('--accent', accent);
   }
 
