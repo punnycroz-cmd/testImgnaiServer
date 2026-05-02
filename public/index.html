@@ -233,6 +233,7 @@
             </div>
         </div>
 
+        <!-- Navigation Tabs (Hidden on mobile) -->
         <div class="px-4 md:px-8 mb-4 hidden md:block">
             <div class="glass-light p-1.5 rounded-xl flex items-center justify-between pointer-events-auto border border-white/40 overflow-hidden shadow-sm">
                 <button data-view="history" class="nav-pill active flex-1 text-center">Vault</button>
@@ -241,59 +242,103 @@
             </div>
         </div>
 
+        <!-- Main Controls Area -->
         <div id="forgeControls" class="flex-1 overflow-y-auto px-8 space-y-7 pb-32 md:pb-8 relative z-10 custom-scrollbar">
+            <!-- The Incantation -->
             <div class="space-y-3">
-                <label class="text-[10px] font-bold uppercase tracking-[0.2em] text-parchment-300 flex items-center gap-2">
-                    <span class="w-1.5 h-1.5 rounded-full bg-aether-light shadow-glow-aether"></span>
-                    The Incantation
-                </label>
-                <textarea id="promptInput" class="rpg-input w-full min-h-[120px] p-5 text-sm leading-relaxed" placeholder="Speak your vision into the void..."></textarea>
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-aether-light shadow-glow-aether"></span>
+                        <label class="text-[10px] font-bold uppercase tracking-[0.2em] text-parchment-300">The Incantation</label>
+                    </div>
+                </div>
+                <div class="relative group">
+                    <textarea id="promptInput" class="rpg-input w-full min-h-[120px] p-5 text-sm leading-relaxed" placeholder="Speak your vision into the void..."></textarea>
+                </div>
             </div>
+
             <div class="ornate-divider w-full h-px bg-gradient-to-r from-transparent via-gold-400/30 to-transparent relative my-8"></div>
+
+            <!-- Wards -->
             <div class="space-y-3">
                 <label class="text-[10px] font-bold uppercase tracking-[0.2em] text-parchment-300 flex items-center gap-2">
                     <span class="w-1.5 h-1.5 rounded-full bg-red-500/60 shadow-[0_0_8px_rgba(239,68,68,0.4)]"></span>
-                    Wards
+                    Wards (Exclusions)
                 </label>
-                <textarea id="negativePromptInput" class="rpg-input w-full min-h-[80px] p-4 text-[13px]" placeholder="Elements to banish..."></textarea>
+                <textarea id="negativePromptInput" class="rpg-input w-full min-h-[80px] p-4 text-[13px]" placeholder="Elements to banish (e.g. low quality, bad anatomy)..."></textarea>
             </div>
+
+            <div class="ornate-divider w-full h-px bg-gradient-to-r from-transparent via-gold-400/30 to-transparent relative my-8"></div>
+
             <div class="grid grid-cols-1 gap-8">
+                <!-- Dimensional Realm -->
                 <div class="space-y-3">
-                    <label class="text-[10px] font-bold uppercase tracking-[0.2em] text-parchment-300">Realm</label>
+                    <label class="text-[10px] font-bold uppercase tracking-[0.2em] text-parchment-300">Dimensional Realm</label>
                     <div class="grid grid-cols-2 gap-2">
-                        <button data-mode="day" class="h-12 text-[10px] font-bold uppercase tracking-widest rounded-xl border border-gold-400/20 bg-black/40 hover:bg-gold-400/10 active">Day</button>
-                        <button data-mode="star" class="h-12 text-[10px] font-bold uppercase tracking-widest rounded-xl border border-gold-400/20 bg-black/40 hover:bg-gold-400/10">Star</button>
+                        <button data-mode="day" class="h-12 text-[10px] font-bold uppercase tracking-widest rounded-xl border border-gold-400/20 bg-black/40 transition-all hover:bg-gold-400/10 active">Day Realm</button>
+                        <button data-mode="star" class="h-12 text-[10px] font-bold uppercase tracking-widest rounded-xl border border-gold-400/20 bg-black/40 transition-all hover:bg-gold-400/10">Star Realm</button>
                     </div>
                 </div>
+
+                <!-- Casting Engine -->
                 <div class="space-y-3">
-                    <label class="text-[10px] font-bold uppercase tracking-[0.2em] text-parchment-300">Engine</label>
+                    <label class="text-[10px] font-bold uppercase tracking-[0.2em] text-parchment-300">Casting Engine</label>
                     <div class="relative">
                         <select id="engine" class="rpg-input w-full h-12 px-4 appearance-none text-sm font-semibold cursor-pointer">
                             <option value="ani" selected>Ani</option>
                             <option value="cinematic">Cinematic</option>
+                            <option value="fantasy">Fantasy</option>
                         </select>
-                        <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gold-400"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg></div>
+                        <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gold-400">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+                        </div>
                     </div>
                 </div>
+
+                <!-- Manifestation Stats -->
                 <div class="grid grid-cols-2 gap-4">
-                    <div class="space-y-3"><label class="text-[10px] font-bold uppercase tracking-[0.2em] text-parchment-300">Count</label>
-                        <select id="batchSize" class="rpg-input w-full h-12 px-4 appearance-none text-sm cursor-pointer"><option value="1">1</option><option value="4" selected>4</option></select>
+                    <div class="space-y-3">
+                        <label class="text-[10px] font-bold uppercase tracking-[0.2em] text-parchment-300">Images</label>
+                        <div class="relative">
+                            <select id="batchSize" class="rpg-input w-full h-12 px-4 appearance-none text-sm font-semibold cursor-pointer">
+                                <option value="1">1 Manifestation</option>
+                                <option value="4" selected>4 Manifestations</option>
+                                <option value="8">8 Manifestations</option>
+                            </select>
+                            <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gold-400"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg></div>
+                        </div>
                     </div>
-                    <div class="space-y-3"><label class="text-[10px] font-bold uppercase tracking-[0.2em] text-parchment-300">Quality</label>
-                        <select id="quality" class="rpg-input w-full h-12 px-4 appearance-none text-sm cursor-pointer"><option value="standard">Std</option><option value="hd" selected>HD</option></select>
+                    <div class="space-y-3">
+                        <label class="text-[10px] font-bold uppercase tracking-[0.2em] text-parchment-300">Quality</label>
+                        <div class="relative">
+                            <select id="quality" class="rpg-input w-full h-12 px-4 appearance-none text-sm font-semibold cursor-pointer">
+                                <option value="standard">Standard</option>
+                                <option value="hd" selected>High-Res</option>
+                            </select>
+                            <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gold-400"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg></div>
+                        </div>
                     </div>
                 </div>
             </div>
             <div id="matrixGallery" class="grid grid-cols-2 gap-4 mt-8 hidden"></div>
         </div>
 
+        <!-- Bottom Action -->
         <div class="BottomAction p-6 md:p-8 bg-obsidian-950/90 backdrop-blur-xl border-t border-gold-400/20 absolute md:relative bottom-0 w-full z-30 shadow-[0_-10px_30px_rgba(0,0,0,0.5)] transition-opacity duration-300">
             <button id="generateBtn" data-action="runGeneration" class="btn-manifest w-full h-14 flex items-center justify-center gap-3">
-                <span id="btnText" class="flex items-center gap-2">Manifest Vision</span>
+                <span id="btnText" class="btn-text flex items-center gap-2">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48 2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48 2.83-2.83"/></svg>
+                    Manifest Vision
+                </span>
                 <div id="btnLoader" class="loader-rune"></div>
             </button>
-            <button id="matrixBtn" data-action="runMatrixCast" class="mt-4 w-full py-3 bg-black/40 border border-gold-400/20 text-gold-400/70 text-[10px] font-bold uppercase rounded-xl">Matrix Cast</button>
-            <div id="matrixControls" class="hidden flex justify-between mt-3"><span id="matrixStatusText" class="text-[10px] font-bold text-gold-400 animate-pulse">Initializing...</span></div>
+            <button id="matrixBtn" data-action="runMatrixCast" class="mt-4 w-full py-3 bg-black/40 hover:bg-gold-400/10 border border-gold-400/20 text-gold-400/70 hover:text-gold-400 text-[10px] font-bold uppercase tracking-[0.2em] transition-all rounded-xl flex items-center justify-center gap-2">
+                <span id="btnMatrixText">Matrix Cast (All Models)</span>
+                <div id="btnMatrixLoader" class="loader-rune !w-4 !h-4 hidden"></div>
+            </button>
+            <div id="matrixControls" class="hidden flex justify-between mt-3 px-2">
+                <span id="matrixStatusText" class="text-[10px] font-bold text-gold-400 uppercase tracking-widest animate-pulse">Initializing...</span>
+            </div>
         </div>
   </aside>
 
