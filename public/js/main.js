@@ -255,12 +255,14 @@ try {
 
   // Mobile Forge Toggle
   const forgeSidebar = document.getElementById('forgeSidebar');
-  const forgeToggle = document.getElementById('mobileForgeToggle');
+  const forgeHeader = forgeSidebar?.querySelector('.BrandHeader');
   const backdrop = document.getElementById('consoleBackdrop');
   
-  if (forgeSidebar && forgeToggle) {
-    forgeToggle.addEventListener('click', () => {
-      forgeSidebar.classList.toggle('minimized');
+  if (forgeSidebar && forgeHeader) {
+    forgeHeader.addEventListener('click', () => {
+      if (window.innerWidth < 768) {
+        forgeSidebar.classList.toggle('minimized');
+      }
     });
     if (backdrop) {
       backdrop.addEventListener('click', () => {
