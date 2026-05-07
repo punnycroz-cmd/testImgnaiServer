@@ -55,10 +55,12 @@ async def create_share_link(payload: ShareRequest, uid: str = Depends(get_curren
         import json
         res = json.loads(public_gen["result"]) if isinstance(public_gen["result"], str) else public_gen["result"]
         urls = res.get("image_urls", [])
+        print(f"DEBUG: Found {len(urls)} images in result JSON")
         if payload.image_index < len(urls):
             full_url = urls[payload.image_index]
-            r2_key = full_url.split('/')[-1].split('?')[0]
-            print(f"DEBUG: Extracted R2 key from fallback: {r2_key}")
+            from core.vault import extract_key_from_url, _public_url
+            r2_key = extract_key_from_url(full_url, _public_url)
+            print(f"DEBUG: Extracted robust R2 key: {r2_key}")
 
     if not r2_key:
         print(f"DEBUG: Share failed - R2 key could not be resolved")
