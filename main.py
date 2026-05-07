@@ -135,7 +135,7 @@ async def auth_logout(response: Response):
 
 # --- Public Gallery ---
 @app.get("/public-gallery")
-async def get_public_gallery(limit: int = 20, before: Optional[str] = None, realm: Optional[str] = None, search: Optional[str] = None, sort: str = 'newest', target_uid: Optional[str] = None):
+async def get_public_gallery(request: Request, limit: int = 20, before: Optional[str] = None, realm: Optional[str] = None, search: Optional[str] = None, sort: str = 'newest', target_uid: Optional[str] = None):
     b_id = None
     if before and before != "null" and before != "undefined":
         try: b_id = int(float(before))
