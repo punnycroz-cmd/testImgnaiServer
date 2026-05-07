@@ -23,6 +23,7 @@ def get_current_uid_required(request: Request):
 @router.post("/share")
 async def create_share_link(payload: ShareRequest, uid: str = Depends(get_current_uid_required)):
     # 1. Verify ownership and get R2 key
+    print(f"DEBUG: Share request for {payload.request_id} index {payload.image_index} from user {uid}")
     image = await DB.fetchrow(
         """
         SELECT r2_key FROM generation_images 
@@ -32,6 +33,7 @@ async def create_share_link(payload: ShareRequest, uid: str = Depends(get_curren
     )
     
     r2_key = image["r2_key"] if image else None
+    print(f"DEBUG: Initial R2 key lookup: {r2_key}")
 
     # Fallback: Check the main generations table (for older images)
     if not r2_key:
@@ -40,16 +42,18 @@ async def create_share_link(payload: ShareRequest, uid: str = Depends(get_curren
             payload.request_id, uid
         )
         if gen:
+            print(f"DEBUG: Found generation in fallback table")
             import json
             res = json.loads(gen["result"]) if isinstance(gen["result"], str) else gen["result"]
             urls = res.get("image_urls", [])
+            print(f"DEBUG: Found {len(urls)} images in result")
             if payload.image_index < len(urls):
-                # The image_url is like https://.../r2_key
-                # We need to extract the key
                 full_url = urls[payload.image_index]
                 r2_key = full_url.split('/')[-1].split('?')[0]
+                print(f"DEBUG: Extracted R2 key from fallback: {r2_key}")
 
     if not r2_key:
+        print(f"DEBUG: Share failed - image not found or no ownership")
         raise HTTPException(status_code=404, detail="Image not found or access denied")
 
     # 2. Generate shortcode (8 chars)
