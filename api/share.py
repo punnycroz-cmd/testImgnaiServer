@@ -22,39 +22,47 @@ def get_current_uid_required(request: Request):
 
 @router.post("/share")
 async def create_share_link(payload: ShareRequest, uid: str = Depends(get_current_uid_required)):
-    # 1. Verify ownership and get R2 key
+    # 1. Verify ownership OR if the image is public
     print(f"DEBUG: Share request for {payload.request_id} index {payload.image_index} from user {uid}")
+    
+    # Check if the image is public first
+    public_gen = await DB.fetchrow(
+        "SELECT uid, is_public, result FROM generations WHERE request_id = $1",
+        payload.request_id
+    )
+    
+    if not public_gen:
+        print(f"DEBUG: Generation {payload.request_id} not found in DB at all")
+        raise HTTPException(status_code=404, detail="Generation not found")
+
+    is_owner = public_gen["uid"] == uid
+    is_public = public_gen.get("is_public", False)
+    
+    if not is_owner and not is_public:
+        print(f"DEBUG: Share failed - User {uid} is not owner and image is not public")
+        raise HTTPException(status_code=403, detail="You do not have permission to share this private image")
+
+    # 2. Get the R2 key from generation_images or fallback to result JSON
     image = await DB.fetchrow(
-        """
-        SELECT r2_key FROM generation_images 
-        WHERE generation_id = $1 AND image_index = $2 AND uid = $3
-        """, 
-        payload.request_id, payload.image_index, uid
+        "SELECT r2_key FROM generation_images WHERE generation_id = $1 AND image_index = $2", 
+        payload.request_id, payload.image_index
     )
     
     r2_key = image["r2_key"] if image else None
-    print(f"DEBUG: Initial R2 key lookup: {r2_key}")
-
-    # Fallback: Check the main generations table (for older images)
-    if not r2_key:
-        gen = await DB.fetchrow(
-            "SELECT result FROM generations WHERE request_id = $1 AND uid = $2",
-            payload.request_id, uid
-        )
-        if gen:
-            print(f"DEBUG: Found generation in fallback table")
-            import json
-            res = json.loads(gen["result"]) if isinstance(gen["result"], str) else gen["result"]
-            urls = res.get("image_urls", [])
-            print(f"DEBUG: Found {len(urls)} images in result")
-            if payload.image_index < len(urls):
-                full_url = urls[payload.image_index]
-                r2_key = full_url.split('/')[-1].split('?')[0]
-                print(f"DEBUG: Extracted R2 key from fallback: {r2_key}")
 
     if not r2_key:
-        print(f"DEBUG: Share failed - image not found or no ownership")
-        raise HTTPException(status_code=404, detail="Image not found or access denied")
+        print(f"DEBUG: Image not in generation_images, checking result JSON fallback")
+        import json
+        res = json.loads(public_gen["result"]) if isinstance(public_gen["result"], str) else public_gen["result"]
+        urls = res.get("image_urls", [])
+        if payload.image_index < len(urls):
+            full_url = urls[payload.image_index]
+            r2_key = full_url.split('/')[-1].split('?')[0]
+            print(f"DEBUG: Extracted R2 key from fallback: {r2_key}")
+
+    if not r2_key:
+        print(f"DEBUG: Share failed - R2 key could not be resolved")
+        raise HTTPException(status_code=404, detail="Image data missing")
 
     # 2. Generate shortcode (8 chars)
     shortcode = nanoid.generate(size=8)
