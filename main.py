@@ -162,7 +162,15 @@ async def toggle_public_batch(request_id: str, request: Request):
     
     # Ownership check
     row = await DB.get_generation(request_id)
-    if not row or row.get("uid") != uid:
+    if not row:
+        print(f"DEBUG: 403 Error - Generation {request_id} not found in DB")
+        raise HTTPException(status_code=403, detail="Generation not found")
+        
+    db_uid = str(row.get("uid"))
+    session_uid = str(uid)
+    
+    if db_uid != session_uid:
+        print(f"DEBUG: 403 Error - ID Mismatch! Session UID: '{session_uid}', DB UID: '{db_uid}'")
         raise HTTPException(status_code=403, detail="Permission denied")
         
     await DB.set_generation_public(request_id, is_public)
