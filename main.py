@@ -645,12 +645,13 @@ async def cancel_all_jobs():
 
 
 @app.post("/generate")
-async def generate(req: GenerateRequest, request: Request):
+async def generate(request: Request, payload: GenerateRequest):
     uid = get_uid_from_session(request)
-    if not uid:
-        raise HTTPException(status_code=401, detail="Authentication required")
+    if not uid or uid == "uid_0":
+        raise HTTPException(status_code=401, detail="Please log in to generate images")
     
     try:
+        req = payload
         req.count = 4
         realm = (req.realm or "day").lower()
         request_id = str(uuid.uuid4())
