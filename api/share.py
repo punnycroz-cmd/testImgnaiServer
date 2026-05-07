@@ -49,6 +49,8 @@ async def create_share_link(payload: ShareRequest, uid: str = Depends(get_curren
     )
     
     r2_key = image["r2_key"] if image else None
+    if r2_key:
+        print(f"DEBUG: Found r2_key in generation_images: {r2_key}")
 
     if not r2_key:
         print(f"DEBUG: Image not in generation_images, checking result JSON fallback")
@@ -60,11 +62,15 @@ async def create_share_link(payload: ShareRequest, uid: str = Depends(get_curren
             full_url = urls[payload.image_index]
             from core.vault import extract_key_from_url, _public_url
             r2_key = extract_key_from_url(full_url, _public_url)
-            print(f"DEBUG: Extracted robust R2 key: {r2_key}")
+            print(f"DEBUG: Extracted robust R2 key from fallback: {r2_key}")
 
     if not r2_key:
         print(f"DEBUG: Share failed - R2 key could not be resolved")
         raise HTTPException(status_code=404, detail="Image data missing")
+    
+    # SANITIZE: Cloudflare keys should NOT have a leading slash
+    r2_key = r2_key.lstrip('/')
+    print(f"DEBUG: Final sanitized r2_key for KV: '{r2_key}'")
 
     # 2. Generate shortcode (8 chars)
     shortcode = nanoid.generate(size=8)
