@@ -23,7 +23,7 @@ export default {
       return new Response('Image not found', { status: 404 });
     }
 
-    // 3. If raw=1 is requested (for social previews), return the raw image
+    // 3. Raw image for previews/embedding
     if (isRaw) {
       return new Response(object.body, {
         headers: {
@@ -33,9 +33,9 @@ export default {
       });
     }
 
-    // 4. Otherwise, return a beautiful Landing Page
+    // 4. Premium Landing Page
     const rawUrl = `${url.origin}${url.pathname}?raw=1`;
-    const homeUrl = 'https://aether-store.pages.dev'; // Your main site
+    const homeUrl = 'https://aether-store.pages.dev';
 
     const html = `
 <!DOCTYPE html>
@@ -43,11 +43,11 @@ export default {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aether Studio | Divine Creation</title>
+    <title>Aether | Divine Creation</title>
     
-    <!-- Social Media Meta Tags -->
-    <meta property="og:title" content="Aether Studio | Vision Shared">
-    <meta property="og:description" content="A divine manifestation created in Aether Studio. Click to create yours.">
+    <!-- Social Meta Tags -->
+    <meta property="og:title" content="Aether Studio | Divine Manifestation">
+    <meta property="og:description" content="Witness a vision shared from the Aether. Click to create yours.">
     <meta property="og:image" content="${rawUrl}">
     <meta property="og:type" content="website">
     <meta name="twitter:card" content="summary_large_image">
@@ -55,86 +55,158 @@ export default {
 
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --accent: #8b5cf6;
+            --accent-glow: rgba(139, 92, 246, 0.3);
+            --bg: #030712;
+        }
         body {
             margin: 0;
             padding: 0;
-            background: #070a18;
+            background: var(--bg);
             color: white;
             font-family: 'Outfit', sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
             min-height: 100vh;
             overflow-x: hidden;
         }
-        .container {
-            max-width: 900px;
-            width: 90%;
-            text-align: center;
-            padding: 40px 0;
+        
+        /* Subtle background glow */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.08) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: -1;
         }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            padding: 40px 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .header {
+            margin-bottom: 32px;
+            text-align: center;
+        }
+
         .logo {
             font-family: 'Cinzel', serif;
-            font-size: 1.5rem;
-            letter-spacing: 0.3em;
-            color: #8b5cf6;
-            margin-bottom: 40px;
+            font-size: clamp(1.2rem, 5vw, 1.8rem);
+            letter-spacing: 0.4em;
+            color: var(--accent);
             text-decoration: none;
-            display: inline-block;
+            text-shadow: 0 0 20px var(--accent-glow);
+            transition: opacity 0.2s;
         }
-        .image-wrapper {
+        .logo:hover { opacity: 0.8; }
+
+        .image-card {
             position: relative;
-            border-radius: 24px;
-            overflow: hidden;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5), 0 0 30px rgba(139,92,246,0.15);
-            border: 1px solid rgba(255,255,255,0.1);
+            width: 100%;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 28px;
+            padding: 12px;
+            box-sizing: border-box;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.6);
             margin-bottom: 40px;
         }
-        img {
-            max-width: 100%;
+
+        .image-inner {
+            width: 100%;
+            border-radius: 20px;
+            overflow: hidden;
             display: block;
+            line-height: 0;
+            background: #000;
+        }
+
+        img {
+            width: 100%;
             height: auto;
+            display: block;
         }
+
+        .cta-section {
+            width: 100%;
+            text-align: center;
+        }
+
         .btn {
-            display: inline-block;
-            padding: 16px 40px;
-            background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
-            color: white;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 18px 48px;
+            background: white;
+            color: #000;
             text-decoration: none;
-            border-radius: 50px;
+            border-radius: 100px;
             font-weight: 600;
-            letter-spacing: 0.05em;
-            box-shadow: 0 10px 20px rgba(139,92,246,0.3);
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-            font-size: 0.9rem;
+            font-size: 1rem;
+            letter-spacing: 0.02em;
+            transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         }
+
         .btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 15px 30px rgba(139,92,246,0.4);
-            filter: brightness(1.1);
+            transform: scale(1.05);
+            background: var(--accent);
+            color: white;
+            box-shadow: 0 15px 40px var(--accent-glow);
         }
+
         .footer {
-            margin-top: 60px;
-            font-size: 0.8rem;
-            color: rgba(255,255,255,0.4);
-            letter-spacing: 0.1em;
+            margin-top: auto;
+            padding: 40px 0;
+            font-size: 0.7rem;
+            color: rgba(255,255,255,0.3);
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+        }
+
+        /* Responsive Tweaks */
+        @media (max-width: 600px) {
+            .container { padding: 30px 16px; }
+            .image-card { border-radius: 20px; padding: 8px; }
+            .image-inner { border-radius: 14px; }
+            .btn { width: 100%; box-sizing: border-box; padding: 16px 24px; }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <a href="${homeUrl}" class="logo">AETHER STUDIO</a>
+        <div class="header">
+            <a href="${homeUrl}" class="logo">AETHER</a>
+        </div>
         
-        <div class="image-wrapper">
-            <img src="${rawUrl}" alt="Aether Manifestation">
+        <div class="image-card">
+            <div class="image-inner">
+                <img src="${rawUrl}" alt="Divine Manifestation">
+            </div>
         </div>
 
-        <a href="${homeUrl}" class="btn">Create Your Own Manifestation</a>
+        <div class="cta-section">
+            <a href="${homeUrl}" class="btn">Create Your Vision</a>
+        </div>
 
         <div class="footer">
-            POWERED BY AETHER ENGINE &bull; 2024
+            Aether Studio &bull; Divine AI Engine
         </div>
     </div>
 </body>
