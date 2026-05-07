@@ -833,8 +833,8 @@ class DatabaseProxy:
     async def mark_image_deleting(self, rid, url): return await mark_image_deleting(rid, url)
     async def finalize_image_deletion(self, rid, url): return await finalize_image_deletion(rid, url)
     async def set_generation_public(self, rid, is_public: bool): return await set_generation_public(rid, is_public)
-    async def list_public_generations(self, limit=20, before_id=None, realm=None, search=None, sort='newest', target_uid=None, current_uid=None): 
-        return await list_public_generations(limit, before_id, realm, search, sort, target_uid, current_uid)
+    async def list_public_generations(self, limit=20, before_id=None, realm=None, search=None, sort='newest', target_uid=None, current_uid=None, following_only=False):
+        return await list_public_generations(limit, before_id, realm, search, sort, target_uid, current_uid, following_only)
     async def create_post(self, uid, content, request_id=None): return await create_post(uid, content, request_id)
     async def list_posts(self, limit=20, before_id=None): return await list_posts(limit, before_id)
     async def toggle_like(self, uid, rid): return await toggle_like(uid, rid)
