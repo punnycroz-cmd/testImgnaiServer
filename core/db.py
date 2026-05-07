@@ -40,6 +40,7 @@ async def init_db(force: bool = False):
         # Load extensions for UUID generation (still good to have)
         await conn.execute('CREATE EXTENSION IF NOT EXISTS "pgcrypto";')
         await conn.execute('CREATE EXTENSION IF NOT EXISTS "uuid-ossp";')
+        await conn.execute('CREATE EXTENSION IF NOT EXISTS "pg_trgm";')
         
         if force:
             await conn.execute("DROP TABLE IF EXISTS generations CASCADE;")
@@ -922,8 +923,9 @@ async def list_public_generations(limit: int = 20, before_id: Optional[int] = No
             for token in tokens:
                 params.append(f"%{token}%")
                 p_idx = len(params)
-                match_clauses.append(f"LOWER(s.prompt) LIKE ${p_idx}")
-                rank_clauses.append(f"(CASE WHEN LOWER(s.prompt) LIKE ${p_idx} THEN 1 ELSE 0 END)")
+                # Combine LIKE and Similarity for best results
+                match_clauses.append(f"(LOWER(s.prompt) LIKE ${p_idx} OR s.prompt % ${p_idx})")
+                rank_clauses.append(f"(CASE WHEN LOWER(s.prompt) LIKE ${p_idx} THEN 1 WHEN s.prompt % ${p_idx} THEN 0.5 ELSE 0 END)")
             
             if match_clauses:
                 clauses.append("(" + " OR ".join(match_clauses) + ")")
