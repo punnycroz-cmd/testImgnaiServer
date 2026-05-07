@@ -760,6 +760,11 @@ class DatabaseProxy:
         async with pool.acquire() as conn:
             return await conn.fetch(query, *args)
     
+    async def fetchrow(self, query: str, *args):
+        pool = await get_pool()
+        async with pool.acquire() as conn:
+            return await conn.fetchrow(query, *args)
+    
     async def execute(self, query: str, *args):
         pool = await get_pool()
         async with pool.acquire() as conn:
