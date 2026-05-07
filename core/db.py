@@ -912,8 +912,10 @@ async def list_public_generations(limit: int = 20, before_id: Optional[int] = No
             clauses.append(f"s.realm = ${len(params)}")
             
         if search:
-            params.append(f"%{search.lower()}%")
-            clauses.append(f"LOWER(s.prompt) LIKE ${len(params)}")
+            tokens = search.lower().split()
+            for token in tokens:
+                params.append(f"%{token}%")
+                clauses.append(f"LOWER(s.prompt) LIKE ${len(params)}")
 
         if before_id is not None:
             params.append(int(before_id))
