@@ -910,17 +910,24 @@ async def list_public_generations(limit: int = 20, before_id: Optional[int] = No
         if realm:
             params.append(realm)
             clauses.append(f"s.realm = ${len(params)}")
-            
-        if search:
-            tokens = search.lower().split()
-            for token in tokens:
-                params.append(f"%{token}%")
-                clauses.append(f"LOWER(s.prompt) LIKE ${len(params)}")
 
         if before_id is not None:
             params.append(int(before_id))
             clauses.append(f"s.image_id_seq < ${len(params)}")
+
+        match_clauses = []
+        rank_clauses = []
+        if search:
+            tokens = search.lower().split()
+            for token in tokens:
+                params.append(f"%{token}%")
+                p_idx = len(params)
+                match_clauses.append(f"LOWER(s.prompt) LIKE ${p_idx}")
+                rank_clauses.append(f"(CASE WHEN LOWER(s.prompt) LIKE ${p_idx} THEN 1 ELSE 0 END)")
             
+            if match_clauses:
+                clauses.append("(" + " OR ".join(match_clauses) + ")")
+
         where_stmt = " WHERE " + " AND ".join(clauses)
         params.append(int(limit))
         limit_idx = len(params)
@@ -931,9 +938,12 @@ async def list_public_generations(limit: int = 20, before_id: Optional[int] = No
             uid_param = f", EXISTS(SELECT 1 FROM likes l2 WHERE l2.request_id = s.request_id AND l2.uid = ${len(params)}) as is_liked"
 
         # Sort logic
+        rank_sum = " + ".join(rank_clauses) if rank_clauses else "0"
         order_by = "s.image_id_seq DESC"
         if sort == 'trending':
             order_by = "likes_count DESC, s.image_id_seq DESC"
+        elif search:
+            order_by = f"({rank_sum}) DESC, s.image_id_seq DESC"
 
         sql = f"""
             SELECT s.*, g.result, g.hidden_indices, u.name as user_name, u.picture as user_picture,
