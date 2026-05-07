@@ -253,6 +253,21 @@ async def init_db(force: bool = False):
                 await conn.execute("UPDATE generations SET image_id = $1, uid = 'uid_0' WHERE id = $2", i + 1, row['id'])
             logging.info("Backfill complete!")
 
+        # Notifications Table
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS notifications (
+                notification_id BIGSERIAL PRIMARY KEY,
+                uid             TEXT NOT NULL REFERENCES users(uid) ON DELETE CASCADE,
+                actor_uid       TEXT NOT NULL REFERENCES users(uid) ON DELETE CASCADE,
+                type            TEXT NOT NULL, -- 'like', 'comment', 'follow'
+                request_id      TEXT,
+                content         TEXT,
+                is_read         BOOLEAN DEFAULT FALSE,
+                created_at      TIMESTAMPTZ DEFAULT NOW()
+            );
+        """)
+        await conn.execute("CREATE INDEX IF NOT EXISTS idx_notifications_uid ON notifications (uid, created_at DESC);")
+
 async def upsert_user(uid: str, email: str, name: str = None, picture: str = None) -> Dict:
     pool = await get_pool()
     async with pool.acquire() as conn:
@@ -827,6 +842,8 @@ class DatabaseProxy:
     async def get_comments(self, rid): return await get_comments(rid)
     async def toggle_follow(self, f_uid, t_uid): return await toggle_follow(f_uid, t_uid)
     async def get_public_profile(self, uid=None, name=None): return await get_public_profile(uid, name)
+    async def get_notifications(self, uid): return await get_notifications(uid)
+    async def mark_notifications_read(self, uid): return await mark_notifications_read(uid)
 
 async def create_post(uid: str, content: str, request_id: Optional[str] = None) -> Dict:
     pool = await get_pool()
@@ -898,12 +915,21 @@ async def set_generation_public(request_id: str, is_public: bool) -> bool:
             """, request_id, is_public)
             return True
 
-async def list_public_generations(limit: int = 20, before_id: Optional[int] = None, realm: Optional[str] = None, search: Optional[str] = None, sort: str = 'newest', target_uid: Optional[str] = None, current_uid: Optional[str] = None) -> List[Dict]:
+async def list_public_generations(limit: int = 20, before_id: Optional[int] = None, realm: Optional[str] = None, search: Optional[str] = None, sort: str = 'newest', target_uid: Optional[str] = None, current_uid: Optional[str] = None, following_only: bool = False) -> List[Dict]:
     pool = await get_pool()
     async with pool.acquire() as conn:
         clauses = ["s.is_public = TRUE", "s.visible_images > 0"]
         params = []
         
+        joins = [
+            "JOIN generations g ON s.request_id = g.request_id",
+            "JOIN users u ON s.uid = u.uid"
+        ]
+        
+        if following_only and current_uid:
+            params.append(current_uid)
+            joins.append(f"JOIN follows f ON f.followed_uid = s.uid AND f.follower_uid = ${len(params)}")
+
         if target_uid:
             params.append(target_uid)
             clauses.append(f"s.uid = ${len(params)}")
@@ -953,8 +979,7 @@ async def list_public_generations(limit: int = 20, before_id: Optional[int] = No
                    (SELECT COUNT(*) FROM comments c WHERE c.request_id = s.request_id) as comments_count
                    {uid_param}
             FROM image_summaries s
-            JOIN generations g ON s.request_id = g.request_id
-            JOIN users u ON s.uid = u.uid
+            {" ".join(joins)}
             {where_stmt}
             ORDER BY {order_by}
             LIMIT ${limit_idx}
@@ -972,6 +997,38 @@ async def list_public_generations(limit: int = 20, before_id: Optional[int] = No
             results.append(d)
         return results
 
+async def create_notification(uid: str, actor_uid: str, n_type: str, request_id: str = None, content: str = None):
+    if uid == actor_uid: return # Don't notify self
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute("""
+            INSERT INTO notifications (uid, actor_uid, type, request_id, content)
+            VALUES ($1, $2, $3, $4, $5)
+        """, uid, actor_uid, n_type, request_id, content)
+
+async def get_notifications(uid: str) -> List[Dict]:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("""
+            SELECT n.*, u.name as actor_name, u.picture as actor_picture
+            FROM notifications n
+            JOIN users u ON n.actor_uid = u.uid
+            WHERE n.uid = $1
+            ORDER BY n.created_at DESC
+            LIMIT 50
+        """, uid)
+        results = []
+        for r in rows:
+            d = dict(r)
+            d['created_at'] = d['created_at'].isoformat()
+            results.append(d)
+        return results
+
+async def mark_notifications_read(uid: str):
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute("UPDATE notifications SET is_read = TRUE WHERE uid = $1", uid)
+
 async def toggle_like(uid: str, request_id: str) -> bool:
     pool = await get_pool()
     async with pool.acquire() as conn:
@@ -981,6 +1038,9 @@ async def toggle_like(uid: str, request_id: str) -> bool:
             return False
         else:
             await conn.execute("INSERT INTO likes (uid, request_id) VALUES ($1, $2)", uid, request_id)
+            # Notify owner
+            owner = await conn.fetchval("SELECT uid FROM image_summaries WHERE request_id = $1", request_id)
+            if owner: await create_notification(owner, uid, 'like', request_id)
             return True
 
 async def add_comment(uid: str, request_id: str, content: str) -> Dict:
@@ -991,6 +1051,9 @@ async def add_comment(uid: str, request_id: str, content: str) -> Dict:
             VALUES ($1, $2, $3) 
             RETURNING id, created_at
         """, uid, request_id, content)
+        # Notify owner
+        owner = await conn.fetchval("SELECT uid FROM image_summaries WHERE request_id = $1", request_id)
+        if owner: await create_notification(owner, uid, 'comment', request_id, content[:50])
         return dict(row)
 
 async def get_comments(request_id: str) -> List[Dict]:
@@ -1019,6 +1082,7 @@ async def toggle_follow(follower_uid: str, followed_uid: str) -> bool:
             return False
         else:
             await conn.execute("INSERT INTO follows (follower_uid, followed_uid) VALUES ($1, $2)", follower_uid, followed_uid)
+            await create_notification(followed_uid, follower_uid, 'follow')
             return True
 
 async def get_public_profile(uid: Optional[str] = None, name: Optional[str] = None) -> Optional[Dict]:

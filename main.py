@@ -135,14 +135,14 @@ async def auth_logout(response: Response):
 
 # --- Public Gallery ---
 @app.get("/public-gallery")
-async def get_public_gallery(request: Request, limit: int = 20, before: Optional[str] = None, realm: Optional[str] = None, search: Optional[str] = None, sort: str = 'newest', target_uid: Optional[str] = None):
+async def get_public_gallery(request: Request, limit: int = 20, before: Optional[str] = None, realm: Optional[str] = None, search: Optional[str] = None, sort: str = 'newest', target_uid: Optional[str] = None, following_only: bool = False):
     b_id = None
     if before and before != "null" and before != "undefined":
         try: b_id = int(float(before))
         except: pass
     
     uid = get_uid_from_session(request)
-    items = await DB.list_public_generations(limit=limit, before_id=b_id, realm=realm, search=search, sort=sort, target_uid=target_uid, current_uid=uid)
+    items = await DB.list_public_generations(limit=limit, before_id=b_id, realm=realm, search=search, sort=sort, target_uid=target_uid, current_uid=uid, following_only=following_only)
     
     next_cursor = items[-1]["image_id_seq"] if items else None
     return {
@@ -192,6 +192,20 @@ async def get_user_profile(target: str):
         
     if not profile: raise HTTPException(status_code=404, detail="User not found")
     return {"profile": profile}
+
+@app.get("/notifications")
+async def get_notifications(request: Request):
+    uid = get_uid_from_session(request)
+    if not uid: return {"notifications": []}
+    notes = await DB.get_notifications(uid)
+    return {"notifications": notes}
+
+@app.post("/notifications/read")
+async def mark_notifications_read(request: Request):
+    uid = get_uid_from_session(request)
+    if not uid: return {"status": "ok"}
+    await DB.mark_notifications_read(uid)
+    return {"status": "ok"}
 
 @app.post("/history/batch/{request_id}/public")
 async def toggle_public_batch(request_id: str, request: Request):
