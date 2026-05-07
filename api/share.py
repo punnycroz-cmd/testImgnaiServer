@@ -50,7 +50,12 @@ async def create_share_link(payload: ShareRequest, uid: str = Depends(get_curren
     
     r2_key = image["r2_key"] if image else None
     if r2_key:
-        print(f"DEBUG: Found r2_key in generation_images: {r2_key}")
+        print(f"DEBUG: Found r2_key in DB: {r2_key}")
+        # If the DB stored the full URL by mistake, extract just the path
+        if r2_key.startswith("http"):
+            from core.vault import extract_key_from_url, _public_url
+            r2_key = extract_key_from_url(r2_key, _public_url)
+            print(f"DEBUG: Extracted key from full URL: {r2_key}")
 
     if not r2_key:
         print(f"DEBUG: Image not in generation_images, checking result JSON fallback")
