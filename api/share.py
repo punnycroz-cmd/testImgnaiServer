@@ -58,7 +58,7 @@ async def create_share_link(payload: ShareRequest, uid: str = Depends(get_curren
 
     return {
         "shortcode": shortcode,
-        "share_url": f"https://aether-share-worker.sienfinla.workers.dev/{shortcode}"
+        "share_url": f"https://aether-share-worker.sienfinla.workers.dev/s/{shortcode}"
     }
 
 async def _write_to_kv(shortcode: str, r2_key: str):
