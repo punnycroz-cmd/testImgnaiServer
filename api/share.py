@@ -31,7 +31,25 @@ async def create_share_link(payload: ShareRequest, uid: str = Depends(get_curren
         payload.request_id, payload.image_index, uid
     )
     
-    if not image:
+    r2_key = image["r2_key"] if image else None
+
+    # Fallback: Check the main generations table (for older images)
+    if not r2_key:
+        gen = await DB.fetchrow(
+            "SELECT result FROM generations WHERE request_id = $1 AND uid = $2",
+            payload.request_id, uid
+        )
+        if gen:
+            import json
+            res = json.loads(gen["result"]) if isinstance(gen["result"], str) else gen["result"]
+            urls = res.get("image_urls", [])
+            if payload.image_index < len(urls):
+                # The image_url is like https://.../r2_key
+                # We need to extract the key
+                full_url = urls[payload.image_index]
+                r2_key = full_url.split('/')[-1].split('?')[0]
+
+    if not r2_key:
         raise HTTPException(status_code=404, detail="Image not found or access denied")
 
     # 2. Generate shortcode (8 chars)
@@ -44,12 +62,12 @@ async def create_share_link(payload: ShareRequest, uid: str = Depends(get_curren
         VALUES ($1, $2, $3, $4, $5, $6)
         """,
         shortcode, payload.request_id, payload.image_index, 
-        image["r2_key"], payload.title, uid
+        r2_key, payload.title, uid
     )
 
     # 4. Write to Cloudflare KV for edge resolution
     try:
-        await _write_to_kv(shortcode, image["r2_key"])
+        await _write_to_kv(shortcode, r2_key)
     except Exception as e:
         print(f"KV write failed: {e}")
         # We don't fail the whole request if KV write fails, 
