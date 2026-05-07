@@ -186,6 +186,43 @@ async def init_db(force: bool = False):
         """)
         await conn.execute("CREATE INDEX IF NOT EXISTS idx_clicks_shortcode ON share_clicks (shortcode);")
 
+        # --- 6. Global Social Features ---
+        
+        # Likes / Hearts
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS likes (
+                uid         TEXT NOT NULL REFERENCES users(uid) ON DELETE CASCADE,
+                request_id  TEXT NOT NULL REFERENCES generations(request_id) ON DELETE CASCADE,
+                created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                PRIMARY KEY (uid, request_id)
+            );
+        """)
+        await conn.execute("CREATE INDEX IF NOT EXISTS idx_likes_request ON likes (request_id);")
+
+        # Comments
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS comments (
+                id          SERIAL PRIMARY KEY,
+                uid         TEXT NOT NULL REFERENCES users(uid) ON DELETE CASCADE,
+                request_id  TEXT NOT NULL REFERENCES generations(request_id) ON DELETE CASCADE,
+                content     TEXT NOT NULL,
+                created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            );
+        """)
+        await conn.execute("CREATE INDEX IF NOT EXISTS idx_comments_request ON comments (request_id);")
+
+        # Follows
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS follows (
+                follower_uid TEXT NOT NULL REFERENCES users(uid) ON DELETE CASCADE,
+                followed_uid TEXT NOT NULL REFERENCES users(uid) ON DELETE CASCADE,
+                created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                PRIMARY KEY (follower_uid, followed_uid)
+            );
+        """)
+        await conn.execute("CREATE INDEX IF NOT EXISTS idx_follows_followed ON follows (followed_uid);")
+
         # Extra columns for generations
         await conn.execute("ALTER TABLE generations ADD COLUMN IF NOT EXISTS image_id_seq BIGSERIAL;")
         
@@ -780,9 +817,15 @@ class DatabaseProxy:
     async def mark_image_deleting(self, rid, url): return await mark_image_deleting(rid, url)
     async def finalize_image_deletion(self, rid, url): return await finalize_image_deletion(rid, url)
     async def set_generation_public(self, rid, is_public: bool): return await set_generation_public(rid, is_public)
-    async def list_public_generations(self, limit=20, before_id=None): return await list_public_generations(limit, before_id)
+    async def list_public_generations(self, limit=20, before_id=None, realm=None, search=None, sort='newest', target_uid=None, current_uid=None): 
+        return await list_public_generations(limit, before_id, realm, search, sort, target_uid, current_uid)
     async def create_post(self, uid, content, request_id=None): return await create_post(uid, content, request_id)
     async def list_posts(self, limit=20, before_id=None): return await list_posts(limit, before_id)
+    async def toggle_like(self, uid, rid): return await toggle_like(uid, rid)
+    async def add_comment(self, uid, rid, content): return await add_comment(uid, rid, content)
+    async def get_comments(self, rid): return await get_comments(rid)
+    async def toggle_follow(self, f_uid, t_uid): return await toggle_follow(f_uid, t_uid)
+    async def get_public_profile(self, uid=None, name=None): return await get_public_profile(uid, name)
 
 async def create_post(uid: str, content: str, request_id: Optional[str] = None) -> Dict:
     pool = await get_pool()
@@ -854,26 +897,53 @@ async def set_generation_public(request_id: str, is_public: bool) -> bool:
             """, request_id, is_public)
             return True
 
-async def list_public_generations(limit: int = 20, before_id: Optional[int] = None) -> List[Dict]:
+async def list_public_generations(limit: int = 20, before_id: Optional[int] = None, realm: Optional[str] = None, search: Optional[str] = None, sort: str = 'newest', target_uid: Optional[str] = None, current_uid: Optional[str] = None) -> List[Dict]:
     pool = await get_pool()
     async with pool.acquire() as conn:
         clauses = ["s.is_public = TRUE", "s.visible_images > 0"]
         params = []
         
+        if target_uid:
+            params.append(target_uid)
+            clauses.append(f"s.uid = ${len(params)}")
+
+        if realm:
+            params.append(realm)
+            clauses.append(f"s.realm = ${len(params)}")
+            
+        if search:
+            params.append(f"%{search.lower()}%")
+            clauses.append(f"LOWER(s.prompt) LIKE ${len(params)}")
+
         if before_id is not None:
             params.append(int(before_id))
             clauses.append(f"s.image_id_seq < ${len(params)}")
             
         where_stmt = " WHERE " + " AND ".join(clauses)
         params.append(int(limit))
+        limit_idx = len(params)
         
+        uid_param = ""
+        if current_uid:
+            params.append(current_uid)
+            uid_param = f", EXISTS(SELECT 1 FROM likes l2 WHERE l2.request_id = s.request_id AND l2.uid = ${len(params)}) as is_liked"
+
+        # Sort logic
+        order_by = "s.image_id_seq DESC"
+        if sort == 'trending':
+            order_by = "likes_count DESC, s.image_id_seq DESC"
+
         sql = f"""
-            SELECT s.*, g.result, g.hidden_indices
+            SELECT s.*, g.result, g.hidden_indices, u.name as user_name, u.picture as user_picture,
+                   (SELECT COUNT(*) FROM likes l WHERE l.request_id = s.request_id) as likes_count,
+                   (SELECT COUNT(*) FROM comments c WHERE c.request_id = s.request_id) as comments_count
+                   {uid_param}
             FROM image_summaries s
             JOIN generations g ON s.request_id = g.request_id
+            JOIN users u ON s.uid = u.uid
             {where_stmt}
-            ORDER BY s.image_id_seq DESC 
-            LIMIT ${len(params)}
+            ORDER BY {order_by}
+            LIMIT ${limit_idx}
         """
         rows = await conn.fetch(sql, *params)
         
@@ -887,5 +957,69 @@ async def list_public_generations(limit: int = 20, before_id: Optional[int] = No
             d['images'] = _build_images(result_obj, include_hidden=False, hidden_indices=d['hidden_indices'])
             results.append(d)
         return results
+
+async def toggle_like(uid: str, request_id: str) -> bool:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow("SELECT 1 FROM likes WHERE uid = $1 AND request_id = $2", uid, request_id)
+        if row:
+            await conn.execute("DELETE FROM likes WHERE uid = $1 AND request_id = $2", uid, request_id)
+            return False
+        else:
+            await conn.execute("INSERT INTO likes (uid, request_id) VALUES ($1, $2)", uid, request_id)
+            return True
+
+async def add_comment(uid: str, request_id: str, content: str) -> Dict:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow("""
+            INSERT INTO comments (uid, request_id, content) 
+            VALUES ($1, $2, $3) 
+            RETURNING id, created_at
+        """, uid, request_id, content)
+        return dict(row)
+
+async def get_comments(request_id: str) -> List[Dict]:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("""
+            SELECT c.*, u.name as author_name, u.picture as author_picture
+            FROM comments c
+            JOIN users u ON c.uid = u.uid
+            WHERE c.request_id = $1
+            ORDER BY c.created_at ASC
+        """, request_id)
+        results = []
+        for r in rows:
+            d = dict(r)
+            d['created_at'] = d['created_at'].isoformat()
+            results.append(d)
+        return results
+
+async def toggle_follow(follower_uid: str, followed_uid: str) -> bool:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow("SELECT 1 FROM follows WHERE follower_uid = $1 AND followed_uid = $2", follower_uid, followed_uid)
+        if row:
+            await conn.execute("DELETE FROM follows WHERE follower_uid = $1 AND followed_uid = $2", follower_uid, followed_uid)
+            return False
+        else:
+            await conn.execute("INSERT INTO follows (follower_uid, followed_uid) VALUES ($1, $2)", follower_uid, followed_uid)
+            return True
+
+async def get_public_profile(uid: Optional[str] = None, name: Optional[str] = None) -> Optional[Dict]:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        clause = "u.uid = $1" if uid else "u.name = $1"
+        val = uid if uid else name
+        row = await conn.fetchrow(f"""
+            SELECT u.*, 
+                   (SELECT COUNT(*) FROM follows WHERE followed_uid = u.uid) as follower_count,
+                   (SELECT COUNT(*) FROM follows WHERE follower_uid = u.uid) as following_count,
+                   (SELECT COUNT(*) FROM image_summaries WHERE uid = u.uid AND is_public = TRUE) as manifestation_count
+            FROM users u
+            WHERE {clause}
+        """, val)
+        return dict(row) if row else None
 
 DB = DatabaseProxy()

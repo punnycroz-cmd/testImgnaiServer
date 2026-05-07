@@ -135,13 +135,14 @@ async def auth_logout(response: Response):
 
 # --- Public Gallery ---
 @app.get("/public-gallery")
-async def get_public_gallery(limit: int = 20, before: Optional[str] = None):
+async def get_public_gallery(limit: int = 20, before: Optional[str] = None, realm: Optional[str] = None, search: Optional[str] = None, sort: str = 'newest', target_uid: Optional[str] = None):
     b_id = None
     if before and before != "null" and before != "undefined":
         try: b_id = int(float(before))
         except: pass
     
-    items = await DB.list_public_generations(limit=limit, before_id=b_id)
+    uid = get_uid_from_session(request)
+    items = await DB.list_public_generations(limit=limit, before_id=b_id, realm=realm, search=search, sort=sort, target_uid=target_uid, current_uid=uid)
     
     next_cursor = items[-1]["image_id_seq"] if items else None
     return {
@@ -150,6 +151,47 @@ async def get_public_gallery(limit: int = 20, before: Optional[str] = None):
         "has_more": len(items) >= limit,
         "next_cursor": next_cursor
     }
+
+# --- Social Features ---
+@app.post("/gallery/like/{request_id}")
+async def toggle_like(request_id: str, request: Request):
+    uid = get_uid_from_session(request)
+    if not uid: raise HTTPException(status_code=401, detail="Authentication required")
+    liked = await DB.toggle_like(uid, request_id)
+    return {"status": "ok", "liked": liked}
+
+@app.post("/gallery/comment/{request_id}")
+async def add_comment(request_id: str, request: Request):
+    uid = get_uid_from_session(request)
+    if not uid: raise HTTPException(status_code=401, detail="Authentication required")
+    body = await request.json()
+    content = body.get("content", "").strip()
+    if not content: raise HTTPException(status_code=400, detail="Comment cannot be empty")
+    comment = await DB.add_comment(uid, request_id, content)
+    return {"status": "ok", "comment": comment}
+
+@app.get("/gallery/comments/{request_id}")
+async def get_comments(request_id: str):
+    comments = await DB.get_comments(request_id)
+    return {"comments": comments}
+
+@app.post("/user/follow/{target_uid}")
+async def toggle_follow(target_uid: str, request: Request):
+    uid = get_uid_from_session(request)
+    if not uid: raise HTTPException(status_code=401, detail="Authentication required")
+    if uid == target_uid: raise HTTPException(status_code=400, detail="You cannot follow yourself")
+    followed = await DB.toggle_follow(uid, target_uid)
+    return {"status": "ok", "followed": followed}
+
+@app.get("/user/profile/{target}")
+async def get_user_profile(target: str):
+    # Try by UID first, then by name
+    profile = await DB.get_public_profile(uid=target)
+    if not profile:
+        profile = await DB.get_public_profile(name=target)
+        
+    if not profile: raise HTTPException(status_code=404, detail="User not found")
+    return {"profile": profile}
 
 @app.post("/history/batch/{request_id}/public")
 async def toggle_public_batch(request_id: str, request: Request):
