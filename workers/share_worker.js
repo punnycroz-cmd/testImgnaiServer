@@ -33,33 +33,35 @@ export default {
       });
     }
 
-    // 4. Premium Landing Page
+    // 4. Ultra-Premium Gallery Page
     const rawUrl = `${url.origin}${url.pathname}?raw=1`;
     const homeUrl = 'https://aether-store.pages.dev';
+    const displayId = shortcode.toUpperCase();
+    const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
     const html = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aether | Divine Creation</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Aether | Divine Manifestation ${displayId}</title>
     
     <!-- Social Meta Tags -->
-    <meta property="og:title" content="Aether Studio | Divine Manifestation">
-    <meta property="og:description" content="Witness a vision shared from the Aether. Click to create yours.">
+    <meta property="og:title" content="Aether Studio | Vision ${displayId}">
+    <meta property="og:description" content="Witness a divine manifestation from the Aether.">
     <meta property="og:image" content="${rawUrl}">
     <meta property="og:type" content="website">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:image" content="${rawUrl}">
 
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
         :root {
             --accent: #8b5cf6;
-            --accent-glow: rgba(139, 92, 246, 0.3);
-            --bg: #030712;
+            --accent-soft: rgba(139, 92, 246, 0.4);
+            --bg: #030610;
         }
+        * { box-sizing: border-box; }
         body {
             margin: 0;
             padding: 0;
@@ -69,83 +71,110 @@ export default {
             display: flex;
             flex-direction: column;
             align-items: center;
-            min-height: 100vh;
-            overflow-x: hidden;
+            justify-content: center;
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
         }
         
-        /* Subtle background glow */
+        /* Cosmic Background Overlay */
         body::before {
             content: '';
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.08) 0%, transparent 70%);
-            pointer-events: none;
+            background: 
+                radial-gradient(circle at 20% 20%, rgba(139, 92, 246, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 80% 80%, rgba(99, 102, 241, 0.05) 0%, transparent 40%);
             z-index: -1;
         }
 
         .container {
-            max-width: 800px;
             width: 100%;
-            padding: 40px 20px;
-            box-sizing: border-box;
+            max-width: 1000px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            animation: fadeIn 0.8s ease-out;
+            justify-content: space-between;
+            padding: 24px;
+            height: 100%;
+            animation: fadeIn 1s cubic-bezier(0.2, 0, 0.2, 1);
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+            from { opacity: 0; transform: scale(0.98); }
+            to { opacity: 1; transform: scale(1); }
         }
 
         .header {
-            margin-bottom: 32px;
             text-align: center;
+            flex-shrink: 0;
         }
 
         .logo {
             font-family: 'Cinzel', serif;
-            font-size: clamp(1.2rem, 5vw, 1.8rem);
-            letter-spacing: 0.4em;
+            font-size: 1.2rem;
+            letter-spacing: 0.5em;
             color: var(--accent);
             text-decoration: none;
-            text-shadow: 0 0 20px var(--accent-glow);
-            transition: opacity 0.2s;
+            text-shadow: 0 0 25px var(--accent-soft);
         }
-        .logo:hover { opacity: 0.8; }
 
-        .image-card {
+        .manifest-info {
+            font-size: 0.65rem;
+            letter-spacing: 0.2em;
+            color: rgba(255,255,255,0.3);
+            text-transform: uppercase;
+            margin-top: 8px;
+        }
+
+        .gallery-card {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            max-height: 72vh;
+            padding: 20px 0;
+        }
+
+        .image-container {
             position: relative;
-            width: 100%;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 28px;
-            padding: 12px;
-            box-sizing: border-box;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 30px 60px rgba(0,0,0,0.6);
-            margin-bottom: 40px;
-        }
-
-        .image-inner {
-            width: 100%;
+            max-height: 100%;
+            max-width: 100%;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 20px;
-            overflow: hidden;
-            display: block;
-            line-height: 0;
-            background: #000;
+            padding: 8px;
+            box-shadow: 0 40px 100px rgba(0,0,0,0.8);
+            backdrop-filter: blur(20px);
         }
 
         img {
-            width: 100%;
-            height: auto;
+            max-width: 100%;
+            max-height: calc(72vh - 18px);
+            border-radius: 14px;
             display: block;
+            object-fit: contain;
         }
 
-        .cta-section {
-            width: 100%;
+        /* Scanline effect over image */
+        .image-container::after {
+            content: '';
+            position: absolute;
+            inset: 8px;
+            border-radius: 14px;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.02), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.02));
+            background-size: 100% 3px, 3px 100%;
+            pointer-events: none;
+            opacity: 0.3;
+        }
+
+        .actions {
+            flex-shrink: 0;
             text-align: center;
+            width: 100%;
+            padding-bottom: 20px;
         }
 
         .btn {
@@ -153,60 +182,57 @@ export default {
             align-items: center;
             justify-content: center;
             padding: 18px 48px;
-            background: white;
+            background: linear-gradient(135deg, #fff 0%, #e2e8f0 100%);
             color: #000;
             text-decoration: none;
             border-radius: 100px;
             font-weight: 600;
-            font-size: 1rem;
-            letter-spacing: 0.02em;
-            transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            font-size: 0.95rem;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
         }
 
         .btn:hover {
-            transform: scale(1.05);
+            transform: translateY(-4px) scale(1.02);
             background: var(--accent);
             color: white;
-            box-shadow: 0 15px 40px var(--accent-glow);
+            box-shadow: 0 20px 40px var(--accent-soft);
         }
 
-        .footer {
-            margin-top: auto;
-            padding: 40px 0;
-            font-size: 0.7rem;
-            color: rgba(255,255,255,0.3);
-            letter-spacing: 0.2em;
+        .badge {
+            display: block;
+            margin-top: 16px;
+            font-size: 0.6rem;
+            color: rgba(255,255,255,0.25);
+            letter-spacing: 0.15em;
             text-transform: uppercase;
         }
 
-        /* Responsive Tweaks */
         @media (max-width: 600px) {
-            .container { padding: 30px 16px; }
-            .image-card { border-radius: 20px; padding: 8px; }
-            .image-inner { border-radius: 14px; }
-            .btn { width: 100%; box-sizing: border-box; padding: 16px 24px; }
+            .gallery-card { max-height: 60vh; }
+            img { max-height: calc(60vh - 18px); }
+            .btn { width: 100%; padding: 18px 24px; }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <a href="${homeUrl}" class="logo">AETHER</a>
+            <a href="${homeUrl}" class="logo">AETHER STUDIO</a>
+            <div class="manifest-info">Manifestation #${displayId} &bull; ${date}</div>
         </div>
         
-        <div class="image-card">
-            <div class="image-inner">
-                <img src="${rawUrl}" alt="Divine Manifestation">
+        <div class="gallery-card">
+            <div class="image-container">
+                <img src="${rawUrl}" alt="Aether Manifestation">
             </div>
         </div>
 
-        <div class="cta-section">
-            <a href="${homeUrl}" class="btn">Create Your Vision</a>
-        </div>
-
-        <div class="footer">
-            Aether Studio &bull; Divine AI Engine
+        <div class="actions">
+            <a href="${homeUrl}" class="btn">Begin Your Creation</a>
+            <div class="badge">Decentralized Vision Engine &bull; v2.0</div>
         </div>
     </div>
 </body>
