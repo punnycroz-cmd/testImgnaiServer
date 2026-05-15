@@ -219,15 +219,18 @@ async def toggle_public_batch(request_id: str, request: Request):
     # Ownership check
     row = await DB.get_generation(request_id)
     if not row:
-        print(f"DEBUG: 403 Error - Generation {request_id} not found in DB")
-        raise HTTPException(status_code=403, detail="Generation not found")
+        print(f"DEBUG: 403 Error - Generation {request_id} NOT FOUND in generations table")
+        raise HTTPException(status_code=403, detail=f"Manifestation {request_id} not found")
         
     db_uid = str(row.get("uid"))
     session_uid = str(uid)
     
     if db_uid != session_uid:
-        print(f"DEBUG: 403 Error - ID Mismatch! Session UID: '{session_uid}', DB UID: '{db_uid}'")
-        raise HTTPException(status_code=403, detail="Permission denied")
+        print(f"DEBUG: 403 Error - ID MISMATCH!")
+        print(f"  > Target Request: {request_id}")
+        print(f"  > Session UID:   '{session_uid}'")
+        print(f"  > Database UID:  '{db_uid}'")
+        raise HTTPException(status_code=403, detail="Permission denied: You do not own this vision")
         
     await DB.set_generation_public(request_id, is_public)
     
