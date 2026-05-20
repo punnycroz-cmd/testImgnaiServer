@@ -38,13 +38,7 @@ export function initAetherCanvas(state) {
     });
   }
 
-  function animate() {
-    // Pause when tab is hidden for performance
-    if (!state.get('app.isTabVisible')) {
-      animationId = requestAnimationFrame(animate);
-      return;
-    }
-
+  function draw() {
     ctx.clearRect(0, 0, width, height);
     const isNsfw = state.get('app.mode') === 'nsfw';
 
@@ -66,14 +60,38 @@ export function initAetherCanvas(state) {
         : `rgba(16, 185, 129, ${alpha})`;
       ctx.fill();
     });
+  }
 
+  function animate() {
+    draw();
     animationId = requestAnimationFrame(animate);
   }
 
-  animate();
+  function handleVisibilityChange(visible) {
+    if (visible) {
+      if (!animationId) {
+        animate();
+      }
+    } else {
+      if (animationId) {
+        cancelAnimationFrame(animationId);
+        animationId = null;
+      }
+    }
+  }
 
-  // Cleanup function
+  const unsubTab = state.subscribe('app.isTabVisible', (visible) => {
+    handleVisibilityChange(visible);
+  });
+
+  if (state.get('app.isTabVisible')) {
+    animate();
+  }
+
   return () => {
+    window.removeEventListener('resize', resize);
+    unsubTab();
     if (animationId) cancelAnimationFrame(animationId);
   };
 }
+

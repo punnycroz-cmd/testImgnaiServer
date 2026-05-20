@@ -63,6 +63,15 @@ function setView(v, pushState = true) {
   const mainEl = document.getElementById('mainScrollArea');
   if (mainEl) mainEl.scrollTo({ top: 0, behavior: 'smooth' });
   state.set('app.activeView', v);
+  
+  const isHistory = v === 'history';
+  const showHiddenBtn = document.getElementById('show-hidden-btn');
+  const toggleSelectBtn = document.getElementById('toggleSelectBtn');
+  if (showHiddenBtn) showHiddenBtn.style.display = isHistory ? 'inline-block' : 'none';
+  if (toggleSelectBtn) toggleSelectBtn.style.display = isHistory ? 'inline-block' : 'none';
+  if (!isHistory && state.get('vault.selectionMode')) {
+    vault.toggleSelectionMode(false);
+  }
 
   // Sync Mobile Nav
   document.querySelectorAll('.mobile-nav-item').forEach(b => {

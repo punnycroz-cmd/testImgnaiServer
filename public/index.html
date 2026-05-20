@@ -178,7 +178,7 @@
     
     <!-- 1. AMBIENT BACKGROUND -->
     <div class="fixed inset-0 z-0 bg-obsidian-950">
-        <canvas id="particlesCanvas" class="opacity-40"></canvas>
+        <canvas id="aetherCanvas" class="opacity-40 w-full h-full"></canvas>
         <div class="absolute inset-0 bg-gradient-to-tr from-obsidian-950 via-transparent to-gold-400/5"></div>
         <div class="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] bg-gold-400/5 blur-[120px] rounded-full animate-pulse"></div>
     </div>
@@ -396,7 +396,8 @@
             </div>
             
             <div class="pointer-events-auto flex items-center gap-4">
-                <button id="show-hidden-btn" class="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-white/10 transition-all">Show Hidden</button>
+                <button id="show-hidden-btn" data-action="toggleHiddenVault" class="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-white/10 transition-all">Show Hidden</button>
+                <button id="toggleSelectBtn" data-action="toggleSelectionMode" class="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-white/10 transition-all">Select Mode</button>
                 <div id="user-profile" class="hidden flex items-center gap-3">
                     <button data-action="logout" class="text-[10px] uppercase font-bold tracking-wider hover:text-red-600 transition-colors">Logout</button>
                     <div class="h-12 w-12 rounded-xl border-2 border-gold-400 overflow-hidden cursor-pointer shadow-glow-gold bg-parchment-300 transform transition-transform hover:-translate-y-1">
@@ -433,6 +434,27 @@
                 <div id="loadMoreFeedBtn" class="h-12 w-full flex items-center justify-center mt-4 opacity-0"></div>
             </section>
         </div>
+
+        <!-- SELECTION BAR FOR BULK ACTIONS -->
+        <div id="selectionBar" class="hidden fixed bottom-6 left-1/2 transform -translate-x-1/2 z-40 flex items-center justify-between gap-6 px-6 py-4 bg-obsidian-950/95 border-2 border-gold-400/40 rounded-2xl shadow-2xl backdrop-blur-xl w-[90%] max-w-xl transition-all duration-300">
+            <div class="flex items-center gap-3">
+                <span class="w-2.5 h-2.5 rounded-full bg-gold-400 animate-pulse"></span>
+                <span class="text-xs uppercase font-black tracking-widest text-white/90">
+                    <span id="selectCount" class="text-gold-400 font-black">0</span> Selected
+                </span>
+            </div>
+            <div class="flex items-center gap-3">
+                <button data-action="bulkHide" class="px-4 py-2 border border-white/10 hover:border-[var(--accent)] hover:bg-[var(--accent)]/10 text-[10px] text-white/80 font-bold uppercase tracking-widest rounded-lg transition-all">
+                    Hide
+                </button>
+                <button data-action="bulkDelete" class="px-4 py-2 border border-red-500/20 hover:border-red-500 hover:bg-red-500/10 text-[10px] text-red-400 font-bold uppercase tracking-widest rounded-lg transition-all">
+                    Banish
+                </button>
+                <button data-action="cancelSelectionMode" class="px-4 py-2 border border-white/5 hover:bg-white/5 text-[10px] text-white/40 font-bold uppercase tracking-widest rounded-lg transition-all">
+                    Cancel
+                </button>
+            </div>
+        </div>
     </main>
 
     <!-- LIGHTBOX MODAL -->
@@ -444,56 +466,65 @@
             <div class="flex-1 bg-black/80 relative flex items-center justify-center p-6 min-h-[40vh] border-r border-gold-400/10">
                 <img id="bubbleRevealImg" src="" alt="Enlarged Vision" class="max-w-full max-h-full object-contain shadow-2xl rounded">
             </div>
-            <div class="w-full md:w-[420px] p-8 lg:p-10 flex flex-col gap-8 overflow-y-auto custom-scrollbar">
-                <div class="border-b border-gold-400/10 pb-6">
+            <div class="w-full md:w-[420px] p-8 lg:p-10 flex flex-col gap-6 overflow-y-auto custom-scrollbar">
+                <div class="border-b border-gold-400/10 pb-4">
                     <h4 class="text-[10px] font-bold uppercase text-gold-400 tracking-[0.3em] mb-3 flex items-center gap-2">The Incantation</h4>
                     <p id="lightboxPrompt" class="text-base text-white/90 leading-relaxed font-serif italic tracking-wide"></p>
                 </div>
-                <div class="border-b border-gold-400/10 pb-6">
+                <div class="border-b border-gold-400/10 pb-4">
                     <h4 class="text-[10px] font-bold uppercase text-red-500/80 tracking-[0.3em] mb-3">The Wards</h4>
                     <p id="lightboxNegative" class="text-xs text-white/40 leading-relaxed"></p>
                 </div>
+                
+                <!-- METADATA SUBSECTION -->
+                <div class="border-b border-gold-400/10 pb-4 flex justify-between items-center text-xs">
+                    <div>
+                        <span class="text-[9px] font-bold uppercase text-gold-400/60 tracking-[0.2em] block mb-0.5">Index</span>
+                        <span id="bubbleMeta" class="text-white/80 font-bold">#1</span>
+                    </div>
+                    <div>
+                        <span class="text-[9px] font-bold uppercase text-gold-400/60 tracking-[0.2em] block mb-0.5">Dimensions</span>
+                        <span id="lightboxDims" class="text-white/80 font-bold">1024x1024</span>
+                    </div>
+                </div>
+
                 <div id="thumbsSection" class="hidden flex flex-col gap-3">
                     <h4 class="text-[10px] font-black text-gold-400 uppercase tracking-widest">The Batch</h4>
                     <div id="bubbleRevealThumbs" class="grid grid-cols-4 gap-2"></div>
                 </div>
-                <div class="mt-auto space-y-4 pt-6 border-t border-gold-400/10">
-                    <button data-action="hideCurrentItem" class="w-full py-3 border border-white/10 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-white/5 transition-all text-white/60">Hide Manifestation</button>
-                    <button data-action="banishCurrentItem" class="w-full py-3 border border-red-500/20 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-red-500/10 transition-all text-red-500/60">Banish Spirit</button>
+
+                <!-- ACTIONS LIST -->
+                <div class="space-y-3 pt-2">
+                    <h4 class="text-[9px] font-bold uppercase text-gold-400/60 tracking-[0.2em] mb-2">Actions</h4>
+                    
+                    <a id="bubbleRevealDownload" href="" download class="w-full py-2.5 border border-gold-400/20 hover:border-gold-400 hover:bg-gold-400/10 rounded-lg text-[10px] font-bold uppercase tracking-widest text-center text-gold-400 flex items-center justify-center gap-2 transition-all">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        Download Vision
+                    </a>
+
+                    <button data-action="cloneManifestation" class="w-full py-2.5 bg-white/5 border border-white/10 hover:border-gold-400 hover:text-gold-400 rounded-lg text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-all text-white/70">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                        Clone to Forge
+                    </button>
+
+                    <button id="publishBtn" data-action="togglePublishCurrentBatch" class="w-full py-2.5 border border-white/10 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-white/5 transition-all text-white/60">
+                        Post to Public
+                    </button>
+
+                    <button data-action="shareCurrentImage" class="w-full py-2.5 border border-white/10 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-white/5 transition-all text-white/60 flex items-center justify-center gap-2">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                        Share Vision
+                    </button>
+                </div>
+
+                <div class="mt-auto space-y-3 pt-4 border-t border-gold-400/10">
+                    <button data-action="hideCurrentItem" class="w-full py-2.5 border border-white/10 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-white/5 transition-all text-white/50">Hide Manifestation</button>
+                    <button data-action="banishCurrentItem" class="w-full py-2.5 border border-red-500/20 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-red-500/10 transition-all text-red-500/50">Banish Spirit</button>
                 </div>
             </div>
         </div>
     </div>
 
     <script type="module" src="/js/main.js"></script>
-
-    <script>
-        const canvas = document.getElementById('particlesCanvas');
-        const ctx = canvas.getContext('2d');
-        let particles = [];
-        function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
-        window.addEventListener('resize', resize); resize();
-        class Particle {
-            constructor() {
-                this.x = Math.random() * canvas.width; this.y = Math.random() * canvas.height;
-                this.size = Math.random() * 2 + 0.5;
-                this.speedX = Math.random() * 0.4 - 0.2; this.speedY = Math.random() * -0.6 - 0.1; 
-                this.color = Math.random() > 0.5 ? 'rgba(212, 175, 55, ' : 'rgba(255, 255, 255, ';
-                this.opacity = Math.random() * 0.6 + 0.2;
-            }
-            update() {
-                this.x += this.speedX; this.y += this.speedY;
-                if (this.y < 0) this.y = canvas.height;
-                if (this.x < 0) this.x = canvas.width; if (this.x > canvas.width) this.x = 0;
-            }
-            draw() {
-                ctx.fillStyle = this.color + this.opacity + ')';
-                ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill();
-            }
-        }
-        for (let i = 0; i < 50; i++) particles.push(new Particle());
-        function animate() { ctx.clearRect(0, 0, canvas.width, canvas.height); particles.forEach(p => { p.update(); p.draw(); }); requestAnimationFrame(animate); }
-        animate();
-    </script>
 </body>
 </html>

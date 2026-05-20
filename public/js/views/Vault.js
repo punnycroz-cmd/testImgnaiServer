@@ -62,11 +62,12 @@ export function createVaultView(state, api, toast, openHistoryGroup) {
     if (el) {
       const isSel = sel.has(id);
       el.classList.toggle('border-[var(--accent)]', isSel);
+      el.classList.toggle('bg-[var(--accent)]/5', isSel);
       const ind = el.querySelector('.selection-indicator');
       if (ind) {
         ind.classList.toggle('bg-[var(--accent)]', isSel);
         ind.classList.toggle('border-[var(--accent)]', isSel);
-        ind.innerHTML = isSel ? '<svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg>' : '';
+        ind.innerHTML = isSel ? '<div class="w-2 h-2 bg-obsidian-950"></div>' : '';
       }
     }
     updateSelectionUI();
@@ -85,11 +86,22 @@ export function createVaultView(state, api, toast, openHistoryGroup) {
     state.set('vault.selectionMode', next);
     if (!next) state.set('vault.selectedIds', new Set());
     const btn = document.getElementById('toggleSelectBtn');
-    if (btn) btn.textContent = next ? 'Cancel' : 'Select Mode';
+    if (btn) {
+      btn.textContent = next ? 'Cancel' : 'Select Mode';
+      btn.classList.toggle('text-[var(--accent)]', next);
+      btn.classList.toggle('border-[var(--accent)]/40', next);
+      btn.classList.toggle('bg-[var(--accent)]/10', next);
+    }
     document.querySelectorAll('#historyList > div').forEach(card => {
       const ind = card.querySelector('.selection-indicator');
       if (ind) { ind.classList.toggle('hidden', !next); ind.classList.toggle('flex', next); }
-      if (!next) { card.classList.remove('border-[var(--accent)]'); if (ind) { ind.classList.remove('bg-[var(--accent)]'); ind.innerHTML = ''; } }
+      if (!next) {
+        card.classList.remove('border-[var(--accent)]', 'bg-[var(--accent)]/5');
+        if (ind) {
+          ind.classList.remove('bg-[var(--accent)]', 'border-[var(--accent)]');
+          ind.innerHTML = '';
+        }
+      }
     });
     updateSelectionUI();
   }
@@ -112,8 +124,13 @@ export function createVaultView(state, api, toast, openHistoryGroup) {
   function toggleHidden() {
     const next = !state.get('vault.showHidden');
     state.set('vault.showHidden', next);
-    const btn = document.getElementById('toggleHiddenVaultBtn');
-    if (btn) { btn.classList.toggle('text-[var(--accent)]', next); btn.classList.toggle('opacity-60', !next); btn.textContent = next ? 'Hide Hidden' : 'Show Hidden'; }
+    const btn = document.getElementById('show-hidden-btn') || document.getElementById('toggleHiddenVaultBtn');
+    if (btn) {
+      btn.classList.toggle('text-[var(--accent)]', next);
+      btn.classList.toggle('border-[var(--accent)]/40', next);
+      btn.classList.toggle('bg-[var(--accent)]/10', next);
+      btn.textContent = next ? 'Hide Hidden' : 'Show Hidden';
+    }
     reload();
   }
 
